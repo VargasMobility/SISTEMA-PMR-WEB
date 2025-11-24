@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel Agente PMR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #020617 0, #020617 40%, #020617 100%);
+      color: #e5e7eb;
+    }
+
+    .topbar {
+      padding: 10px 14px;
+      background: linear-gradient(90deg,#020617,#0f766e,#22d3ee);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      font-size:14px;
+      border-bottom:1px solid #1f2937;
+      box-shadow:0 2px 12px rgba(15,23,42,0.9);
+    }
+    .topbar-title {
+      font-weight:600;
+      letter-spacing:0.03em;
+    }
+    .badge {
+      padding:2px 8px;
+      border-radius:999px;
+      font-size:11px;
+      border:1px solid #22d3ee55;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      background:rgba(15,23,42,0.95);
+    }
+    .badge-dot {
+      width:8px;
+      height:8px;
+      border-radius:999px;
+      background:#22d3ee;
+      box-shadow:0 0 12px rgba(34,211,238,0.9);
+    }
+    .badge-dot.error {
+      background:#ef4444;
+      box-shadow:0 0 10px rgba(239,68,68,0.7);
+    }
+
+    .container {
+      padding:12px;
+      max-width:520px;
+      margin:0 auto;
+    }
+
+    .card {
+      background:radial-gradient(circle at top left,#020617,#020617 65%);
+      border-radius:18px;
+      border:1px solid #0f766e;
+      padding:14px;
+      margin-bottom:12px;
+      box-shadow:0 18px 40px rgba(0,0,0,0.75);
+    }
+    .card-header {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:8px;
+      font-size:13px;
+      color:#9ca3af;
+    }
+    .card-title {
+      font-size:15px;
+      font-weight:600;
+      color:#f9fafb;
+    }
+    .pill {
+      padding:2px 8px;
+      border-radius:999px;
+      font-size:11px;
+      border:1px solid #22d3eeaa;
+      color:#e0f2fe;
+      background:rgba(15,23,42,0.9);
+    }
+
+    label {
+      display:block;
+      margin-bottom:6px;
+      font-size:13px;
+    }
+    input, select {
+      width:100%;
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid #1f2937;
+      background:#020617;
+      color:#e5e7eb;
+      font-size:13px;
+      margin-top:2px;
+      outline:none;
+    }
+    input:focus, select:focus {
+      border-color:#22d3ee;
+      box-shadow:0 0 0 1px rgba(34,211,238,0.6);
+    }
+
+    textarea {
+      width:100%;
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid #1f2937;
+      background:#020617;
+      color:#e5e7eb;
+      font-size:13px;
+      margin-top:2px;
+      resize:vertical;
+      min-height:52px;
+      outline:none;
+    }
+    textarea:focus {
+      border-color:#22d3ee;
+      box-shadow:0 0 0 1px rgba(34,211,238,0.6);
+    }
+
+    .btn {
+      border:none;
+      border-radius:999px;
+      padding:9px 14px;
+      font-size:13px;
+      cursor:pointer;
+      background:linear-gradient(135deg,#06b6d4,#22c55e);
+      color:#020617;
+      font-weight:600;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      margin-top:8px;
+      width:100%;
+    }
+    .btn.secondary {
+      background:#020617;
+      color:#e5e7eb;
+      border:1px solid #64748b;
+      width:auto;
+    }
+    .btn.danger {
+      background:linear-gradient(135deg,#ef4444,#b91c1c);
+      color:#fef2f2;
+    }
+    .btn.warning {
+      background:linear-gradient(135deg,#f97316,#facc15);
+      color:#111827;
+    }
+    .btn.small {
+      padding:5px 10px;
+      font-size:12px;
+      width:auto;
+    }
+
+    .msg {
+      font-size:12px;
+      margin-top:6px;
+      min-height:16px;
+      color:#e5e7eb;
+    }
+    .msg.err { color:#f97373; }
+    .msg.ok  { color:#4ade80; }
+
+    /* Tabs principales */
+    .tabs {
+      display:flex;
+      gap:6px;
+      margin-bottom:8px;
+    }
+    .tab-btn {
+      flex:1;
+      border:none;
+      border-radius:999px;
+      padding:6px 8px;
+      font-size:12px;
+      background:#020617;
+      color:#e5e7eb;
+      border:1px solid #1f2937;
+      cursor:pointer;
+    }
+    .tab-btn.active {
+      background:linear-gradient(135deg,#0f766e,#22d3ee);
+      color:#e0f2fe;
+      border-color:#22d3ee;
+      font-weight:600;
+      box-shadow:0 0 12px rgba(34,211,238,0.4);
+    }
+
+    .section {
+      display:none;
+      margin-top:6px;
+    }
+    .section.active {
+      display:block;
+    }
+
+    .asignacion-card {
+      border-radius:14px;
+      border:1px solid #1e3a8a;
+      padding:10px;
+      margin-bottom:10px;
+      background:radial-gradient(circle at top left,#020617,#020617 60%);
+    }
+    .asignacion-header {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      font-size:12px;
+      margin-bottom:4px;
+    }
+    .asignacion-body {
+      font-size:12px;
+      color:#d1d5db;
+      margin-bottom:6px;
+    }
+    .asignacion-footer {
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+    .pill-state {
+      border-radius:999px;
+      padding:2px 7px;
+      font-size:11px;
+      border:1px solid #4b5563;
+    }
+    .pill-espera {
+      border-color:#facc15;
+      color:#fde68a;
+    }
+    .pill-aceptada {
+      border-color:#22d3ee;
+      color:#7dd3fc;
+    }
+    .pill-transito {
+      border-color:#22c55e;
+      color:#bbf7d0;
+    }
+    .pill-terminado {
+      border-color:#a855f7;
+      color:#e9d5ff;
+    }
+
+    .warning-limit {
+      margin-top:4px;
+      padding:6px 8px;
+      border-radius:10px;
+      font-size:13px;
+      font-weight:700;
+      background:rgba(234,179,8,0.08);
+      border:1px solid #facc15;
+      color:#facc15;
+    }
+
+    /* Historial */
+    .hist-card {
+      border-radius:12px;
+      border:1px solid #1f2937;
+      padding:8px;
+      margin-bottom:8px;
+      background:#020617;
+      font-size:12px;
+      color:#e5e7eb;
+    }
+
+    /* Panel de refresco */
+    .refresh-panel {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      font-size:11px;
+      margin-bottom:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(15,23,42,0.95);
+      border:1px solid rgba(148,163,184,0.7);
+    }
+    .refresh-countdown {
+      display:none;
+      color:#e5e7eb;
+    }
+    .refresh-countdown strong {
+      color:#fbbf24;
+    }
+
+    /* Loading overlay login */
+    .loading-overlay {
+      position:fixed;
+      inset:0;
+      background:rgba(15,23,42,0.9);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:50;
+      backdrop-filter:blur(2px);
+    }
+    .loading-box {
+      background:#020617;
+      border-radius:14px;
+      padding:16px 18px;
+      border:1px solid #0f766e;
+      width:260px;
+      text-align:center;
+      box-shadow:0 16px 40px rgba(0,0,0,0.8);
+      font-size:13px;
+    }
+    .loading-bar {
+      width:100%;
+      height:6px;
+      border-radius:999px;
+      background:#020617;
+      border:1px solid #4b5563;
+      overflow:hidden;
+      margin-top:8px;
+    }
+    .loading-bar-inner {
+      height:100%;
+      width:0%;
+      background:linear-gradient(90deg,#0f766e,#22d3ee,#a855f7);
+      transition:width 3s linear;
+    }
+
+    /* Config */
+    .config-info {
+      font-size:12px;
+      color:#e5e7eb;
+      margin-bottom:8px;
+      border-radius:10px;
+      background:#020617;
+      padding:8px;
+      border:1px solid #1f2937;
+    }
+
+    @media (max-width:600px) {
+      .container { padding:8px; }
+      .card { border-radius:16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-title">Agente PMR</div>
+    <div class="badge" id="estado-api-agente">
+      <span class="badge-dot" id="estado-dot"></span>
+      <span id="estado-api-text">Desconectado</span>
+    </div>
+  </div>
+
+  <!-- LOADING LOGIN -->
+  <div class="loading-overlay" id="login-loading">
+    <div class="loading-box">
+      <div>Conectando con el sistema PMR...</div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:2px;">Validando tus datos y marcando disponibilidad</div>
+      <div class="loading-bar">
+        <div class="loading-bar-inner" id="loading-bar-inner"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- CARD LOGIN -->
+    <div class="card" id="card-login">
+      <div class="card-header">
+        <span class="card-title">Ingreso de agente</span>
+        <span class="pill">Sólo personal PMR</span>
+      </div>
+      <label>RUT (sin puntos, con guión)
+        <input type="text" id="login-rut" placeholder="Ej: 11111111-1">
+      </label>
+      <label>Ubicación actual
+        <select id="login-ubicacion">
+          <option value="">-- Seleccionar --</option>
+          <option value="Nacional">Nacional</option>
+          <option value="Internacional">Internacional</option>
+        </select>
+      </label>
+      <button class="btn" id="btn-login-agente">
+        Ingresar y marcar Disponible
+      </button>
+      <div class="msg" id="msg-login-agente"></div>
+    </div>
+
+    <!-- CARD PRINCIPAL AGENTE -->
+    <div class="card" id="card-main" style="display:none;">
+      <div class="card-header">
+        <div>
+          <div class="card-title" id="titulo-agente">Agente</div>
+          <div id="subtitulo-agente" style="font-size:11px; color:#9ca3af; margin-top:2px;"></div>
+        </div>
+      </div>
+
+      <!-- Panel refresco -->
+      <div class="refresh-panel">
+        <button class="btn small secondary" id="btn-refrescar-datos">
+          Refrescar información
+        </button>
+        <div class="refresh-countdown" id="refresh-countdown">
+          Actualización automática en <strong id="refresh-seconds">300</strong> s
+        </div>
+      </div>
+
+      <!-- Tabs (4 acciones principales del agente) -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="tab-asignaciones">Asignaciones</button>
+        <button class="tab-btn" data-tab="tab-historial">Historial</button>
+        <button class="tab-btn" data-tab="tab-rango">Mi rango</button>
+        <button class="tab-btn" data-tab="tab-config">Configuración</button>
+      </div>
+
+      <!-- ASIGNACIONES (solo pendientes) -->
+      <div class="section active" id="tab-asignaciones">
+        <div id="lista-asignaciones"></div>
+        <div class="msg" id="msg-asignaciones"></div>
+      </div>
+
+      <!-- HISTORIAL (terminadas, descendente) -->
+      <div class="section" id="tab-historial">
+        <div id="lista-historial"></div>
+        <div class="msg" id="msg-historial"></div>
+      </div>
+
+      <!-- MI RANGO (bloqueado / próximamente) -->
+      <div class="section" id="tab-rango">
+        <div id="rango-contenedor"></div>
+      </div>
+
+      <!-- CONFIGURACIÓN -->
+      <div class="section" id="tab-config">
+        <div class="config-info" id="config-info"></div>
+        <button class="btn warning" id="btn-descanso">
+          En Descanso
+        </button>
+        <button class="btn danger" id="btn-logout">
+          Cerrar sesión
+        </button>
+        <div class="msg" id="msg-config"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbwFBHpIx-gQrVAvj5Vv-I-l1X3NR9MYbyTV9CtxgKCw7oPeuxIE5qrYx3eZdDoIroTE/exec";
+
+    let idAgenteLogueado = null;
+    let rutAgente = "";
+    let nombreAgente = "";
+    let ubicacionAgente = "";
+    let estadoServicioAgente = "";
+
+    let cacheAsignaciones = [];
+    let cachePasajeros = [];
+    let cacheVuelos = [];
+
+    let autoRefreshInterval = null;
+    let autoRefreshSeconds = 300; // 5 minutos
+
+    const estadoApiBadge = document.getElementById("estado-api-agente");
+    const estadoDot      = document.getElementById("estado-dot");
+    const estadoApiText  = document.getElementById("estado-api-text");
+
+    function setEstadoApi(texto, ok=true){
+      if (!estadoApiBadge) return;
+      estadoApiText.textContent = texto;
+      if (estadoDot) {
+        if (ok) estadoDot.classList.remove("error");
+        else    estadoDot.classList.add("error");
+      }
+    }
+
+    function formatearHora(horaRaw) {
+      if (!horaRaw) return "";
+      if (horaRaw instanceof Date) {
+        const hh = String(horaRaw.getHours()).padStart(2,"0");
+        const mm = String(horaRaw.getMinutes()).padStart(2,"0");
+        return `${hh}:${mm}`;
+      }
+      const s = String(horaRaw);
+      const m = s.match(/(\d{1,2}):(\d{2})/);
+      if (m) return `${m[1].padStart(2,"0")}:${m[2]}`;
+      return s;
+    }
+
+    function parseFechaSolo(fecha) {
+      if (!fecha) return null;
+      if (fecha instanceof Date) return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+      const s = String(fecha).trim();
+      const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (m) return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
+      const d = new Date(s);
+      if (!isNaN(d)) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      return null;
+    }
+
+    function hoyTrunc() {
+      const d = new Date();
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+
+    /* ------------ LOGIN POR RUT ------------ */
+    function mostrarLoadingLogin(mostrar) {
+      const overlay = document.getElementById("login-loading");
+      const bar = document.getElementById("loading-bar-inner");
+      if (!overlay || !bar) return;
+      if (mostrar) {
+        bar.style.width = "0%";
+        overlay.style.display = "flex";
+        void bar.offsetWidth;
+        bar.style.width = "100%";
+      } else {
+        overlay.style.display = "none";
+      }
+    }
+
+    async function intentarLogin() {
+      const inputRut  = document.getElementById("login-rut");
+      const selUbic   = document.getElementById("login-ubicacion");
+      const msg       = document.getElementById("msg-login-agente");
+      const cardLogin = document.getElementById("card-login");
+      const cardMain  = document.getElementById("card-main");
+      const titulo    = document.getElementById("titulo-agente");
+      const subtitulo = document.getElementById("subtitulo-agente");
+
+      if (!inputRut || !selUbic || !cardLogin || !cardMain) return;
+
+      const rut = (inputRut.value || "").trim();
+      const ubic = selUbic.value;
+
+      if (!rut) {
+        msg.textContent = "Ingresa tu RUT.";
+        msg.className = "msg err";
+        return;
+      }
+      if (!ubic) {
+        msg.textContent = "Selecciona tu ubicación actual.";
+        msg.className = "msg err";
+        return;
+      }
+
+      msg.textContent = "";
+      msg.className = "msg";
+
+      try {
+        mostrarLoadingLogin(true);
+        const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+        const params = new URLSearchParams();
+        params.append("action","agenteLoginPorRut");
+        params.append("rut",rut);
+        params.append("ubicacion",ubic);
+
+        const [res] = await Promise.all([
+          fetch(API_URL + "?" + params.toString()),
+          sleep(3000)
+        ]);
+
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || "Error al iniciar sesión");
+
+        idAgenteLogueado  = json.idAgente;
+        rutAgente         = rut;
+        nombreAgente      = json.nombre || ("Agente " + (json.idAgente || ""));
+        ubicacionAgente   = json.ubicacion || ubic;
+        estadoServicioAgente = json.estadoServicio || "Disponible";
+
+        cardLogin.style.display = "none";
+        cardMain.style.display  = "block";
+
+        if (titulo)    titulo.textContent    = nombreAgente;
+        if (subtitulo) subtitulo.textContent = `ID: ${idAgenteLogueado} · RUT: ${rutAgente} · Ubicación: ${ubicacionAgente}`;
+
+        setEstadoApi("Conectado", true);
+        msg.textContent = "";
+        msg.className = "msg";
+
+        iniciarAutoRefresh();
+        await cargarDatosAgente();
+
+      } catch (err) {
+        console.error(err);
+        mostrarLoadingLogin(false);
+        msg.textContent = "Error al iniciar sesión: " + (err.message || err);
+        msg.className = "msg err";
+        setEstadoApi("Error conexión", false);
+      } finally {
+        mostrarLoadingLogin(false);
+      }
+    }
+
+    /* ------------ LOGOUT / DESCANSO ------------ */
+    async function cerrarSesion() {
+      const msgConfig = document.getElementById("msg-config");
+      if (!idAgenteLogueado) {
+        msgConfig.textContent = "No hay sesión activa.";
+        msgConfig.className = "msg err";
+        return;
+      }
+      try {
+        const params = new URLSearchParams();
+        params.append("action","agenteLogout");
+        params.append("idAgente",idAgenteLogueado);
+
+        const res = await fetch(API_URL + "?" + params.toString());
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || "Error al cerrar sesión");
+
+        detenerAutoRefresh();
+
+        document.getElementById("card-main").style.display = "none";
+        document.getElementById("card-login").style.display = "block";
+
+        idAgenteLogueado = null;
+        rutAgente = "";
+        nombreAgente = "";
+        ubicacionAgente = "";
+        estadoServicioAgente = "";
+        cacheAsignaciones = [];
+        cachePasajeros = [];
+        cacheVuelos = [];
+
+        setEstadoApi("Desconectado", false);
+        msgConfig.textContent = "Sesión cerrada correctamente.";
+        msgConfig.className = "msg ok";
+      } catch (err) {
+        console.error(err);
+        msgConfig.textContent = "Error al cerrar sesión: " + (err.message || err);
+        msgConfig.className = "msg err";
+      }
+    }
+
+    async function marcarDescanso() {
+      const msgConfig = document.getElementById("msg-config");
+      if (!idAgenteLogueado) {
+        msgConfig.textContent = "No hay sesión activa.";
+        msgConfig.className = "msg err";
+        return;
+      }
+      try {
+        const params = new URLSearchParams();
+        params.append("action","agenteSetDescanso");
+        params.append("idAgente",idAgenteLogueado);
+
+        const res = await fetch(API_URL + "?" + params.toString());
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || "Error al marcar descanso");
+
+        estadoServicioAgente = "En descanso";
+        renderConfigInfo();
+
+        msgConfig.textContent = "Marcado como 'En descanso'.";
+        msgConfig.className = "msg ok";
+      } catch (err) {
+        console.error(err);
+        msgConfig.textContent = "Error al marcar descanso: " + (err.message || err);
+        msgConfig.className = "msg err";
+      }
+    }
+
+    /* ------------ AUTO REFRESH ------------ */
+    function iniciarAutoRefresh() {
+      detenerAutoRefresh();
+      autoRefreshSeconds = 300;
+      const lbl = document.getElementById("refresh-seconds");
+      const cont = document.getElementById("refresh-countdown");
+      if (cont) cont.style.display = "none";
+
+      autoRefreshInterval = setInterval(async () => {
+        autoRefreshSeconds--;
+        if (autoRefreshSeconds <= 0) {
+          autoRefreshSeconds = 300;
+          await cargarDatosAgente(false);
+        }
+        if (lbl) lbl.textContent = autoRefreshSeconds;
+        if (cont) {
+          if (autoRefreshSeconds <= 30) cont.style.display = "block";
+          else cont.style.display = "none";
+        }
+      }, 1000);
+    }
+
+    function detenerAutoRefresh() {
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+      }
+      const cont = document.getElementById("refresh-countdown");
+      if (cont) cont.style.display = "none";
+    }
+
+    /* ------------ CARGAR DATOS AGENTE ------------ */
+    async function cargarDatosAgente(mostrarMensajes = true) {
+      if (!idAgenteLogueado) return;
+
+      const msgAsig = document.getElementById("msg-asignaciones");
+      if (mostrarMensajes && msgAsig) {
+        msgAsig.textContent = "Cargando asignaciones...";
+        msgAsig.className = "msg";
+      }
+
+      try {
+        const res = await fetch(API_URL + "?action=listAll");
+        const data = await res.json();
+        if (!data.ok) {
+          setEstadoApi("Error", false);
+          if (msgAsig && mostrarMensajes) {
+            msgAsig.textContent = data.error || "Error al obtener datos.";
+            msgAsig.className = "msg err";
+          }
+          return;
+        }
+        setEstadoApi("Conectado", true);
+
+        cacheAsignaciones = data.asignaciones || [];
+        cachePasajeros    = data.pasajeros    || [];
+        cacheVuelos       = data.vuelos       || [];
+
+        renderAsignacionesAgente();
+        renderHistorialAgente();
+        renderRangoAgente();   // ahora sólo muestra "Próximamente"
+        renderConfigInfo();
+
+        if (msgAsig && mostrarMensajes) {
+          msgAsig.textContent = "";
+          msgAsig.className = "msg";
+        }
+      } catch (err) {
+        console.error(err);
+        setEstadoApi("Error conexión", false);
+        if (msgAsig && mostrarMensajes) {
+          msgAsig.textContent = "Error de conexión con la API.";
+          msgAsig.className = "msg err";
+        }
+      }
+    }
+
+    /* ------------ RENDER ASIGNACIONES (pendientes) ------------ */
+    function renderAsignacionesAgente() {
+      const cont = document.getElementById("lista-asignaciones");
+      const msg  = document.getElementById("msg-asignaciones");
+      if (!cont) return;
+      cont.innerHTML = "";
+
+      if (!idAgenteLogueado) {
+        cont.textContent = "Ingresa con tu RUT para ver tus asignaciones.";
+        return;
+      }
+
+      const propias = cacheAsignaciones.filter(a =>
+        String(a.idAgente) === String(idAgenteLogueado)
+      );
+
+      const pendientes = propias.filter(a => {
+        const est = (a.estadoAsignacion || "").toLowerCase();
+        return est !== "terminado" && est !== "rechazada" && est !== "cancelada";
+      });
+
+      if (!pendientes.length) {
+        cont.textContent = "No tienes asignaciones pendientes.";
+        if (msg) { msg.textContent = ""; msg.className = "msg"; }
+        return;
+      }
+
+      pendientes.sort((a,b)=>{
+        const fa = a.fechaAsignacion || "";
+        const fb = b.fechaAsignacion || "";
+        const ha = a.horaAsignacion || "";
+        const hb = b.horaAsignacion || "";
+        const sa = fa+" "+ha;
+        const sb = fb+" "+hb;
+        return sb.localeCompare(sa);
+      });
+
+      pendientes.forEach(a => {
+        const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
+        const vuelo = cacheVuelos.find(v => String(v.idVuelo) === String(a.idVuelo));
+
+        const nombrePmr = pmr ? (pmr.nombre || "") : "";
+        const vueloNum  = vuelo ? (vuelo.numeroVuelo || "") : "";
+        const fechaVuelo= vuelo ? (vuelo.fecha || "") : "";
+        const terminal  = vuelo ? (vuelo.terminal || "") : "";
+        const puerta    = vuelo ? (vuelo.puerta || "") : "";
+        const espigon   = vuelo ? (vuelo.espigon || "") : "";
+        const tipoServ  = vuelo ? (vuelo.tipoServicio || "") : "";
+        const horaProg  = vuelo ? formatearHora(vuelo.horaProgramada) : "";
+        const estado    = (a.estadoAsignacion || "").toLowerCase();
+        const horaLimite= a.horaLimite ? formatearHora(a.horaLimite) : "";
+
+        let pillClass = "pill-state";
+        if (estado === "en espera")        pillClass += " pill-espera";
+        else if (estado === "aceptada")    pillClass += " pill-aceptada";
+        else if (estado === "en tránsito" || estado === "en transito") pillClass += " pill-transito";
+        else if (estado === "terminado")   pillClass += " pill-terminado";
+
+        let textoLimite = "";
+        if (horaLimite && horaProg) {
+          const t = (tipoServ || "").toLowerCase();
+          if (t === "embarque") {
+            textoLimite =
+              `Debes TERMINAR el servicio 60 minutos antes de la hora programada del vuelo (${horaProg}). ` +
+              `Hora límite recomendada: ${horaLimite}.`;
+          } else if (t === "desembarque") {
+            textoLimite =
+              `Debes INICIAR el trayecto 10 minutos antes de la hora programada del vuelo (${horaProg}). ` +
+              `Hora límite para iniciar: ${horaLimite}.`;
+          } else {
+            textoLimite = `Hora límite operativa: ${horaLimite}.`;
+          }
+        }
+
+        const card = document.createElement("div");
+        card.className = "asignacion-card";
+        card.innerHTML = `
+          <div class="asignacion-header">
+            <span>#${a.idAsignacion || ""}</span>
+            <span class="${pillClass}">${a.estadoAsignacion || "Sin estado"}</span>
+          </div>
+          <div class="asignacion-body">
+            <div><b>Vuelo:</b> ${vueloNum || "-"} · ${tipoServ || ""}</div>
+            <div style="font-size:11px;color:#9ca3af;margin-top:1px;">
+              Fecha: ${fechaVuelo || "-"} · Hora prog.: ${horaProg || "-"}
+            </div>
+            <div style="font-size:11px;color:#9ca3af;margin-top:1px;">
+              Terminal: ${terminal || "-"} · Puerta: ${puerta || "-"} · Espigón: ${espigon || "-"}
+            </div>
+            <div style="margin-top:3px;"><b>PMR:</b> ${nombrePmr || "(sin nombre)"}</div>
+            ${textoLimite ? `<div class="warning-limit">⚠ ${textoLimite}</div>` : ""}
+          </div>
+          <div class="cancel-panel" id="cancel-panel-${a.idAsignacion}" style="display:none;margin-top:6px;">
+            <label style="font-size:11px;display:block;margin-bottom:4px;">
+              Motivo de cancelación
+              <textarea id="cancel-motivo-${a.idAsignacion}" rows="2" placeholder="Ej: Pasajero no se presentó, se fue por sus medios, etc."></textarea>
+            </label>
+            <button class="btn small danger" id="btn-cancel-confirm-${a.idAsignacion}">
+              Confirmar cancelación
+            </button>
+          </div>
+        `;
+
+        const footer = document.createElement("div");
+        footer.className = "asignacion-footer";
+
+        let permitirCancelar = false;
+
+        if (estado === "en espera") {
+          const btnAceptar = document.createElement("button");
+          btnAceptar.className = "btn small";
+          btnAceptar.textContent = "Aceptar asignación";
+          btnAceptar.onclick = () => aceptarAsignacion(a.idAsignacion);
+          footer.appendChild(btnAceptar);
+        } else if (estado === "aceptada") {
+          const btnIniciar = document.createElement("button");
+          btnIniciar.className = "btn small";
+          btnIniciar.textContent = "Iniciar trayecto";
+          btnIniciar.onclick = () => iniciarTrayecto(a.idAsignacion);
+          footer.appendChild(btnIniciar);
+          permitirCancelar = true;
+        } else if (estado === "en tránsito" || estado === "en transito") {
+          const btnTerminar = document.createElement("button");
+          btnTerminar.className = "btn small";
+          btnTerminar.textContent = "Terminar trayecto";
+          btnTerminar.onclick = () => terminarTrayecto(a.idAsignacion);
+          footer.appendChild(btnTerminar);
+          permitirCancelar = true;
+        }
+
+        if (permitirCancelar) {
+          const btnCancelar = document.createElement("button");
+          btnCancelar.className = "btn small danger";
+          btnCancelar.textContent = "Cancelar servicio";
+          btnCancelar.onclick = () => {
+            const panel = document.getElementById(`cancel-panel-${a.idAsignacion}`);
+            if (panel) {
+              panel.style.display = panel.style.display === "none" ? "block" : "none";
+            }
+          };
+          footer.appendChild(btnCancelar);
+        }
+
+        card.appendChild(footer);
+        cont.appendChild(card);
+
+        if (permitirCancelar) {
+          const btnConfirm = document.getElementById(`btn-cancel-confirm-${a.idAsignacion}`);
+          if (btnConfirm) {
+            btnConfirm.addEventListener("click", () => {
+              const motivoEl = document.getElementById(`cancel-motivo-${a.idAsignacion}`);
+              const motivo = motivoEl ? motivoEl.value.trim() : "";
+              cancelarAsignacion(a.idAsignacion, motivo);
+            });
+          }
+        }
+      });
+
+      if (msg) { msg.textContent = ""; msg.className = "msg"; }
+    }
+
+    /* ------------ HISTORIAL (terminados) ------------ */
+    function renderHistorialAgente() {
+      const cont = document.getElementById("lista-historial");
+      const msg  = document.getElementById("msg-historial");
+      if (!cont) return;
+      cont.innerHTML = "";
+
+      if (!idAgenteLogueado) {
+        cont.textContent = "Ingresa con tu RUT para ver tu historial.";
+        return;
+      }
+
+      const propias = cacheAsignaciones.filter(a =>
+        String(a.idAgente) === String(idAgenteLogueado) &&
+        (a.estadoAsignacion || "").toLowerCase() === "terminado"
+      );
+
+      if (!propias.length) {
+        cont.textContent = "Aún no tienes servicios terminados.";
+        if (msg) { msg.textContent = ""; msg.className = "msg"; }
+        return;
+      }
+
+      propias.sort((a,b)=>{
+        const fa = a.fechaAsignacion || "";
+        const fb = b.fechaAsignacion || "";
+        const hf = a.horaFin || "";
+        const hb = b.horaFin || "";
+        const sa = fa+" "+hf;
+        const sb = fb+" "+hb;
+        return sb.localeCompare(sa);
+      });
+
+      propias.forEach(a => {
+        const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
+        const vuelo = cacheVuelos.find(v => String(v.idVuelo) === String(a.idVuelo));
+
+        const nombrePmr = pmr ? (pmr.nombre || "") : "";
+        const vueloNum  = vuelo ? (vuelo.numeroVuelo || "") : "";
+        const tipoServ  = vuelo ? (vuelo.tipoServicio || "") : "";
+
+        const card = document.createElement("div");
+        card.className = "hist-card";
+        card.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span><b>#${a.idAsignacion || ""}</b> · ${vueloNum || ""} · ${tipoServ || ""}</span>
+            <span style="font-size:11px;color:#9ca3af;">
+              ${a.fechaAsignacion || ""} · ${formatearHora(a.horaFin)}
+            </span>
+          </div>
+          <div style="margin-top:3px;font-size:12px;">
+            PMR: ${nombrePmr || "(sin nombre)"}
+          </div>
+        `;
+        cont.appendChild(card);
+      });
+
+      if (msg) { msg.textContent = ""; msg.className = "msg"; }
+    }
+
+    /* ------------ MI RANGO – BLOQUEADO / PRÓXIMAMENTE ------------ */
+    function renderRangoAgente() {
+      const cont = document.getElementById("rango-contenedor");
+      if (!cont) return;
+      cont.innerHTML = `
+        <div class="hist-card">
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px;">
+            Mi rango – próximamente
+          </div>
+          <div style="font-size:12px;color:#9ca3af;">
+            Este módulo aún está en desarrollo. En una próxima versión podrás ver tu rango,
+            estadísticas y resumen de asignaciones completadas.
+          </div>
+        </div>
+      `;
+    }
+
+    /* ------------ CONFIG INFO ------------ */
+    function renderConfigInfo() {
+      const box = document.getElementById("config-info");
+      if (!box) return;
+      if (!idAgenteLogueado) {
+        box.textContent = "Ingresa con tu RUT para ver tus datos.";
+        return;
+      }
+      box.innerHTML = `
+        <div><b>Nombre:</b> ${nombreAgente || "-"}</div>
+        <div><b>ID Agente:</b> ${idAgenteLogueado || "-"}</div>
+        <div><b>RUT:</b> ${rutAgente || "-"}</div>
+        <div><b>Ubicación actual:</b> ${ubicacionAgente || "-"}</div>
+        <div><b>Estado servicio:</b> ${estadoServicioAgente || "Disponible"}</div>
+        <div style="font-size:11px;color:#9ca3af;margin-top:4px;">
+          Usa "En Descanso" si te detienes por colación o pausa, y "Cerrar sesión" al terminar tu turno.
+        </div>
+      `;
+    }
+
+    /* ------------ BOTONES ASIGNACIÓN ------------ */
+    async function aceptarAsignacion(idAsignacion) {
+      if (!confirm("¿Aceptar esta asignación?")) return;
+      try {
+        const params = new URLSearchParams();
+        params.append("action","agenteAceptarAsignacion");
+        params.append("idAsignacion",idAsignacion);
+        params.append("idAgente",idAgenteLogueado);
+
+        const res = await fetch(API_URL + "?" + params.toString());
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || "Error al aceptar asignación");
+
+        alert("Asignación aceptada.");
+        await cargarDatosAgente();
+      } catch (err) {
+        console.error(err);
+        alert("Error al aceptar asignación: " + (err.message || err));
+      }
+    }
+
+    async function iniciarTrayecto(idAsignacion) {
+      if (!confirm("¿Iniciar trayecto para esta asignación?")) return;
+      try {
+        const params = new URLSearchParams();
+        params.append("action","agenteIniciarTrayecto");
+        params.append("idAsignacion",idAsignacion);
+        params.append("idAgente",idAgenteLogueado);
+
+        const res = await fetch(API_URL + "?" + params.toString());
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || "Error al iniciar trayecto");
+
+        alert("Trayecto iniciado.");
+        await cargarDatosAgente();
+      } catch (err) {
+        console.error(err);
+        alert("Error al iniciar trayecto: " + (err.message || err));
+      }
+    }
+
+    async function terminarTrayecto(idAsignacion) {
+      if (!confirm("¿Terminar trayecto de esta asignación?")) return;
+      try {
+        const params = new URLSearchParams();
+        params.append("action","agenteTerminarTrayecto");
+        params.append("idAsignacion",idAsignacion);
+        params.append("idAgente",idAgenteLogueado);
+
+        const res = await fetch(API_URL + "?" + params.toString());
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || "Error al terminar trayecto");
+
+        alert("Trayecto terminado.");
+        await cargarDatosAgente();
+      } catch (err) {
+        console.error(err);
+        alert("Error al terminar trayecto: " + (err.message || err));
+      }
+    }
+
+    async function cancelarAsignacion(idAsignacion, motivo) {
+      if (!motivo) {
+        alert("Debes indicar un motivo para cancelar el servicio.");
+        return;
+      }
+      if (!confirm("¿Confirmas la cancelación de este servicio?")) return;
+
+      try {
+        const params = new URLSearchParams();
+        params.append("action","agenteCancelarAsignacion");
+        params.append("idAsignacion",idAsignacion);
+        params.append("idAgente",idAgenteLogueado);
+        params.append("motivo",motivo);
+
+        const res = await fetch(API_URL + "?" + params.toString());
+        const json = await res.json();
+        if (!json.ok) throw new Error(json.error || "Error al cancelar servicio");
+
+        alert("Servicio cancelado correctamente.");
+        await cargarDatosAgente();
+      } catch (err) {
+        console.error(err);
+        alert("Error al cancelar servicio: " + (err.message || err));
+      }
+    }
+
+    /* ------------ EVENTOS ------------ */
+    document.getElementById("btn-login-agente").addEventListener("click", intentarLogin);
+    document.getElementById("login-rut").addEventListener("keyup",(ev)=>{
+      if (ev.key === "Enter") intentarLogin();
+    });
+
+    const btnRefrescar = document.getElementById("btn-refrescar-datos");
+    if (btnRefrescar) {
+      btnRefrescar.addEventListener("click", ()=>cargarDatosAgente());
+    }
+
+    document.getElementById("btn-logout").addEventListener("click", cerrarSesion);
+    document.getElementById("btn-descanso").addEventListener("click", marcarDescanso);
+
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+        btn.classList.add("active");
+        const id = btn.dataset.tab;
+        const sec = document.getElementById(id);
+        if (sec) sec.classList.add("active");
+      });
+    });
+
+    setEstadoApi("Desconectado", false);
+  </script>
+</body>
+</html>
