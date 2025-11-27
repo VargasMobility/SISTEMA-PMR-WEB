@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Panel Agente PMR</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
@@ -24,11 +24,52 @@
       font-size:14px;
       border-bottom:1px solid #1f2937;
       box-shadow:0 2px 12px rgba(15,23,42,0.9);
+      gap:10px;
+      flex-wrap:wrap;
     }
     .topbar-title {
       font-weight:600;
       letter-spacing:0.03em;
+      display:flex;
+      flex-direction:column;
+      gap:2px;
     }
+    .topbar-sub {
+      font-size:11px;
+      color:#bae6fd;
+      opacity:0.95;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .topbar-sub .chip {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid rgba(34,211,238,0.45);
+      background:rgba(15,23,42,0.92);
+      color:#e0f2fe;
+      white-space:nowrap;
+    }
+    .topbar-sub .chip.warn {
+      border-color: rgba(250,204,21,0.75);
+      background: rgba(250,204,21,0.10);
+      color:#fde68a;
+      font-weight:700;
+    }
+    .topbar-sub .chip .dot {
+      width:8px;height:8px;border-radius:999px;
+      background:#22d3ee;
+      box-shadow:0 0 12px rgba(34,211,238,0.9);
+    }
+    .topbar-sub .chip.warn .dot{
+      background:#facc15;
+      box-shadow:0 0 12px rgba(250,204,21,0.75);
+    }
+
     .badge {
       padding:2px 8px;
       border-radius:999px;
@@ -38,6 +79,7 @@
       align-items:center;
       gap:6px;
       background:rgba(15,23,42,0.95);
+      white-space:nowrap;
     }
     .badge-dot {
       width:8px;
@@ -53,7 +95,7 @@
 
     .container {
       padding:12px;
-      max-width:520px;
+      max-width:560px;
       margin:0 auto;
     }
 
@@ -72,6 +114,8 @@
       margin-bottom:8px;
       font-size:13px;
       color:#9ca3af;
+      gap:10px;
+      flex-wrap:wrap;
     }
     .card-title {
       font-size:15px;
@@ -141,6 +185,12 @@
       gap:6px;
       margin-top:8px;
       width:100%;
+      user-select:none;
+    }
+    .btn:disabled {
+      opacity:0.7;
+      cursor:not-allowed;
+      filter:saturate(0.7);
     }
     .btn.secondary {
       background:#020617;
@@ -160,6 +210,7 @@
       padding:5px 10px;
       font-size:12px;
       width:auto;
+      margin-top:0;
     }
 
     .msg {
@@ -167,18 +218,22 @@
       margin-top:6px;
       min-height:16px;
       color:#e5e7eb;
+      white-space:pre-wrap;
     }
     .msg.err { color:#f97373; }
     .msg.ok  { color:#4ade80; }
+    .msg.warn{ color:#facc15; }
 
     /* Tabs principales */
     .tabs {
       display:flex;
       gap:6px;
       margin-bottom:8px;
+      flex-wrap:wrap;
     }
     .tab-btn {
       flex:1;
+      min-width:120px;
       border:none;
       border-radius:999px;
       padding:6px 8px;
@@ -196,13 +251,8 @@
       box-shadow:0 0 12px rgba(34,211,238,0.4);
     }
 
-    .section {
-      display:none;
-      margin-top:6px;
-    }
-    .section.active {
-      display:block;
-    }
+    .section { display:none; margin-top:6px; }
+    .section.active { display:block; }
 
     .asignacion-card {
       border-radius:14px;
@@ -217,6 +267,8 @@
       align-items:center;
       font-size:12px;
       margin-bottom:4px;
+      gap:6px;
+      flex-wrap:wrap;
     }
     .asignacion-body {
       font-size:12px;
@@ -227,15 +279,17 @@
       display:flex;
       gap:6px;
       flex-wrap:wrap;
+      align-items:center;
     }
     .pill-state {
       border-radius:999px;
       padding:2px 7px;
       font-size:11px;
       border:1px solid #4b5563;
+      white-space:nowrap;
     }
-    .pill-espera {
-      border-color:#facc15;
+    .pill-asignacion {
+      border-color:#f59e0b;
       color:#fde68a;
     }
     .pill-aceptada {
@@ -262,6 +316,22 @@
       color:#facc15;
     }
 
+    .expire-box {
+      margin-top:6px;
+      padding:6px 8px;
+      border-radius:10px;
+      font-size:12px;
+      border:1px solid rgba(245,158,11,0.7);
+      background:rgba(245,158,11,0.08);
+      color:#fde68a;
+    }
+    .expire-box.critical {
+      border-color: rgba(239,68,68,0.8);
+      background: rgba(239,68,68,0.10);
+      color:#fecaca;
+      font-weight:700;
+    }
+
     /* Historial */
     .hist-card {
       border-radius:12px;
@@ -285,14 +355,10 @@
       border-radius:999px;
       background:rgba(15,23,42,0.95);
       border:1px solid rgba(148,163,184,0.7);
+      flex-wrap:wrap;
     }
-    .refresh-countdown {
-      display:none;
-      color:#e5e7eb;
-    }
-    .refresh-countdown strong {
-      color:#fbbf24;
-    }
+    .refresh-countdown { display:none; color:#e5e7eb; }
+    .refresh-countdown strong { color:#fbbf24; }
 
     /* Loading overlay login */
     .loading-overlay {
@@ -310,7 +376,7 @@
       border-radius:14px;
       padding:16px 18px;
       border:1px solid #0f766e;
-      width:260px;
+      width:280px;
       text-align:center;
       box-shadow:0 16px 40px rgba(0,0,0,0.8);
       font-size:13px;
@@ -331,6 +397,85 @@
       transition:width 3s linear;
     }
 
+    /* ⏸️ Modal descanso */
+    .modal-overlay {
+      position:fixed;
+      inset:0;
+      background: rgba(2,6,23,0.65);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:60;
+      backdrop-filter: blur(4px);
+    }
+    .modal {
+      width:min(520px, calc(100vw - 24px));
+      border-radius:18px;
+      border:1px solid rgba(250,204,21,0.55);
+      background: radial-gradient(circle at top left, rgba(2,6,23,0.95), rgba(2,6,23,0.98) 65%);
+      box-shadow: 0 24px 70px rgba(0,0,0,0.75);
+      overflow:hidden;
+    }
+    .modal-head {
+      padding:12px 14px;
+      background: linear-gradient(90deg, rgba(250,204,21,0.12), rgba(34,211,238,0.10));
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom:1px solid rgba(148,163,184,0.20);
+    }
+    .modal-title {
+      font-weight:800;
+      letter-spacing:0.02em;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .modal-title .ico {
+      width:28px;height:28px;border-radius:10px;
+      display:inline-flex;align-items:center;justify-content:center;
+      background: rgba(250,204,21,0.12);
+      border:1px solid rgba(250,204,21,0.35);
+      color:#fde68a;
+      font-weight:900;
+    }
+    .modal-body {
+      padding:14px;
+      color:#e5e7eb;
+      font-size:13px;
+      line-height:1.4;
+    }
+    .modal-kpi {
+      margin-top:10px;
+      border-radius:14px;
+      border:1px solid rgba(250,204,21,0.45);
+      background: rgba(250,204,21,0.07);
+      padding:10px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .modal-kpi b { color:#fde68a; }
+    .modal-kpi .time {
+      font-size:22px;
+      font-weight:900;
+      letter-spacing:0.04em;
+      color:#fde68a;
+      text-shadow:0 0 18px rgba(250,204,21,0.25);
+    }
+    .modal-actions {
+      padding:12px 14px;
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      border-top:1px solid rgba(148,163,184,0.20);
+      background: rgba(15,23,42,0.35);
+    }
+    .modal-actions .btn { width:auto; margin-top:0; }
+
     /* Config */
     .config-info {
       font-size:12px;
@@ -342,15 +487,36 @@
       border:1px solid #1f2937;
     }
 
+    .hint {
+      font-size:11px;
+      color:#9ca3af;
+      margin-top:4px;
+      line-height:1.35;
+    }
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size:11px;
+    }
+
     @media (max-width:600px) {
       .container { padding:8px; }
       .card { border-radius:16px; }
+      .topbar { gap:8px; }
     }
   </style>
 </head>
 <body>
   <div class="topbar">
-    <div class="topbar-title">Agente PMR</div>
+    <div class="topbar-title">
+      <div>Agente PMR</div>
+      <div class="topbar-sub" id="topbar-sub">
+        <span id="topbar-last">Sistema PMR · Última act.: —</span>
+        <span class="chip warn" id="topbar-descanso" style="display:none;">
+          <span class="dot"></span>
+          Descanso: <b id="topbar-descanso-mmss">45:00</b>
+        </span>
+      </div>
+    </div>
     <div class="badge" id="estado-api-agente">
       <span class="badge-dot" id="estado-dot"></span>
       <span id="estado-api-text">Desconectado</span>
@@ -360,10 +526,48 @@
   <!-- LOADING LOGIN -->
   <div class="loading-overlay" id="login-loading">
     <div class="loading-box">
-      <div>Conectando con el sistema PMR...</div>
-      <div style="font-size:11px;color:#9ca3af;margin-top:2px;">Validando tus datos y marcando disponibilidad</div>
+      <div id="loading-title">Conectando con el sistema PMR...</div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:2px;" id="loading-sub">Validando tus datos y marcando disponibilidad</div>
       <div class="loading-bar">
         <div class="loading-bar-inner" id="loading-bar-inner"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DESCANSO -->
+  <div class="modal-overlay" id="descanso-modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="descanso-title">
+      <div class="modal-head">
+        <div class="modal-title" id="descanso-title">
+          <span class="ico">⏸</span>
+          Ahora estás en descanso
+        </div>
+        <button class="btn small secondary" id="btn-descanso-close">Cerrar</button>
+      </div>
+      <div class="modal-body">
+        <div id="descanso-text">
+          Tienes <b>45 minutos</b>. Durante este periodo quedas temporalmente <b>No Disponible</b> para nuevas asignaciones.
+        </div>
+
+        <div class="modal-kpi">
+          <div>
+            <div style="font-size:11px;color:#9ca3af;">Tiempo restante</div>
+            <div style="margin-top:2px;">
+              <span class="time" id="descanso-mmss">45:00</span>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:#9ca3af;">Vuelves a Disponible</div>
+            <div style="margin-top:2px;font-weight:800;color:#e0f2fe;" id="descanso-vuelve-a">—</div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;font-size:11px;color:#9ca3af;">
+          Al finalizar, el sistema te marcará automáticamente como <b>Disponible</b> y el contador desaparecerá.
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn small" id="btn-descanso-entendido">Entendido</button>
       </div>
     </div>
   </div>
@@ -375,9 +579,15 @@
         <span class="card-title">Ingreso de agente</span>
         <span class="pill">Sólo personal PMR</span>
       </div>
+
       <label>RUT (sin puntos, con guión)
-        <input type="text" id="login-rut" placeholder="Ej: 11111111-1">
+        <input type="text" id="login-rut" placeholder="Ej: 11111111-8" inputmode="text" autocomplete="off">
       </label>
+      <div class="hint">
+        Tip: puedes escribirlo con o sin puntos; se normaliza automáticamente.<br>
+        Nota: si en tu hoja tienes RUTs de prueba tipo <span class="mono">258752440-10</span>, acá igual te dejará entrar (sin validar DV estricto).
+      </div>
+
       <label>Ubicación actual
         <select id="login-ubicacion">
           <option value="">-- Seleccionar --</option>
@@ -385,9 +595,10 @@
           <option value="Internacional">Internacional</option>
         </select>
       </label>
-      <button class="btn" id="btn-login-agente">
-        Ingresar y marcar Disponible
-      </button>
+
+      <button class="btn" id="btn-login-agente">Ingresar y marcar Disponible</button>
+      <button class="btn secondary" id="btn-autologin" style="display:none;margin-top:8px;width:100%;">Reingresar con mi última sesión</button>
+
       <div class="msg" id="msg-login-agente"></div>
     </div>
 
@@ -398,15 +609,14 @@
           <div class="card-title" id="titulo-agente">Agente</div>
           <div id="subtitulo-agente" style="font-size:11px; color:#9ca3af; margin-top:2px;"></div>
         </div>
+        <span class="pill" id="pill-estado-servicio">—</span>
       </div>
 
       <!-- Panel refresco -->
       <div class="refresh-panel">
-        <button class="btn small secondary" id="btn-refrescar-datos">
-          Refrescar información
-        </button>
+        <button class="btn small secondary" id="btn-refrescar-datos">Refrescar información</button>
         <div class="refresh-countdown" id="refresh-countdown">
-          Actualización automática en <strong id="refresh-seconds">300</strong> s
+          Auto-actualización en <strong id="refresh-seconds">300</strong> s
         </div>
       </div>
 
@@ -418,19 +628,19 @@
         <button class="tab-btn" data-tab="tab-config">Configuración</button>
       </div>
 
-      <!-- ASIGNACIONES (solo pendientes) -->
+      <!-- ASIGNACIONES -->
       <div class="section active" id="tab-asignaciones">
         <div id="lista-asignaciones"></div>
         <div class="msg" id="msg-asignaciones"></div>
       </div>
 
-      <!-- HISTORIAL (terminadas, descendente) -->
+      <!-- HISTORIAL -->
       <div class="section" id="tab-historial">
         <div id="lista-historial"></div>
         <div class="msg" id="msg-historial"></div>
       </div>
 
-      <!-- MI RANGO (bloqueado / próximamente) -->
+      <!-- MI RANGO -->
       <div class="section" id="tab-rango">
         <div id="rango-contenedor"></div>
       </div>
@@ -438,32 +648,141 @@
       <!-- CONFIGURACIÓN -->
       <div class="section" id="tab-config">
         <div class="config-info" id="config-info"></div>
-        <button class="btn warning" id="btn-descanso">
-          En Descanso
-        </button>
-        <button class="btn danger" id="btn-logout">
-          Cerrar sesión
-        </button>
-        <div class="msg" id="msg-config"></div>
+
+        <div class="hist-card">
+          <div style="font-weight:700;margin-bottom:6px;">Estado</div>
+          <button class="btn warning" id="btn-descanso">En Descanso</button>
+          <button class="btn danger" id="btn-logout">Cerrar sesión</button>
+          <div class="msg" id="msg-config"></div>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
+    /* =========================
+       CONFIG FIJA
+       ========================= */
     const API_URL = "https://script.google.com/macros/s/AKfycbwFBHpIx-gQrVAvj5Vv-I-l1X3NR9MYbyTV9CtxgKCw7oPeuxIE5qrYx3eZdDoIroTE/exec";
+    const LOGIN_ACTION = "agenteLoginPorRut";
+    const LS_KEY_SESSION = "pmr_agente_session_v2";
 
+    const DESCANSO_MINUTES = 45;
+    const DESCANSO_MS = DESCANSO_MINUTES * 60 * 1000;
+
+    const topbarLast = document.getElementById("topbar-last");
+    const topbarDescansoChip = document.getElementById("topbar-descanso");
+    const topbarDescansoMmss = document.getElementById("topbar-descanso-mmss");
+
+    function setTopbarInfo({ apiOk, lastUpdate } = {}) {
+      const lu = lastUpdate || "—";
+      if (topbarLast) topbarLast.textContent = `Sistema PMR · Última act.: ${lu}`;
+      setEstadoApi(apiOk ? "Conectado" : "Desconectado", !!apiOk);
+      updateTopbarDescansoChip_(); // 👈 mantiene chip si está en descanso
+    }
+
+    function updateTopbarDescansoChip_() {
+      if (!topbarDescansoChip || !topbarDescansoMmss) return;
+      if (isEnDescanso_() && descansoUntilMs && getDescansoRemainingMs_() > 0) {
+        topbarDescansoChip.style.display = "inline-flex";
+        topbarDescansoMmss.textContent = formatMMSS_(getDescansoRemainingMs_());
+      } else {
+        topbarDescansoChip.style.display = "none";
+      }
+    }
+
+    function showMsg(el, text, type) {
+      if (!el) return;
+      el.textContent = text || "";
+      el.className = "msg" + (type ? (" " + type) : "");
+    }
+
+    function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+
+    async function fetchJson(url, { timeoutMs = 20000 } = {}) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort("timeout"), timeoutMs);
+      try {
+        const res = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
+        const ct = res.headers.get("content-type") || "";
+        if (!ct.toLowerCase().includes("application/json")) {
+          const txt = await res.text();
+          throw new Error("Respuesta no-JSON del servidor. Revisa permisos del WebApp o URL. Detalle: " + txt.slice(0, 140));
+        }
+        return await res.json();
+      } finally {
+        clearTimeout(t);
+      }
+    }
+
+    function normalizarEstado(s) {
+      return (s || "")
+        .toString()
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    }
+    function esEstadoCerrado_(estadoAsignacion) {
+      const est = normalizarEstado(estadoAsignacion);
+      return (
+        est.startsWith("termin") ||
+        est.startsWith("rechaz") ||
+        est.includes("cancel") ||
+        est.includes("inactiv")
+      );
+    }
+
+    function isEnDescanso_() {
+      return /descanso/i.test(estadoServicioAgente || "");
+    }
+
+    /* =========================
+       RUT UTILITIES (LOOSE)
+       ========================= */
+    function rutLooseNormalize(rut) {
+      let r = (rut || "").toString().replace(/\./g, "").replace(/\s+/g, "").toUpperCase();
+      if (!r.includes("-")) {
+        const m = r.match(/^(\d{1,8})([0-9K])$/);
+        if (m) r = `${m[1]}-${m[2]}`;
+      }
+      return r;
+    }
+    function rutStrictIsValid(rut) {
+      const r = rutLooseNormalize(rut);
+      const m = r.match(/^(\d{1,8})-([0-9K])$/);
+      if (!m) return false;
+      const numStr = m[1];
+      const dv = m[2];
+      let sum = 0, mul = 2;
+      for (let i = numStr.length - 1; i >= 0; i--) {
+        sum += parseInt(numStr[i], 10) * mul;
+        mul = (mul === 7) ? 2 : (mul + 1);
+      }
+      const mod = 11 - (sum % 11);
+      const dvCalc = (mod === 11) ? "0" : (mod === 10) ? "K" : String(mod);
+      return dvCalc === dv;
+    }
+
+    /* =========================
+       STATE
+       ========================= */
     let idAgenteLogueado = null;
     let rutAgente = "";
     let nombreAgente = "";
     let ubicacionAgente = "";
     let estadoServicioAgente = "";
 
+    let descansoUntilMs = 0;
+    let descansoTicker = null;
+
     let cacheAsignaciones = [];
     let cachePasajeros = [];
     let cacheVuelos = [];
 
     let autoRefreshInterval = null;
-    let autoRefreshSeconds = 300; // 5 minutos
+    let autoRefreshSeconds = 300;
+    let expireTicker = null;
 
     const estadoApiBadge = document.getElementById("estado-api-agente");
     const estadoDot      = document.getElementById("estado-dot");
@@ -495,23 +814,29 @@
       if (!fecha) return null;
       if (fecha instanceof Date) return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
       const s = String(fecha).trim();
-      const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (s.includes("T")) {
+        const only = s.split("T")[0];
+        const mIso = only.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (mIso) return new Date(parseInt(mIso[1],10), parseInt(mIso[2],10)-1, parseInt(mIso[3],10));
+      }
+      let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      if (m) return new Date(parseInt(m[3],10), parseInt(m[2],10)-1, parseInt(m[1],10));
+      m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
       if (m) return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
       const d = new Date(s);
       if (!isNaN(d)) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
       return null;
     }
 
-    function hoyTrunc() {
-      const d = new Date();
-      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    }
-
-    /* ------------ LOGIN POR RUT ------------ */
-    function mostrarLoadingLogin(mostrar) {
+    function mostrarLoadingLogin(mostrar, title, sub) {
       const overlay = document.getElementById("login-loading");
       const bar = document.getElementById("loading-bar-inner");
+      const t = document.getElementById("loading-title");
+      const s = document.getElementById("loading-sub");
       if (!overlay || !bar) return;
+      if (t && title) t.textContent = title;
+      if (s && sub !== undefined) s.textContent = sub;
+
       if (mostrar) {
         bar.style.width = "0%";
         overlay.style.display = "flex";
@@ -522,7 +847,213 @@
       }
     }
 
-    async function intentarLogin() {
+    /* =========================
+       MODAL DESCANSO
+       ========================= */
+    function showDescansoModal_() {
+      const overlay = document.getElementById("descanso-modal");
+      if (!overlay) return;
+      overlay.style.display = "flex";
+      updateDescansoModal_();
+    }
+    function hideDescansoModal_() {
+      const overlay = document.getElementById("descanso-modal");
+      if (!overlay) return;
+      overlay.style.display = "none";
+    }
+    function updateDescansoModal_() {
+      const mmss = document.getElementById("descanso-mmss");
+      const vuelve = document.getElementById("descanso-vuelve-a");
+      if (mmss) mmss.textContent = formatMMSS_(getDescansoRemainingMs_());
+      if (vuelve && descansoUntilMs) {
+        const dt = new Date(descansoUntilMs);
+        vuelve.textContent = dt.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" });
+      }
+    }
+
+    function persistSession() {
+      try {
+        const payload = {
+          idAgenteLogueado,
+          rutAgente,
+          nombreAgente,
+          ubicacionAgente,
+          estadoServicioAgente,
+          descansoUntilMs,
+          ts: Date.now()
+        };
+        localStorage.setItem(LS_KEY_SESSION, JSON.stringify(payload));
+      } catch (_) {}
+    }
+    function clearSession() {
+      try { localStorage.removeItem(LS_KEY_SESSION); } catch(_) {}
+    }
+    function getSession() {
+      try {
+        const raw = localStorage.getItem(LS_KEY_SESSION);
+        return raw ? JSON.parse(raw) : null;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function getDescansoRemainingMs_() {
+      return Math.max(0, (descansoUntilMs || 0) - Date.now());
+    }
+    function formatMMSS_(ms) {
+      const s = Math.max(0, Math.ceil(ms / 1000));
+      const mm = String(Math.floor(s / 60)).padStart(2,"0");
+      const ss = String(s % 60).padStart(2,"0");
+      return `${mm}:${ss}`;
+    }
+
+    async function finalizarDescanso_({ silent = false } = {}) {
+      // Para marcar disponible, re-usamos tu login endpoint (que ya marca Disponible)
+      if (!rutAgente || !ubicacionAgente) return;
+
+      try {
+        const url = buildUrl(LOGIN_ACTION, { rut: rutAgente, ubicacion: ubicacionAgente });
+        const json = await fetchJson(url, { timeoutMs: 20000 });
+        if (!json.ok) throw new Error(json.error || "No se pudo reactivar disponibilidad");
+
+        estadoServicioAgente = json.estadoServicio || "Disponible";
+        descansoUntilMs = 0;
+        stopDescansoTicker_();
+        hideDescansoModal_();
+
+        renderConfigInfo();
+        updatePillEstado();
+        persistSession();
+
+        await cargarDatosAgente(false);
+
+        const msgConfig = document.getElementById("msg-config");
+        if (!silent) showMsg(msgConfig, "Colación terminada. Vuelves a 'Disponible'.", "ok");
+      } catch (err) {
+        console.error(err);
+        const msgConfig = document.getElementById("msg-config");
+        if (!silent) showMsg(msgConfig, "Error al reactivar disponibilidad: " + (err.message || err), "err");
+      }
+    }
+
+    function startDescansoTicker_() {
+      stopDescansoTicker_();
+      descansoTicker = setInterval(async () => {
+        const rem = getDescansoRemainingMs_();
+        if (rem <= 0) {
+          stopDescansoTicker_();
+          await finalizarDescanso_({ silent: true });
+          return;
+        }
+        updatePillEstado();
+        renderConfigInfo();
+        updateTopbarDescansoChip_();
+        updateDescansoModal_();
+        persistSession();
+      }, 1000);
+    }
+    function stopDescansoTicker_() {
+      if (descansoTicker) clearInterval(descansoTicker);
+      descansoTicker = null;
+    }
+
+    function updatePillEstado() {
+      const pill = document.getElementById("pill-estado-servicio");
+      if (!pill) return;
+
+      if (isEnDescanso_() && descansoUntilMs && getDescansoRemainingMs_() > 0) {
+        pill.textContent = `En descanso (${formatMMSS_(getDescansoRemainingMs_())})`;
+      } else {
+        pill.textContent = estadoServicioAgente || "—";
+      }
+
+      pill.style.borderColor = isEnDescanso_() ? "#facc15" : "#22d3eeaa";
+      pill.style.color = isEnDescanso_() ? "#fde68a" : "#e0f2fe";
+
+      updateTopbarDescansoChip_();
+    }
+
+    /* =========================
+       API BUILDERS
+       ========================= */
+    function buildUrl(action, params = {}) {
+      const usp = new URLSearchParams();
+      usp.append("action", action);
+      for (const [k,v] of Object.entries(params || {})) {
+        if (v !== undefined && v !== null && String(v) !== "") usp.append(k, v);
+      }
+      return API_URL + "?" + usp.toString();
+    }
+
+    /* =========================
+       EXPIRACIÓN 7 MIN (aceptación)
+       ========================= */
+    function construirVence7Min(fechaAsignacion, horaAsignacion) {
+      if (!fechaAsignacion || !horaAsignacion) return null;
+      const fa = parseFechaSolo(fechaAsignacion);
+      if (!fa) return null;
+      const hs = formatearHora(horaAsignacion);
+      const m = String(hs).match(/^(\d{1,2}):(\d{2})$/);
+      if (!m) return null;
+      const h = parseInt(m[1], 10);
+      const mi = parseInt(m[2], 10);
+      const dt = new Date(fa.getFullYear(), fa.getMonth(), fa.getDate(), h, mi, 0, 0);
+      if (isNaN(dt.getTime())) return null;
+      dt.setMinutes(dt.getMinutes() + 7);
+      return dt;
+    }
+    function parseHoraToDate(fechaAsignacion, hora) {
+      const fa = parseFechaSolo(fechaAsignacion);
+      if (!fa) return null;
+      const hs = formatearHora(hora);
+      const m = String(hs).match(/^(\d{1,2}):(\d{2})$/);
+      if (!m) return null;
+      return new Date(fa.getFullYear(), fa.getMonth(), fa.getDate(), parseInt(m[1],10), parseInt(m[2],10), 0, 0);
+    }
+    function getExpiryDate(asig) {
+      if (asig && asig.fechaAsignacion && asig.horaExpiracion) {
+        const dt = parseHoraToDate(asig.fechaAsignacion, asig.horaExpiracion);
+        if (dt) return dt;
+      }
+      return construirVence7Min(asig?.fechaAsignacion, asig?.horaAsignacion);
+    }
+    function fmtMmSs(ms) {
+      const s = Math.max(0, Math.floor(ms / 1000));
+      const mm = String(Math.floor(s / 60)).padStart(2,"0");
+      const ss = String(s % 60).padStart(2,"0");
+      return `${mm}:${ss}`;
+    }
+
+    function startExpireTicker() {
+      stopExpireTicker();
+      expireTicker = setInterval(() => {
+        document.querySelectorAll("[data-expire-at]").forEach(el => {
+          const ts = parseInt(el.getAttribute("data-expire-at"), 10);
+          if (!ts || Number.isNaN(ts)) return;
+          const now = Date.now();
+          const left = ts - now;
+
+          const box = el.closest(".expire-box");
+          if (box) {
+            if (left <= 60000) box.classList.add("critical");
+            else box.classList.remove("critical");
+          }
+
+          el.textContent = (left <= 0) ? "00:00" : fmtMmSs(left);
+        });
+      }, 1000);
+    }
+    function stopExpireTicker() {
+      if (expireTicker) {
+        clearInterval(expireTicker);
+        expireTicker = null;
+      }
+    }
+
+    /* =========================
+       LOGIN
+       ========================= */
+    async function intentarLogin({ silent = false } = {}) {
       const inputRut  = document.getElementById("login-rut");
       const selUbic   = document.getElementById("login-ubicacion");
       const msg       = document.getElementById("msg-login-agente");
@@ -533,38 +1064,35 @@
 
       if (!inputRut || !selUbic || !cardLogin || !cardMain) return;
 
-      const rut = (inputRut.value || "").trim();
+      const rutTyped = (inputRut.value || "").trim();
+      const rut = rutLooseNormalize(rutTyped);
       const ubic = selUbic.value;
 
-      if (!rut) {
-        msg.textContent = "Ingresa tu RUT.";
-        msg.className = "msg err";
-        return;
-      }
-      if (!ubic) {
-        msg.textContent = "Selecciona tu ubicación actual.";
-        msg.className = "msg err";
-        return;
+      if (!rut) { showMsg(msg, "Ingresa tu RUT.", "err"); return; }
+      if (!ubic) { showMsg(msg, "Selecciona tu ubicación actual.", "err"); return; }
+
+      const dvNormal = /^(\d{1,8})-([0-9K])$/.test(rut);
+      if (dvNormal && !rutStrictIsValid(rut)) {
+        showMsg(msg, "⚠️ Ojo: el DV no coincide. Igual intentaré iniciar sesión (por si tu hoja tiene RUTs de prueba).", "warn");
+      } else {
+        showMsg(msg, "", "");
       }
 
-      msg.textContent = "";
-      msg.className = "msg";
+      inputRut.value = rut;
+
+      const btn = document.getElementById("btn-login-agente");
+      if (btn) btn.disabled = true;
 
       try {
-        mostrarLoadingLogin(true);
-        const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
-        const params = new URLSearchParams();
-        params.append("action","agenteLoginPorRut");
-        params.append("rut",rut);
-        params.append("ubicacion",ubic);
+        if (!silent) mostrarLoadingLogin(true, "Conectando con el sistema PMR...", "Validando tus datos y marcando disponibilidad");
 
-        const [res] = await Promise.all([
-          fetch(API_URL + "?" + params.toString()),
-          sleep(3000)
+        const url = buildUrl(LOGIN_ACTION, { rut, ubicacion: ubic });
+        const [json] = await Promise.all([
+          fetchJson(url, { timeoutMs: 20000 }),
+          silent ? Promise.resolve() : sleep(900)
         ]);
 
-        const json = await res.json();
-        if (!json.ok) throw new Error(json.error || "Error al iniciar sesión");
+        if (!json.ok) throw new Error((json.error || "Error al iniciar sesión").toString());
 
         idAgenteLogueado  = json.idAgente;
         rutAgente         = rut;
@@ -572,48 +1100,93 @@
         ubicacionAgente   = json.ubicacion || ubic;
         estadoServicioAgente = json.estadoServicio || "Disponible";
 
-        cardLogin.style.display = "none";
-        cardMain.style.display  = "block";
+        // 👇 si backend entrega descansoHasta, lo usamos (mejor)
+        if (json.descansoHasta) {
+          const t = new Date(json.descansoHasta).getTime();
+          descansoUntilMs = isNaN(t) ? 0 : t;
+        } else {
+          if (isEnDescanso_() && (!descansoUntilMs || descansoUntilMs < Date.now())) {
+            descansoUntilMs = Date.now() + DESCANSO_MS;
+          }
+        }
 
+        const cardLoginEl = document.getElementById("card-login");
+        const cardMainEl  = document.getElementById("card-main");
+        cardLoginEl.style.display = "none";
+        cardMainEl.style.display  = "block";
         if (titulo)    titulo.textContent    = nombreAgente;
         if (subtitulo) subtitulo.textContent = `ID: ${idAgenteLogueado} · RUT: ${rutAgente} · Ubicación: ${ubicacionAgente}`;
 
+        updatePillEstado();
+
+        if (isEnDescanso_() && descansoUntilMs && getDescansoRemainingMs_() > 0) startDescansoTicker_();
+        else stopDescansoTicker_();
+
         setEstadoApi("Conectado", true);
-        msg.textContent = "";
-        msg.className = "msg";
+        setTopbarInfo({ apiOk: true, lastUpdate: new Date().toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"}) });
 
+        persistSession();
         iniciarAutoRefresh();
-        await cargarDatosAgente();
-
+        await cargarDatosAgente(true);
+        startExpireTicker();
       } catch (err) {
         console.error(err);
-        mostrarLoadingLogin(false);
-        msg.textContent = "Error al iniciar sesión: " + (err.message || err);
-        msg.className = "msg err";
         setEstadoApi("Error conexión", false);
+        setTopbarInfo({ apiOk: false });
+
+        const msgText = (err && err.message) ? err.message : String(err);
+
+        if (/no-JSON/i.test(msgText) || /Respuesta no-JSON/i.test(msgText)) {
+          showMsg(msg,
+            "La API respondió algo distinto a JSON (posible URL incorrecta o permisos del WebApp).\n" +
+            "Revisa el despliegue del WebApp: acceso “Cualquiera” y ejecuta como propietario.",
+            "err"
+          );
+        } else if (/timeout/i.test(msgText)) {
+          showMsg(msg, "Tiempo de espera agotado. Reintenta (posible conexión lenta).", "err");
+        } else {
+          showMsg(msg, "Error al iniciar sesión: " + msgText, "err");
+        }
       } finally {
-        mostrarLoadingLogin(false);
+        if (!silent) mostrarLoadingLogin(false);
+        if (btn) btn.disabled = false;
       }
     }
 
-    /* ------------ LOGOUT / DESCANSO ------------ */
+    async function autologin() {
+      const s = getSession();
+      if (!s || !s.rutAgente || !s.ubicacionAgente) return;
+
+      if (s.descansoUntilMs) descansoUntilMs = s.descansoUntilMs;
+
+      const inputRut  = document.getElementById("login-rut");
+      const selUbic   = document.getElementById("login-ubicacion");
+      if (inputRut) inputRut.value = s.rutAgente;
+      if (selUbic) selUbic.value = s.ubicacionAgente;
+
+      await intentarLogin({ silent: false });
+    }
+
+    /* =========================
+       LOGOUT / DESCANSO
+       ========================= */
     async function cerrarSesion() {
       const msgConfig = document.getElementById("msg-config");
-      if (!idAgenteLogueado) {
-        msgConfig.textContent = "No hay sesión activa.";
-        msgConfig.className = "msg err";
-        return;
-      }
-      try {
-        const params = new URLSearchParams();
-        params.append("action","agenteLogout");
-        params.append("idAgente",idAgenteLogueado);
+      if (!idAgenteLogueado) { showMsg(msgConfig, "No hay sesión activa.", "err"); return; }
+      if (!confirm("¿Cerrar sesión? Esto te marcará como No Disponible.")) return;
 
-        const res = await fetch(API_URL + "?" + params.toString());
-        const json = await res.json();
+      const btnLogout = document.getElementById("btn-logout");
+      if (btnLogout) btnLogout.disabled = true;
+
+      try {
+        const url = buildUrl("agenteLogout", { idAgente: idAgenteLogueado });
+        const json = await fetchJson(url, { timeoutMs: 20000 });
         if (!json.ok) throw new Error(json.error || "Error al cerrar sesión");
 
         detenerAutoRefresh();
+        stopExpireTicker();
+        stopDescansoTicker_();
+        hideDescansoModal_();
 
         document.getElementById("card-main").style.display = "none";
         document.getElementById("card-login").style.display = "block";
@@ -623,49 +1196,79 @@
         nombreAgente = "";
         ubicacionAgente = "";
         estadoServicioAgente = "";
+        descansoUntilMs = 0;
+
         cacheAsignaciones = [];
         cachePasajeros = [];
         cacheVuelos = [];
 
+        clearSession();
+
         setEstadoApi("Desconectado", false);
-        msgConfig.textContent = "Sesión cerrada correctamente.";
-        msgConfig.className = "msg ok";
+        setTopbarInfo({ apiOk: false, lastUpdate: "—" });
+        showMsg(msgConfig, "Sesión cerrada correctamente.", "ok");
       } catch (err) {
         console.error(err);
-        msgConfig.textContent = "Error al cerrar sesión: " + (err.message || err);
-        msgConfig.className = "msg err";
+        showMsg(msgConfig, "Error al cerrar sesión: " + (err.message || err), "err");
+      } finally {
+        if (btnLogout) btnLogout.disabled = false;
       }
     }
 
     async function marcarDescanso() {
       const msgConfig = document.getElementById("msg-config");
-      if (!idAgenteLogueado) {
-        msgConfig.textContent = "No hay sesión activa.";
-        msgConfig.className = "msg err";
+      if (!idAgenteLogueado) { showMsg(msgConfig, "No hay sesión activa.", "err"); return; }
+
+      if (isEnDescanso_() && getDescansoRemainingMs_() > 0) {
+        showMsg(msgConfig, "Ya estás en descanso. Tiempo restante: " + formatMMSS_(getDescansoRemainingMs_()), "warn");
+        showDescansoModal_();
         return;
       }
-      try {
-        const params = new URLSearchParams();
-        params.append("action","agenteSetDescanso");
-        params.append("idAgente",idAgenteLogueado);
 
-        const res = await fetch(API_URL + "?" + params.toString());
-        const json = await res.json();
+      const ok = confirm(
+        `¿Seguro quieres indicar que estarás en colación?\n\n` +
+        `Quedarás deshabilitado durante ${DESCANSO_MINUTES} minutos (no te podrán asignar PMR).\n\n` +
+        `¿Confirmas iniciar colación ahora?`
+      );
+      if (!ok) return;
+
+      const btnDescanso = document.getElementById("btn-descanso");
+      if (btnDescanso) btnDescanso.disabled = true;
+
+      try {
+        const url = buildUrl("agenteSetDescanso", { idAgente: idAgenteLogueado });
+        const json = await fetchJson(url, { timeoutMs: 20000 });
         if (!json.ok) throw new Error(json.error || "Error al marcar descanso");
 
         estadoServicioAgente = "En descanso";
-        renderConfigInfo();
 
-        msgConfig.textContent = "Marcado como 'En descanso'.";
-        msgConfig.className = "msg ok";
+        if (json.descansoHasta) {
+          const t = new Date(json.descansoHasta).getTime();
+          descansoUntilMs = isNaN(t) ? (Date.now() + DESCANSO_MS) : t;
+        } else {
+          descansoUntilMs = Date.now() + DESCANSO_MS;
+        }
+
+        startDescansoTicker_();
+        renderConfigInfo();
+        updatePillEstado();
+        persistSession();
+
+        // ✅ Mensaje bonito + modal emergente
+        showMsg(msgConfig, `Ahora estás en descanso, tienes ${DESCANSO_MINUTES} minutos.`, "ok");
+        showDescansoModal_();
+
       } catch (err) {
         console.error(err);
-        msgConfig.textContent = "Error al marcar descanso: " + (err.message || err);
-        msgConfig.className = "msg err";
+        showMsg(msgConfig, "Error al marcar descanso: " + (err.message || err), "err");
+      } finally {
+        if (btnDescanso) btnDescanso.disabled = false;
       }
     }
 
-    /* ------------ AUTO REFRESH ------------ */
+    /* =========================
+       AUTO REFRESH
+       ========================= */
     function iniciarAutoRefresh() {
       detenerAutoRefresh();
       autoRefreshSeconds = 300;
@@ -696,53 +1299,53 @@
       if (cont) cont.style.display = "none";
     }
 
-    /* ------------ CARGAR DATOS AGENTE ------------ */
+    /* =========================
+       CARGAR DATOS (listAll)
+       ========================= */
     async function cargarDatosAgente(mostrarMensajes = true) {
       if (!idAgenteLogueado) return;
 
       const msgAsig = document.getElementById("msg-asignaciones");
-      if (mostrarMensajes && msgAsig) {
-        msgAsig.textContent = "Cargando asignaciones...";
-        msgAsig.className = "msg";
-      }
+      if (mostrarMensajes && msgAsig) showMsg(msgAsig, "Cargando asignaciones...", "");
 
       try {
-        const res = await fetch(API_URL + "?action=listAll");
-        const data = await res.json();
+        const data = await fetchJson(buildUrl("listAll"), { timeoutMs: 25000 });
         if (!data.ok) {
           setEstadoApi("Error", false);
-          if (msgAsig && mostrarMensajes) {
-            msgAsig.textContent = data.error || "Error al obtener datos.";
-            msgAsig.className = "msg err";
-          }
+          setTopbarInfo({ apiOk: false });
+          if (msgAsig && mostrarMensajes) showMsg(msgAsig, data.error || "Error al obtener datos.", "err");
           return;
         }
-        setEstadoApi("Conectado", true);
 
         cacheAsignaciones = data.asignaciones || [];
         cachePasajeros    = data.pasajeros    || [];
         cacheVuelos       = data.vuelos       || [];
 
+        setEstadoApi("Conectado", true);
+        setTopbarInfo({
+          apiOk: true,
+          lastUpdate: new Date().toLocaleTimeString("es-CL", {hour:"2-digit", minute:"2-digit"})
+        });
+
         renderAsignacionesAgente();
         renderHistorialAgente();
-        renderRangoAgente();   // ahora sólo muestra "Próximamente"
+        renderRangoAgente();
         renderConfigInfo();
 
-        if (msgAsig && mostrarMensajes) {
-          msgAsig.textContent = "";
-          msgAsig.className = "msg";
-        }
+        startExpireTicker();
+
+        if (msgAsig && mostrarMensajes) showMsg(msgAsig, "", "");
       } catch (err) {
         console.error(err);
         setEstadoApi("Error conexión", false);
-        if (msgAsig && mostrarMensajes) {
-          msgAsig.textContent = "Error de conexión con la API.";
-          msgAsig.className = "msg err";
-        }
+        setTopbarInfo({ apiOk: false });
+        if (msgAsig && mostrarMensajes) showMsg(msgAsig, "Error de conexión con la API.", "err");
       }
     }
 
-    /* ------------ RENDER ASIGNACIONES (pendientes) ------------ */
+    /* =========================
+       RENDER: ASIGNACIONES
+       ========================= */
     function renderAsignacionesAgente() {
       const cont = document.getElementById("lista-asignaciones");
       const msg  = document.getElementById("msg-asignaciones");
@@ -754,28 +1357,18 @@
         return;
       }
 
-      const propias = cacheAsignaciones.filter(a =>
-        String(a.idAgente) === String(idAgenteLogueado)
-      );
-
-      const pendientes = propias.filter(a => {
-        const est = (a.estadoAsignacion || "").toLowerCase();
-        return est !== "terminado" && est !== "rechazada" && est !== "cancelada";
-      });
+      const propias = cacheAsignaciones.filter(a => String(a.idAgente) === String(idAgenteLogueado));
+      const pendientes = propias.filter(a => !esEstadoCerrado_(a.estadoAsignacion));
 
       if (!pendientes.length) {
         cont.textContent = "No tienes asignaciones pendientes.";
-        if (msg) { msg.textContent = ""; msg.className = "msg"; }
+        if (msg) showMsg(msg, "", "");
         return;
       }
 
-      pendientes.sort((a,b)=>{
-        const fa = a.fechaAsignacion || "";
-        const fb = b.fechaAsignacion || "";
-        const ha = a.horaAsignacion || "";
-        const hb = b.horaAsignacion || "";
-        const sa = fa+" "+ha;
-        const sb = fb+" "+hb;
+      pendientes.sort((a,b)=> {
+        const sa = (a.fechaAsignacion || "") + " " + (a.horaAsignacion || "");
+        const sb = (b.fechaAsignacion || "") + " " + (b.horaAsignacion || "");
         return sb.localeCompare(sa);
       });
 
@@ -791,28 +1384,46 @@
         const espigon   = vuelo ? (vuelo.espigon || "") : "";
         const tipoServ  = vuelo ? (vuelo.tipoServicio || "") : "";
         const horaProg  = vuelo ? formatearHora(vuelo.horaProgramada) : "";
-        const estado    = (a.estadoAsignacion || "").toLowerCase();
+        const estadoN   = normalizarEstado(a.estadoAsignacion);
         const horaLimite= a.horaLimite ? formatearHora(a.horaLimite) : "";
 
         let pillClass = "pill-state";
-        if (estado === "en espera")        pillClass += " pill-espera";
-        else if (estado === "aceptada")    pillClass += " pill-aceptada";
-        else if (estado === "en tránsito" || estado === "en transito") pillClass += " pill-transito";
-        else if (estado === "terminado")   pillClass += " pill-terminado";
+        if (estadoN === "en asignacion" || estadoN === "en espera") pillClass += " pill-asignacion";
+        else if (estadoN === "aceptada") pillClass += " pill-aceptada";
+        else if (estadoN === "en transito") pillClass += " pill-transito";
+        else if (estadoN === "terminado") pillClass += " pill-terminado";
 
         let textoLimite = "";
         if (horaLimite && horaProg) {
-          const t = (tipoServ || "").toLowerCase();
+          const t = normalizarEstado(tipoServ);
           if (t === "embarque") {
-            textoLimite =
-              `Debes TERMINAR el servicio 60 minutos antes de la hora programada del vuelo (${horaProg}). ` +
-              `Hora límite recomendada: ${horaLimite}.`;
+            textoLimite = `Debes TERMINAR el servicio 60 min antes del vuelo (${horaProg}). Hora límite recomendada: ${horaLimite}.`;
           } else if (t === "desembarque") {
-            textoLimite =
-              `Debes INICIAR el trayecto 10 minutos antes de la hora programada del vuelo (${horaProg}). ` +
-              `Hora límite para iniciar: ${horaLimite}.`;
+            textoLimite = `Debes INICIAR el trayecto 10 min antes del vuelo (${horaProg}). Hora límite para iniciar: ${horaLimite}.`;
           } else {
             textoLimite = `Hora límite operativa: ${horaLimite}.`;
+          }
+        }
+
+        let expireHtml = "";
+        const esPendienteAceptar = (estadoN === "en asignacion" || estadoN === "en espera");
+        if (esPendienteAceptar) {
+          const exp = getExpiryDate(a);
+          if (exp) {
+            const hh = String(exp.getHours()).padStart(2,"0");
+            const mm = String(exp.getMinutes()).padStart(2,"0");
+            const expireAt = exp.getTime();
+            expireHtml = `
+              <div class="expire-box" id="expire-box-${a.idAsignacion}">
+                ⏳ Aceptación vence a <b>${hh}:${mm}</b> · queda <b data-expire-at="${expireAt}" id="expire-left-${a.idAsignacion}">--:--</b>
+              </div>
+            `;
+          } else {
+            expireHtml = `
+              <div class="expire-box">
+                ⏳ Pendiente de aceptación (vence a los 7 min desde asignación).
+              </div>
+            `;
           }
         }
 
@@ -820,7 +1431,7 @@
         card.className = "asignacion-card";
         card.innerHTML = `
           <div class="asignacion-header">
-            <span>#${a.idAsignacion || ""}</span>
+            <span><b>#${a.idAsignacion || ""}</b></span>
             <span class="${pillClass}">${a.estadoAsignacion || "Sin estado"}</span>
           </div>
           <div class="asignacion-body">
@@ -832,16 +1443,21 @@
               Terminal: ${terminal || "-"} · Puerta: ${puerta || "-"} · Espigón: ${espigon || "-"}
             </div>
             <div style="margin-top:3px;"><b>PMR:</b> ${nombrePmr || "(sin nombre)"}</div>
+
+            ${expireHtml}
             ${textoLimite ? `<div class="warning-limit">⚠ ${textoLimite}</div>` : ""}
-          </div>
-          <div class="cancel-panel" id="cancel-panel-${a.idAsignacion}" style="display:none;margin-top:6px;">
-            <label style="font-size:11px;display:block;margin-bottom:4px;">
-              Motivo de cancelación
-              <textarea id="cancel-motivo-${a.idAsignacion}" rows="2" placeholder="Ej: Pasajero no se presentó, se fue por sus medios, etc."></textarea>
-            </label>
-            <button class="btn small danger" id="btn-cancel-confirm-${a.idAsignacion}">
-              Confirmar cancelación
-            </button>
+
+            <div class="msg" id="msg-ops-${a.idAsignacion}"></div>
+
+            <div class="cancel-panel" id="cancel-panel-${a.idAsignacion}" style="display:none;margin-top:6px;">
+              <label style="font-size:11px;display:block;margin-bottom:4px;">
+                Motivo de cancelación
+                <textarea id="cancel-motivo-${a.idAsignacion}" rows="2" placeholder="Ej: Pasajero no se presentó, se fue por sus medios, etc."></textarea>
+              </label>
+              <button class="btn small danger" id="btn-cancel-confirm-${a.idAsignacion}">
+                Confirmar cancelación
+              </button>
+            </div>
           </div>
         `;
 
@@ -850,20 +1466,20 @@
 
         let permitirCancelar = false;
 
-        if (estado === "en espera") {
+        if (estadoN === "en asignacion" || estadoN === "en espera") {
           const btnAceptar = document.createElement("button");
           btnAceptar.className = "btn small";
           btnAceptar.textContent = "Aceptar asignación";
           btnAceptar.onclick = () => aceptarAsignacion(a.idAsignacion);
           footer.appendChild(btnAceptar);
-        } else if (estado === "aceptada") {
+        } else if (estadoN === "aceptada") {
           const btnIniciar = document.createElement("button");
           btnIniciar.className = "btn small";
           btnIniciar.textContent = "Iniciar trayecto";
           btnIniciar.onclick = () => iniciarTrayecto(a.idAsignacion);
           footer.appendChild(btnIniciar);
           permitirCancelar = true;
-        } else if (estado === "en tránsito" || estado === "en transito") {
+        } else if (estadoN === "en transito") {
           const btnTerminar = document.createElement("button");
           btnTerminar.className = "btn small";
           btnTerminar.textContent = "Terminar trayecto";
@@ -878,9 +1494,7 @@
           btnCancelar.textContent = "Cancelar servicio";
           btnCancelar.onclick = () => {
             const panel = document.getElementById(`cancel-panel-${a.idAsignacion}`);
-            if (panel) {
-              panel.style.display = panel.style.display === "none" ? "block" : "none";
-            }
+            if (panel) panel.style.display = panel.style.display === "none" ? "block" : "none";
           };
           footer.appendChild(btnCancelar);
         }
@@ -891,19 +1505,21 @@
         if (permitirCancelar) {
           const btnConfirm = document.getElementById(`btn-cancel-confirm-${a.idAsignacion}`);
           if (btnConfirm) {
-            btnConfirm.addEventListener("click", () => {
+            btnConfirm.addEventListener("click", async () => {
               const motivoEl = document.getElementById(`cancel-motivo-${a.idAsignacion}`);
               const motivo = motivoEl ? motivoEl.value.trim() : "";
-              cancelarAsignacion(a.idAsignacion, motivo);
+              await cancelarAsignacion(a.idAsignacion, motivo);
             });
           }
         }
       });
 
-      if (msg) { msg.textContent = ""; msg.className = "msg"; }
+      if (msg) showMsg(msg, "", "");
     }
 
-    /* ------------ HISTORIAL (terminados) ------------ */
+    /* =========================
+       RENDER: HISTORIAL
+       ========================= */
     function renderHistorialAgente() {
       const cont = document.getElementById("lista-historial");
       const msg  = document.getElementById("msg-historial");
@@ -917,22 +1533,18 @@
 
       const propias = cacheAsignaciones.filter(a =>
         String(a.idAgente) === String(idAgenteLogueado) &&
-        (a.estadoAsignacion || "").toLowerCase() === "terminado"
+        normalizarEstado(a.estadoAsignacion) === "terminado"
       );
 
       if (!propias.length) {
         cont.textContent = "Aún no tienes servicios terminados.";
-        if (msg) { msg.textContent = ""; msg.className = "msg"; }
+        if (msg) showMsg(msg, "", "");
         return;
       }
 
       propias.sort((a,b)=>{
-        const fa = a.fechaAsignacion || "";
-        const fb = b.fechaAsignacion || "";
-        const hf = a.horaFin || "";
-        const hb = b.horaFin || "";
-        const sa = fa+" "+hf;
-        const sb = fb+" "+hb;
+        const sa = (a.fechaAsignacion || "") + " " + (a.horaFin || "");
+        const sb = (b.fechaAsignacion || "") + " " + (b.horaFin || "");
         return sb.localeCompare(sa);
       });
 
@@ -947,7 +1559,7 @@
         const card = document.createElement("div");
         card.className = "hist-card";
         card.innerHTML = `
-          <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
             <span><b>#${a.idAsignacion || ""}</b> · ${vueloNum || ""} · ${tipoServ || ""}</span>
             <span style="font-size:11px;color:#9ca3af;">
               ${a.fechaAsignacion || ""} · ${formatearHora(a.horaFin)}
@@ -960,10 +1572,12 @@
         cont.appendChild(card);
       });
 
-      if (msg) { msg.textContent = ""; msg.className = "msg"; }
+      if (msg) showMsg(msg, "", "");
     }
 
-    /* ------------ MI RANGO – BLOQUEADO / PRÓXIMAMENTE ------------ */
+    /* =========================
+       MI RANGO (placeholder)
+       ========================= */
     function renderRangoAgente() {
       const cont = document.getElementById("rango-contenedor");
       if (!cont) return;
@@ -980,139 +1594,175 @@
       `;
     }
 
-    /* ------------ CONFIG INFO ------------ */
+    /* =========================
+       CONFIG INFO
+       ========================= */
     function renderConfigInfo() {
       const box = document.getElementById("config-info");
       if (!box) return;
+
       if (!idAgenteLogueado) {
         box.textContent = "Ingresa con tu RUT para ver tus datos.";
         return;
       }
+
+      const descansoExtra = (isEnDescanso_() && descansoUntilMs && getDescansoRemainingMs_() > 0)
+        ? `<div><b>Colación restante:</b> ${formatMMSS_(getDescansoRemainingMs_())}</div>`
+        : "";
+
       box.innerHTML = `
         <div><b>Nombre:</b> ${nombreAgente || "-"}</div>
         <div><b>ID Agente:</b> ${idAgenteLogueado || "-"}</div>
         <div><b>RUT:</b> ${rutAgente || "-"}</div>
         <div><b>Ubicación actual:</b> ${ubicacionAgente || "-"}</div>
         <div><b>Estado servicio:</b> ${estadoServicioAgente || "Disponible"}</div>
+        ${descansoExtra}
         <div style="font-size:11px;color:#9ca3af;margin-top:4px;">
-          Usa "En Descanso" si te detienes por colación o pausa, y "Cerrar sesión" al terminar tu turno.
+          Usa "En Descanso" si estás en colación/pause (45 min). Al terminar, volverás automáticamente a "Disponible".
         </div>
       `;
+      updatePillEstado();
     }
 
-    /* ------------ BOTONES ASIGNACIÓN ------------ */
+    /* =========================
+       BOTONES ASIGNACIÓN
+       ========================= */
+    function msgOps(idAsignacion) {
+      return document.getElementById(`msg-ops-${idAsignacion}`);
+    }
+
     async function aceptarAsignacion(idAsignacion) {
       if (!confirm("¿Aceptar esta asignación?")) return;
+      const el = msgOps(idAsignacion);
+      showMsg(el, "Enviando...", "");
       try {
-        const params = new URLSearchParams();
-        params.append("action","agenteAceptarAsignacion");
-        params.append("idAsignacion",idAsignacion);
-        params.append("idAgente",idAgenteLogueado);
-
-        const res = await fetch(API_URL + "?" + params.toString());
-        const json = await res.json();
+        const url = buildUrl("agenteAceptarAsignacion", { idAsignacion, idAgente: idAgenteLogueado });
+        const json = await fetchJson(url, { timeoutMs: 20000 });
         if (!json.ok) throw new Error(json.error || "Error al aceptar asignación");
-
-        alert("Asignación aceptada.");
-        await cargarDatosAgente();
+        showMsg(el, "Asignación aceptada.", "ok");
+        await cargarDatosAgente(false);
       } catch (err) {
         console.error(err);
-        alert("Error al aceptar asignación: " + (err.message || err));
+        showMsg(el, "Error: " + (err.message || err), "err");
       }
     }
 
     async function iniciarTrayecto(idAsignacion) {
       if (!confirm("¿Iniciar trayecto para esta asignación?")) return;
+      const el = msgOps(idAsignacion);
+      showMsg(el, "Enviando...", "");
       try {
-        const params = new URLSearchParams();
-        params.append("action","agenteIniciarTrayecto");
-        params.append("idAsignacion",idAsignacion);
-        params.append("idAgente",idAgenteLogueado);
-
-        const res = await fetch(API_URL + "?" + params.toString());
-        const json = await res.json();
+        const url = buildUrl("agenteIniciarTrayecto", { idAsignacion, idAgente: idAgenteLogueado });
+        const json = await fetchJson(url, { timeoutMs: 20000 });
         if (!json.ok) throw new Error(json.error || "Error al iniciar trayecto");
-
-        alert("Trayecto iniciado.");
-        await cargarDatosAgente();
+        showMsg(el, "Trayecto iniciado.", "ok");
+        await cargarDatosAgente(false);
       } catch (err) {
         console.error(err);
-        alert("Error al iniciar trayecto: " + (err.message || err));
+        showMsg(el, "Error: " + (err.message || err), "err");
       }
     }
 
     async function terminarTrayecto(idAsignacion) {
       if (!confirm("¿Terminar trayecto de esta asignación?")) return;
+      const el = msgOps(idAsignacion);
+      showMsg(el, "Enviando...", "");
       try {
-        const params = new URLSearchParams();
-        params.append("action","agenteTerminarTrayecto");
-        params.append("idAsignacion",idAsignacion);
-        params.append("idAgente",idAgenteLogueado);
-
-        const res = await fetch(API_URL + "?" + params.toString());
-        const json = await res.json();
+        const url = buildUrl("agenteTerminarTrayecto", { idAsignacion, idAgente: idAgenteLogueado });
+        const json = await fetchJson(url, { timeoutMs: 20000 });
         if (!json.ok) throw new Error(json.error || "Error al terminar trayecto");
-
-        alert("Trayecto terminado.");
-        await cargarDatosAgente();
+        showMsg(el, "Trayecto terminado.", "ok");
+        await cargarDatosAgente(false);
       } catch (err) {
         console.error(err);
-        alert("Error al terminar trayecto: " + (err.message || err));
+        showMsg(el, "Error: " + (err.message || err), "err");
       }
     }
 
     async function cancelarAsignacion(idAsignacion, motivo) {
+      const el = msgOps(idAsignacion);
       if (!motivo) {
-        alert("Debes indicar un motivo para cancelar el servicio.");
+        showMsg(el, "Debes indicar un motivo para cancelar el servicio.", "warn");
         return;
       }
       if (!confirm("¿Confirmas la cancelación de este servicio?")) return;
 
+      const btnConfirm = document.getElementById(`btn-cancel-confirm-${idAsignacion}`);
+      if (btnConfirm) btnConfirm.disabled = true;
+
+      showMsg(el, "Enviando cancelación...", "");
       try {
-        const params = new URLSearchParams();
-        params.append("action","agenteCancelarAsignacion");
-        params.append("idAsignacion",idAsignacion);
-        params.append("idAgente",idAgenteLogueado);
-        params.append("motivo",motivo);
-
-        const res = await fetch(API_URL + "?" + params.toString());
-        const json = await res.json();
+        const url = buildUrl("agenteCancelarAsignacion", { idAsignacion, idAgente: idAgenteLogueado, motivo });
+        const json = await fetchJson(url, { timeoutMs: 20000 });
         if (!json.ok) throw new Error(json.error || "Error al cancelar servicio");
-
-        alert("Servicio cancelado correctamente.");
-        await cargarDatosAgente();
+        showMsg(el, "Servicio cancelado correctamente.", "ok");
+        await cargarDatosAgente(false);
       } catch (err) {
         console.error(err);
-        alert("Error al cancelar servicio: " + (err.message || err));
+        showMsg(el, "Error: " + (err.message || err), "err");
+      } finally {
+        if (btnConfirm) btnConfirm.disabled = false;
       }
     }
 
-    /* ------------ EVENTOS ------------ */
-    document.getElementById("btn-login-agente").addEventListener("click", intentarLogin);
-    document.getElementById("login-rut").addEventListener("keyup",(ev)=>{
-      if (ev.key === "Enter") intentarLogin();
-    });
+    /* =========================
+       EVENTOS
+       ========================= */
+    document.addEventListener("DOMContentLoaded", () => {
+      const inputRut = document.getElementById("login-rut");
+      const selUbic  = document.getElementById("login-ubicacion");
+      const btnLogin = document.getElementById("btn-login-agente");
+      const btnAuto  = document.getElementById("btn-autologin");
 
-    const btnRefrescar = document.getElementById("btn-refrescar-datos");
-    if (btnRefrescar) {
-      btnRefrescar.addEventListener("click", ()=>cargarDatosAgente());
-    }
+      if (inputRut) {
+        inputRut.addEventListener("blur", () => { inputRut.value = rutLooseNormalize(inputRut.value); });
+        inputRut.addEventListener("keyup", (ev) => { if (ev.key === "Enter") intentarLogin({ silent:false }); });
+      }
+      if (btnLogin) btnLogin.addEventListener("click", () => intentarLogin({ silent:false }));
 
-    document.getElementById("btn-logout").addEventListener("click", cerrarSesion);
-    document.getElementById("btn-descanso").addEventListener("click", marcarDescanso);
+      // prefill desde sesión anterior
+      const s = getSession();
+      if (s && s.rutAgente) {
+        if (inputRut) inputRut.value = s.rutAgente;
+        if (selUbic && s.ubicacionAgente) selUbic.value = s.ubicacionAgente;
+        if (btnAuto) btnAuto.style.display = "inline-flex";
+        if (s.descansoUntilMs) descansoUntilMs = s.descansoUntilMs;
+      }
+      if (btnAuto) btnAuto.addEventListener("click", autologin);
 
-    document.querySelectorAll(".tab-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-        document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-        btn.classList.add("active");
-        const id = btn.dataset.tab;
-        const sec = document.getElementById(id);
-        if (sec) sec.classList.add("active");
+      const btnRefrescar = document.getElementById("btn-refrescar-datos");
+      if (btnRefrescar) btnRefrescar.addEventListener("click", () => cargarDatosAgente(true));
+
+      document.getElementById("btn-logout").addEventListener("click", cerrarSesion);
+      document.getElementById("btn-descanso").addEventListener("click", marcarDescanso);
+
+      // modal descanso
+      const close1 = document.getElementById("btn-descanso-close");
+      const close2 = document.getElementById("btn-descanso-entendido");
+      if (close1) close1.addEventListener("click", hideDescansoModal_);
+      if (close2) close2.addEventListener("click", hideDescansoModal_);
+      const overlay = document.getElementById("descanso-modal");
+      if (overlay) {
+        overlay.addEventListener("click", (ev) => {
+          if (ev.target === overlay) hideDescansoModal_();
+        });
+      }
+
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+          document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+          btn.classList.add("active");
+          const id = btn.dataset.tab;
+          const sec = document.getElementById(id);
+          if (sec) sec.classList.add("active");
+        });
       });
-    });
 
-    setEstadoApi("Desconectado", false);
+      setEstadoApi("Desconectado", false);
+      setTopbarInfo({ apiOk: false });
+    });
   </script>
 </body>
 </html>
+
