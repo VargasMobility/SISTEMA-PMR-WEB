@@ -628,12 +628,14 @@
           <!-- FORM CARGA MASIVA -->
           <div id="form-carga-masiva" class="action-form">
             <label>Archivo Excel (.xlsx / .xls)
-              <input type="file" id="input-carga-masiva" accept=".xlsx,.xls" />
-            </label>
-            <div class="helper-text">
-              Columnas A–O: Nombre, RUT, Edad, Fecha_Vuelo, Hora, Tipo_Vuelo, Vuelo, Tipo_Avion, Aerolínea,
-              Terminal, Origen, Destino, Puerta, Espigón, Tipo_PMR.
-            </div>
+             <input type="file" id="input-carga-masiva" accept=".xlsx,.xls,.csv" />
+				<div class="helper-text">
+				  Formato esperado (A–P):
+				  A Nombre_PMR, B RUT, C Edad, D Fecha_Vuelo, E Hora, F Tipo_Vuelo (Embarque/Desembarque),
+				  G Vuelo (LA345), H Tipo_Avion (WB/NB), I Aerolinea, J Terminal (Nacional/Internacional),
+				  K Origen, L Destino, M Puerta (1–12), N Espigon (A–F), O Tipo_PMR (WHC/WHR/WHS/etc),
+				  P Observaciones.
+				</div>
             <button class="btn-submit" id="btn-carga-masiva">Procesar archivo</button>
             <div class="msg" id="msg-carga-masiva"></div>
           </div>
