@@ -2033,7 +2033,28 @@
         msg.className = "msg err";
         return;
       }
-
+  async function enviarChunkOstrum(rowsChunk) {
+    const tipoServicio = (document.getElementById('ostrum-tipo-operacion')?.value || '').trim();
+  
+    if (tipoServicio !== 'Embarque' && tipoServicio !== 'Desembarque') {
+      throw new Error(`Tipo de servicio inválido en UI: "${tipoServicio}"`);
+    }
+  
+    const body = new URLSearchParams();
+    body.set('action', 'cargaMasivaOstrum');
+    body.set('tipoServicio', tipoServicio);              // ✅ ESTE ES EL FIX
+    body.set('payload', JSON.stringify(rowsChunk));
+  
+    const resp = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      body: body.toString()
+    });
+  
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Error desconocido');
+    return data;
+  }
       const headers = rows[0].map(h => String(h || "").trim());
       const dataRows = rows.slice(1);
 
@@ -2343,4 +2364,5 @@
 </script>
 </body>
 </html>
+
 
