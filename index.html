@@ -876,6 +876,39 @@
     return s;
   }
 
+  // ✅ NUEVO: construir DateTime (fecha + hora) y filtrar "solo próximas horas"
+  function obtenerDateTimeVuelo(v) {
+    const f = parseFechaSolo(v?.fecha);
+    if (!f) return null;
+
+    const h = formatearHora(v?.horaProgramada);
+    if (!h) {
+      // Si no hay hora, lo dejamos al final del día para NO esconderlo por error
+      return new Date(f.getFullYear(), f.getMonth(), f.getDate(), 23, 59, 59, 999);
+    }
+
+    const m = String(h).match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) {
+      // Hora rara: mejor no ocultar => fin de día
+      return new Date(f.getFullYear(), f.getMonth(), f.getDate(), 23, 59, 59, 999);
+    }
+
+    const hh = parseInt(m[1], 10);
+    const mm = parseInt(m[2], 10);
+    if (isNaN(hh) || isNaN(mm)) {
+      return new Date(f.getFullYear(), f.getMonth(), f.getDate(), 23, 59, 59, 999);
+    }
+
+    return new Date(f.getFullYear(), f.getMonth(), f.getDate(), hh, mm, 0, 0);
+  }
+
+  function vueloEsFuturo(v) {
+    const dt = obtenerDateTimeVuelo(v);
+    if (!dt) return false;
+    const ahora = new Date(); // hora local del PC (Chile si el PC está en Chile)
+    return dt.getTime() >= ahora.getTime();
+  }
+
   // Normalizar fecha proveniente de Excel a yyyy-mm-dd
   function normalizarFechaExcel(valor) {
     if (valor === null || valor === undefined || valor === "") return "";
@@ -1264,9 +1297,13 @@
     const filtrados = cacheVuelos.filter(v => {
       const f = parseFechaSolo(v.fecha);
       if (!f) return false;
+
       const esHoy = f.getTime() === hoy.getTime();
       const esManana = f.getTime() === manana.getTime();
       if (!esHoy && !esManana) return false;
+
+      // ✅ NUEVO: ocultar vuelos cuya hora ya pasó (solo mostrar próximas horas)
+      if (!vueloEsFuturo(v)) return false;
 
       const numVuelo = (v.numeroVuelo || "").toString();
       const aerolinea = (v.aerolinea || "").toString();
@@ -1310,7 +1347,7 @@
 
     document.getElementById("view-title").textContent = "Vuelos";
     document.getElementById("chip-info-vista").innerHTML =
-      `<span class="chip-label">Vuelos:</span><span>Hoy y mañana (con PMR en espera)</span>`;
+      `<span class="chip-label">Vuelos:</span><span>Hoy y mañana (solo próximas horas, con PMR en espera)</span>`;
   }
 
   function renderVistaPmr() {
@@ -1323,16 +1360,23 @@
     const hoy = hoyTrunc();
     const manana = addDias(hoy, 1);
 
-    // Base: solo PMR EN ESPERA y vuelos HOY o MAÑANA
+    // Base: solo PMR EN ESPERA y vuelos HOY o MAÑANA + ✅ sólo vuelos futuros por hora
     let pmrBase = cachePasajeros.filter(p => {
       if ((p.estadoPmr || "").toLowerCase() !== "en espera") return false;
+
       const vuelo = cacheVuelos.find(v => String(v.numeroVuelo) === String(p.vuelo));
       if (!vuelo) return false;
+
       const f = parseFechaSolo(vuelo.fecha);
       if (!f) return false;
+
       const esHoy = f.getTime() === hoy.getTime();
       const esManana = f.getTime() === manana.getTime();
       if (!esHoy && !esManana) return false;
+
+      // ✅ NUEVO: si el vuelo ya pasó por hora, ocultar también sus PMR
+      if (!vueloEsFuturo(vuelo)) return false;
+
       return true;
     });
 
@@ -1406,7 +1450,7 @@
 
     document.getElementById("view-title").textContent = "Pasajeros PMR";
     document.getElementById("chip-info-vista").innerHTML =
-      `<span class="chip-label">PMR:</span><span>Vuelos de hoy y mañana (En espera)</span>`;
+      `<span class="chip-label">PMR:</span><span>Hoy y mañana (En espera, solo próximas horas)</span>`;
   }
 
   function renderVistaAsignaciones() {
@@ -1585,7 +1629,7 @@
       selCrearPmrVuelo.appendChild(opt);
     });
 
-    // ASIGNAR PMR: solo EN ESPERA y vuelos HOY o MAÑANA
+    // ASIGNAR PMR: solo EN ESPERA y vuelos HOY o MAÑANA + ✅ sólo vuelos futuros por hora
     const selPmr = document.getElementById("asig-select-pmr");
     selPmr.innerHTML = '<option value="">— Seleccionar PMR —</option>';
 
@@ -1596,9 +1640,15 @@
         if (!vuelo) return false;
         const f = parseFechaSolo(vuelo.fecha);
         if (!f) return false;
+
         const esHoy = f.getTime() === hoy.getTime();
         const esManana = f.getTime() === manana.getTime();
-        return esHoy || esManana;
+        if (!(esHoy || esManana)) return false;
+
+        // ✅ NUEVO
+        if (!vueloEsFuturo(vuelo)) return false;
+
+        return true;
       })
       .forEach(p => {
         const vuelo = cacheVuelos.find(v => String(v.numeroVuelo) === String(p.vuelo));
@@ -2033,28 +2083,7 @@
         msg.className = "msg err";
         return;
       }
-  async function enviarChunkOstrum(rowsChunk) {
-    const tipoServicio = (document.getElementById('ostrum-tipo-operacion')?.value || '').trim();
-  
-    if (tipoServicio !== 'Embarque' && tipoServicio !== 'Desembarque') {
-      throw new Error(`Tipo de servicio inválido en UI: "${tipoServicio}"`);
-    }
-  
-    const body = new URLSearchParams();
-    body.set('action', 'cargaMasivaOstrum');
-    body.set('tipoServicio', tipoServicio);              // ✅ ESTE ES EL FIX
-    body.set('payload', JSON.stringify(rowsChunk));
-  
-    const resp = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-      body: body.toString()
-    });
-  
-    const data = await resp.json();
-    if (!data.ok) throw new Error(data.error || 'Error desconocido');
-    return data;
-  }
+
       const headers = rows[0].map(h => String(h || "").trim());
       const dataRows = rows.slice(1);
 
