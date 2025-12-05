@@ -10,20 +10,12 @@
 
   <style>
     * { box-sizing:border-box; margin:0; padding:0; }
-    body {
-      font-family:Arial, sans-serif;
-      background:#111827;
-      color:#0b1020;
-    }
+    body { font-family:Arial, sans-serif; background:#111827; color:#0b1020; }
 
-    /* HEADER – azul institucional */
     header{
       background:linear-gradient(90deg,#1e3a8a,#1d4ed8,#3b82f6);
-      color:#fff;
-      padding:10px 18px;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
+      color:#fff; padding:10px 18px;
+      display:flex; justify-content:space-between; align-items:center;
       box-shadow:0 4px 14px rgba(0,0,0,.6);
       border-bottom:2px solid rgba(59,130,246,.7);
     }
@@ -41,7 +33,6 @@
         linear-gradient(135deg,#111827,#020617 55%,#1f2937);
     }
 
-    /* SIDEBAR – fondo azul, acentos rojos */
     .sidebar{
       width:320px;
       background:radial-gradient(circle at top,#1e3a8a,#1d4ed8 60%,#111827 100%);
@@ -65,30 +56,18 @@
 
     .nav{display:flex;flex-direction:column;gap:4px;}
     .nav-btn{
-      border:none;
-      border-radius:8px;
+      border:none;border-radius:8px;
       background:linear-gradient(120deg,#7f1d1d,#b91c1c);
       color:#e5e7eb;
       padding:7px 10px;
-      font-size:12px;
-      text-align:left;
+      font-size:12px;text-align:left;
       cursor:pointer;
       transition:background .15s,transform .05s, box-shadow .15s, border .15s;
       box-shadow:0 2px 6px rgba(15,23,42,.7);
       border:1px solid rgba(254,226,226,.9);
     }
-    .nav-btn:hover{
-      background:linear-gradient(120deg,#b91c1c,#ef4444);
-      transform:translateY(-1px);
-      box-shadow:0 4px 10px rgba(15,23,42,.8);
-    }
-    .nav-btn.active{
-      background:linear-gradient(120deg,#1d4ed8,#3b82f6);
-      color:#fef2f2;
-      font-weight:600;
-      border:1px solid rgba(191,219,254,.9);
-      box-shadow:0 4px 10px rgba(30,64,175,.8);
-    }
+    .nav-btn:hover{ background:linear-gradient(120deg,#b91c1c,#ef4444); transform:translateY(-1px); box-shadow:0 4px 10px rgba(15,23,42,.8); }
+    .nav-btn.active{ background:linear-gradient(120deg,#1d4ed8,#3b82f6); color:#fef2f2; font-weight:600; border:1px solid rgba(191,219,254,.9); box-shadow:0 4px 10px rgba(30,64,175,.8); }
 
     .actions-box{
       background:#0b1020;
@@ -116,12 +95,10 @@
     .action-tabs{
       display:grid;
       grid-template-columns:repeat(3,1fr);
-      gap:4px;
-      margin-bottom:6px;
+      gap:4px;margin-bottom:6px;
     }
     .action-tab-btn{
-      border:none;
-      border-radius:8px;
+      border:none;border-radius:8px;
       background:rgba(15,23,42,.95);
       color:#e5e7eb;
       padding:4px 6px;
@@ -131,110 +108,51 @@
       transition:background .15s, box-shadow .15s, transform .05s, border .15s;
       border:1px solid rgba(248,113,113,.7);
     }
-    .action-tab-btn:hover{
-      background:linear-gradient(135deg,#b91c1c,#ef4444);
-      box-shadow:0 3px 8px rgba(15,23,42,.9);
-      transform:translateY(-1px);
-    }
-    .action-tab-btn.active{
-      background:linear-gradient(135deg,#1d4ed8,#3b82f6);
-      color:#fef2f2;
-      font-weight:600;
-      box-shadow:0 4px 10px rgba(0,0,0,.8);
-      border:1px solid rgba(191,219,254,.95);
-    }
+    .action-tab-btn:hover{ background:linear-gradient(135deg,#b91c1c,#ef4444); box-shadow:0 3px 8px rgba(15,23,42,.9); transform:translateY(-1px); }
+    .action-tab-btn.active{ background:linear-gradient(135deg,#1d4ed8,#3b82f6); color:#fef2f2; font-weight:600; box-shadow:0 4px 10px rgba(0,0,0,.8); border:1px solid rgba(191,219,254,.95); }
 
     .action-form{
-      margin-top:6px;
-      border-radius:10px;
+      margin-top:6px;border-radius:10px;
       background:radial-gradient(circle at top left,#0f172a,#020617 60%,#020617 100%);
       padding:8px;
       box-shadow:inset 0 0 0 1px rgba(248,113,113,.7);
     }
     .action-form.hidden{display:none;}
 
-    label{
-      display:block;
-      margin-top:6px;
-      font-size:11px;
-      color:#e5e7eb;
-    }
-    input[type="text"],
-    input[type="number"],
-    input[type="date"],
-    input[type="time"],
-    select,
-    textarea{
-      width:100%;
-      margin-top:2px;
-      padding:4px 6px;
-      border-radius:6px;
-      border:1px solid #374151;
-      background:#020617;
-      color:#e5e7eb;
-      font-size:12px;
-      outline:none;
+    label{ display:block; margin-top:6px; font-size:11px; color:#e5e7eb; }
+    input[type="text"], input[type="number"], input[type="date"], input[type="time"], select, textarea{
+      width:100%; margin-top:2px; padding:4px 6px;
+      border-radius:6px; border:1px solid #374151;
+      background:#020617; color:#e5e7eb; font-size:12px; outline:none;
       transition:border .12s, box-shadow .12s, background .12s;
     }
-    input[type="text"]:focus,
-    input[type="number"]:focus,
-    input[type="date"]:focus,
-    input[type="time"]:focus,
-    select:focus,
-    textarea:focus{
-      border-color:#ef4444;
-      box-shadow:0 0 0 1px rgba(248,113,113,.85);
-      background:#020617;
+    input[type="text"]:focus, input[type="number"]:focus, input[type="date"]:focus, input[type="time"]:focus, select:focus, textarea:focus{
+      border-color:#ef4444; box-shadow:0 0 0 1px rgba(248,113,113,.85); background:#020617;
     }
     textarea{resize:vertical;min-height:52px;}
     input[type="file"]{
-      width:100%;
-      margin-top:4px;
-      padding:4px;
-      border-radius:6px;
-      border:1px solid #374151;
-      background:#020617;
-      color:#e5e7eb;
-      font-size:12px;
+      width:100%; margin-top:4px; padding:4px; border-radius:6px;
+      border:1px solid #374151; background:#020617; color:#e5e7eb; font-size:12px;
     }
 
     .btn-submit{
-      margin-top:8px;
-      padding:7px 10px;
-      border:none;
-      border-radius:999px;
+      margin-top:8px; padding:7px 10px;
+      border:none; border-radius:999px;
       background:linear-gradient(120deg,#b91c1c,#ef4444);
       color:#fef2f2;
-      font-size:12px;
-      cursor:pointer;
+      font-size:12px; cursor:pointer;
       box-shadow:0 3px 8px rgba(15,23,42,.9);
       transition:background .15s, box-shadow .15s, transform .05s;
-      width:100%;
-      text-transform:uppercase;
-      letter-spacing:.08em;
-      font-weight:600;
+      width:100%; text-transform:uppercase; letter-spacing:.08em; font-weight:600;
     }
-    .btn-submit:hover{
-      background:linear-gradient(120deg,#ef4444,#f97373);
-      box-shadow:0 5px 12px rgba(15,23,42,1);
-      transform:translateY(-1px);
-    }
-    .btn-submit:disabled{
-      opacity:.6;
-      cursor:default;
-      box-shadow:none;
-    }
+    .btn-submit:hover{ background:linear-gradient(120deg,#ef4444,#f97373); box-shadow:0 5px 12px rgba(15,23,42,1); transform:translateY(-1px); }
+    .btn-submit:disabled{ opacity:.6; cursor:default; box-shadow:none; }
 
-    .helper-text{
-      font-size:10px;
-      color:#9ca3af;
-      margin-top:4px;
-    }
+    .helper-text{ font-size:10px; color:#9ca3af; margin-top:4px; }
     .msg{font-size:11px;margin-top:4px;color:#e5e7eb;}
     .msg.ok{color:#4ade80;}
     .msg.err{color:#fb923c;}
 
-    /* MAIN */
     .main{
       flex:1;
       padding:10px 14px;
@@ -248,18 +166,11 @@
     }
 
     .view-header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
+      display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;
       color:#e5e7eb;
     }
     .view-title{
-      font-size:17px;
-      font-weight:700;
-      letter-spacing:.04em;
-      text-transform:uppercase;
+      font-size:17px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
     }
     .view-filters{display:flex;gap:6px;flex-wrap:wrap;font-size:11px;align-items:center;}
 
@@ -322,15 +233,9 @@
       letter-spacing:.06em;
       font-size:10px;
     }
-    tr:nth-child(even){
-      background:rgba(15,23,42,.9);
-    }
-    tr:nth-child(odd){
-      background:rgba(17,24,39,.95);
-    }
-    tr:hover{
-      background:radial-gradient(circle at left,#2563eb 0,transparent 55%);
-    }
+    tr:nth-child(even){ background:rgba(15,23,42,.9); }
+    tr:nth-child(odd){ background:rgba(17,24,39,.95); }
+    tr:hover{ background:radial-gradient(circle at left,#2563eb 0,transparent 55%); }
 
     .view-section{display:none;}
     .view-section.active{display:block;}
@@ -341,6 +246,7 @@
     }
   </style>
 </head>
+
 <body>
 <header>
   <div class="brand">
@@ -354,9 +260,7 @@
 </header>
 
 <div class="app">
-  <!-- SIDEBAR -->
   <aside class="sidebar">
-    <!-- VISTAS -->
     <div>
       <div class="sidebar-section-title">Vistas</div>
       <div class="nav">
@@ -367,7 +271,6 @@
       </div>
     </div>
 
-    <!-- ACCIONES -->
     <div>
       <div class="sidebar-section-title">Acciones</div>
       <div class="actions-box">
@@ -380,20 +283,11 @@
           <button class="action-tab-btn" data-target="form-asignar-pmr">Asignar PMR</button>
         </div>
 
-        <!-- FORM CREAR VUELO -->
         <div id="form-crear-vuelo" class="action-form">
-          <label>Fecha vuelo
-            <input type="date" id="crear-fecha" />
-          </label>
-          <label>Hora programada
-            <input type="time" id="crear-hora" />
-          </label>
-          <label>Aerolínea
-            <input type="text" id="crear-aerolinea" placeholder="Sky, LATAM, etc." />
-          </label>
-          <label>Número de vuelo
-            <input type="text" id="crear-numero" placeholder="LA345" />
-          </label>
+          <label>Fecha vuelo <input type="date" id="crear-fecha" /></label>
+          <label>Hora programada <input type="time" id="crear-hora" /></label>
+          <label>Aerolínea <input type="text" id="crear-aerolinea" placeholder="Sky, LATAM, etc." /></label>
+          <label>Número de vuelo <input type="text" id="crear-numero" placeholder="LA345" /></label>
           <label>Terminal
             <select id="crear-terminal">
               <option value="">— Seleccionar —</option>
@@ -401,12 +295,8 @@
               <option value="Internacional">Internacional</option>
             </select>
           </label>
-          <label>Puerta
-            <input type="text" id="crear-puerta" placeholder="1–13" />
-          </label>
-          <label>Espigón
-            <input type="text" id="crear-espigon" placeholder="A–F" />
-          </label>
+          <label>Puerta <input type="text" id="crear-puerta" placeholder="1–13" /></label>
+          <label>Espigón <input type="text" id="crear-espigon" placeholder="A–F" /></label>
           <label>Tipo de avión
             <select id="crear-tipo-avion">
               <option value="">— Seleccionar —</option>
@@ -414,15 +304,9 @@
               <option value="WB">WB</option>
             </select>
           </label>
-          <label>Origen (código)
-            <input type="text" id="crear-origen-vuelo" placeholder="SCL, LIM, etc." />
-          </label>
-          <label>Destino (código)
-            <input type="text" id="crear-destino-vuelo" placeholder="SCL, LIM, etc." />
-          </label>
-          <label>Cant. pasajeros PMR
-            <input type="number" id="crear-cant-pmr" min="0" value="0" />
-          </label>
+          <label>Origen (código) <input type="text" id="crear-origen-vuelo" placeholder="SCL, LIM, etc." /></label>
+          <label>Destino (código) <input type="text" id="crear-destino-vuelo" placeholder="SCL, LIM, etc." /></label>
+          <label>Cant. pasajeros PMR <input type="number" id="crear-cant-pmr" min="0" value="0" /></label>
           <label>Tipo de servicio
             <select id="crear-tipo-servicio">
               <option value="">— Seleccionar —</option>
@@ -438,41 +322,25 @@
               <option value="Cancelado">Cancelado</option>
             </select>
           </label>
-          <label>Observaciones
-            <textarea id="crear-obs"></textarea>
-          </label>
-
+          <label>Observaciones <textarea id="crear-obs"></textarea></label>
           <button class="btn-submit" id="btn-crear-vuelo">Guardar vuelo</button>
           <div class="helper-text">Al crear, se generará un ID_Vuelo único.</div>
           <div class="msg" id="msg-crear-vuelo"></div>
         </div>
 
-        <!-- FORM MODIFICAR VUELO -->
         <div id="form-modificar-vuelo" class="action-form hidden">
           <label>Seleccionar vuelo (sólo hoy)
-            <select id="modificar-id-vuelo">
-              <option value="">— Seleccionar —</option>
-            </select>
+            <select id="modificar-id-vuelo"><option value="">— Seleccionar —</option></select>
           </label>
-          <label>Nueva fecha
-            <input type="date" id="modificar-fecha" />
-          </label>
-          <label>Nueva hora
-            <input type="time" id="modificar-hora" />
-          </label>
-          <label>Nueva puerta
-            <input type="text" id="modificar-puerta" />
-          </label>
-          <label>Nuevo espigón
-            <input type="text" id="modificar-espigon" />
-          </label>
-
+          <label>Nueva fecha <input type="date" id="modificar-fecha" /></label>
+          <label>Nueva hora <input type="time" id="modificar-hora" /></label>
+          <label>Nueva puerta <input type="text" id="modificar-puerta" /></label>
+          <label>Nuevo espigón <input type="text" id="modificar-espigon" /></label>
           <button class="btn-submit" id="btn-modificar-vuelo">Modificar vuelo</button>
           <div class="helper-text">Sólo se permiten modificaciones en vuelos del día actual.</div>
           <div class="msg" id="msg-modificar-vuelo"></div>
         </div>
 
-        <!-- FORM CARGA MASIVA -->
         <div id="form-carga-masiva" class="action-form hidden">
           <label>Archivo Excel (.xlsx / .xls)
             <input type="file" id="input-carga-masiva" accept=".xlsx,.xls" />
@@ -485,7 +353,6 @@
           <div class="msg" id="msg-carga-masiva"></div>
         </div>
 
-        <!-- FORM CARGA OSTRUM -->
         <div id="form-carga-ostrum" class="action-form hidden">
           <label>Tipo de carga Ostrum
             <select id="ostrum-tipo-operacion">
@@ -493,66 +360,41 @@
               <option value="Desembarque">Desembarque (Arribos)</option>
             </select>
           </label>
-
           <label>Archivo Ostrum (Excel o CSV)
             <input type="file" id="input-carga-ostrum" accept=".xlsx,.xls,.csv" />
           </label>
-
           <div class="helper-text">
             Esta carga crea <b>placeholders</b> PMR desde la columna PMR (ej: <i>10 - S(3) R(7)</i>).
             Se generan RUT determinísticos: <b>OSTRUM-YYYYMMDD-VUELO-TIPO-##</b>.
             Puerta/Espigón/Hora se toman desde Ostrum (prioridad: ACT ➜ EST ➜ SCH).
           </div>
-
           <button class="btn-submit" id="btn-carga-ostrum">Procesar Ostrum</button>
           <div class="msg" id="msg-carga-ostrum"></div>
         </div>
 
-        <!-- FORM CREAR PASAJERO PMR -->
         <div id="form-crear-pmr" class="action-form hidden">
           <label>Vuelo (número + fecha)
-            <select id="crear-pmr-vuelo">
-              <option value="">— Seleccionar vuelo —</option>
-            </select>
+            <select id="crear-pmr-vuelo"><option value="">— Seleccionar vuelo —</option></select>
           </label>
-          <label>Nombre pasajero PMR
-            <input type="text" id="crear-pmr-nombre" placeholder="Nombre completo" />
-          </label>
-          <label>Tipo de asistencia
-            <input type="text" id="crear-pmr-tipo" placeholder="WHL_SLC, etc." />
-          </label>
-          <label>Edad
-            <input type="number" id="crear-pmr-edad" min="0" />
-          </label>
-          <label>Origen (código)
-            <input type="text" id="crear-pmr-origen" placeholder="SCL, LIM, etc." />
-          </label>
-          <label>Destino (código)
-            <input type="text" id="crear-pmr-destino" placeholder="SCL, LIM, etc." />
-          </label>
-          <label>Observaciones
-            <textarea id="crear-pmr-obs"></textarea>
-          </label>
+          <label>Nombre pasajero PMR <input type="text" id="crear-pmr-nombre" placeholder="Nombre completo" /></label>
+          <label>Tipo de asistencia <input type="text" id="crear-pmr-tipo" placeholder="WHL_SLC, etc." /></label>
+          <label>Edad <input type="number" id="crear-pmr-edad" min="0" /></label>
+          <label>Origen (código) <input type="text" id="crear-pmr-origen" placeholder="SCL, LIM, etc." /></label>
+          <label>Destino (código) <input type="text" id="crear-pmr-destino" placeholder="SCL, LIM, etc." /></label>
+          <label>Observaciones <textarea id="crear-pmr-obs"></textarea></label>
 
           <button class="btn-submit" id="btn-crear-pmr">Crear pasajero PMR</button>
-          <div class="helper-text">
-            El pasajero se creará en estado <b>En espera</b> y se actualizará la cantidad de PMR del vuelo.
-          </div>
+          <div class="helper-text">El pasajero se crea <b>En espera</b> y se actualiza Cant PMR del vuelo.</div>
           <div class="msg" id="msg-crear-pmr"></div>
         </div>
 
-        <!-- FORM ASIGNAR PMR -->
         <div id="form-asignar-pmr" class="action-form hidden">
           <label>Pasajero PMR (En espera)
-            <select id="asig-select-pmr">
-              <option value="">— Seleccionar PMR —</option>
-            </select>
+            <select id="asig-select-pmr"><option value="">— Seleccionar PMR —</option></select>
           </label>
 
           <label>Agente disponible (misma terminal)
-            <select id="asig-select-agente">
-              <option value="">— Selecciona primero un PMR —</option>
-            </select>
+            <select id="asig-select-agente"><option value="">— Selecciona primero un PMR —</option></select>
           </label>
 
           <label>Tipo de traslado
@@ -563,40 +405,26 @@
             </select>
           </label>
 
-          <label>Origen (auto)
-            <input type="text" id="asig-origen" readonly />
-          </label>
-
-          <label>Destino (auto)
-            <input type="text" id="asig-destino" readonly />
-          </label>
+          <label>Origen (auto) <input type="text" id="asig-origen" readonly /></label>
+          <label>Destino (auto) <input type="text" id="asig-destino" readonly /></label>
           <div class="helper-text">
-            Origen y destino se calculan automáticamente según el tipo de servicio del vuelo,
-            el tipo de asistencia del PMR y el tipo de traslado.
+            Origen/destino se calculan automáticamente según tipo de servicio del vuelo, tipo de asistencia y tipo de traslado.
           </div>
 
-          <label>Observaciones
-            <textarea id="asig-obs"></textarea>
-          </label>
-
+          <label>Observaciones <textarea id="asig-obs"></textarea></label>
           <button class="btn-submit" id="btn-asignar-pmr">Asignar</button>
-          <div class="helper-text">
-            Se filtrarán sólo agentes "Disponibles" en la misma terminal que el vuelo del PMR.
-          </div>
+          <div class="helper-text">Se filtrarán agentes "Disponibles" en la misma terminal del vuelo del PMR.</div>
           <div class="msg" id="msg-asignar-pmr"></div>
         </div>
       </div>
     </div>
   </aside>
 
-  <!-- MAIN -->
   <main class="main">
     <div class="view-header">
       <div class="view-title" id="view-title">Vuelos</div>
       <div class="view-filters">
-        <button class="btn-submit" id="btn-actualizar" style="width:auto;padding:4px 10px;font-size:11px;">
-          Actualizar datos
-        </button>
+        <button class="btn-submit" id="btn-actualizar" style="width:auto;padding:4px 10px;font-size:11px;">Actualizar datos</button>
         <div class="chip" id="auto-refresh-box" style="display:none;">
           <span class="chip-label">Auto-refresco</span>
           <span>en <span id="auto-refresh-label">45</span> s</span>
@@ -609,13 +437,10 @@
     </div>
 
     <div class="view-container">
-      <!-- VISTA VUELOS -->
       <section id="view-vuelos" class="view-section active">
         <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;margin-bottom:4px;">
           <div style="min-width:150px;">
-            <label>Filtro N° vuelo
-              <input type="text" id="filtro-vuelo-num" placeholder="Ej: LA345" />
-            </label>
+            <label>Filtro N° vuelo <input type="text" id="filtro-vuelo-num" placeholder="Ej: LA345" /></label>
           </div>
           <div style="min-width:150px;">
             <label>Aerolínea (autocompletar)
@@ -628,45 +453,26 @@
         <table>
           <thead>
             <tr>
-              <th>ID Vuelo</th>
-              <th>Fecha</th>
-              <th>Hora</th>
-              <th>Aerolínea</th>
-              <th>N° Vuelo</th>
-              <th>Terminal</th>
-              <th>Puerta</th>
-              <th>Espigón</th>
-              <th>Cant PMR</th>
-              <th>Tipo servicio</th>
-              <th>Estado</th>
-              <th>Tipo</th>
-              <th>Origen</th>
-              <th>Destino</th>
-              <th>Obs</th>
+              <th>ID Vuelo</th><th>Fecha</th><th>Hora</th><th>Aerolínea</th><th>N° Vuelo</th>
+              <th>Terminal</th><th>Puerta</th><th>Espigón</th><th>Cant PMR</th><th>Tipo servicio</th>
+              <th>Estado</th><th>Tipo</th><th>Origen</th><th>Destino</th><th>Obs</th>
             </tr>
           </thead>
           <tbody id="tbody-vuelos"></tbody>
         </table>
-        <div class="empty-state" id="empty-vuelos" style="display:none;">
-          No hay vuelos para hoy o mañana (con PMR en espera).
-        </div>
+        <div class="empty-state" id="empty-vuelos" style="display:none;">No hay vuelos para hoy o mañana (solo próximas horas, con PMR en espera).</div>
       </section>
 
-      <!-- VISTA PASAJEROS PMR -->
       <section id="view-pmr" class="view-section">
         <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;margin-bottom:4px;">
-          <div style="min-width:180px;">
-            <label>Filtrar por N° de vuelo
-              <select id="filtro-pmr-vuelo">
-                <option value="">Todos</option>
-              </select>
+          <div style="min-width:220px;">
+            <label>Filtrar por Vuelo (N° + fecha)
+              <select id="filtro-pmr-vuelo"><option value="">Todos</option></select>
             </label>
           </div>
           <div style="min-width:180px;">
             <label>Filtrar por Estado
-              <select id="filtro-pmr-estado">
-                <option value="">Todos</option>
-              </select>
+              <select id="filtro-pmr-estado"><option value="">Todos</option></select>
             </label>
           </div>
         </div>
@@ -674,110 +480,54 @@
         <table>
           <thead>
             <tr>
-              <th>ID PMR</th>
-              <th>Vuelo</th>
-              <th>Nombre</th>
-              <th>Tipo asistencia</th>
-              <th>Edad</th>
-              <th>Origen</th>
-              <th>Destino</th>
-              <th>Estado</th>
-              <th>ID Agente</th>
-              <th>Hora inicio</th>
-              <th>Hora fin</th>
-              <th>Obs</th>
+              <th>ID PMR</th><th>Vuelo</th><th>Nombre</th><th>Tipo asistencia</th><th>Edad</th>
+              <th>Origen</th><th>Destino</th><th>Estado</th><th>ID Agente</th>
+              <th>Hora inicio</th><th>Hora fin</th><th>Obs</th>
             </tr>
           </thead>
           <tbody id="tbody-pmr"></tbody>
         </table>
-        <div class="empty-state" id="empty-pmr" style="display:none;">
-          No hay pasajeros PMR para los filtros seleccionados.
-        </div>
+        <div class="empty-state" id="empty-pmr" style="display:none;">No hay pasajeros PMR para los filtros seleccionados.</div>
       </section>
 
-      <!-- VISTA ASIGNACIONES -->
       <section id="view-asignaciones" class="view-section">
         <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;margin-bottom:4px;">
-          <div style="min-width:150px;">
-            <label>Filtro N° vuelo
-              <input type="text" id="filtro-asig-vuelo-num" placeholder="Ej: LA345" />
-            </label>
-          </div>
-          <div style="min-width:150px;">
-            <label>Fecha asignación
-              <input type="date" id="filtro-asig-fecha" />
-            </label>
-          </div>
-          <div style="min-width:150px;">
-            <label>Tipo traslado
-              <select id="filtro-asig-tipo">
-                <option value="">Todos</option>
-              </select>
-            </label>
-          </div>
-          <div style="min-width:150px;">
-            <label>Estado
-              <select id="filtro-asig-estado">
-                <option value="">Todos</option>
-              </select>
-            </label>
-          </div>
+          <div style="min-width:150px;"><label>Filtro N° vuelo <input type="text" id="filtro-asig-vuelo-num" placeholder="Ej: LA345" /></label></div>
+          <div style="min-width:150px;"><label>Fecha asignación <input type="date" id="filtro-asig-fecha" /></label></div>
+          <div style="min-width:150px;"><label>Tipo traslado <select id="filtro-asig-tipo"><option value="">Todos</option></select></label></div>
+          <div style="min-width:150px;"><label>Estado <select id="filtro-asig-estado"><option value="">Todos</option></select></label></div>
         </div>
 
         <table>
           <thead>
             <tr>
-              <th>ID Asignación</th>
-              <th>ID Vuelo</th>
-              <th>ID PMR</th>
-              <th>ID Agente</th>
-              <th>Fecha</th>
-              <th>Hora Asig.</th>
-              <th>Hora inicio</th>
-              <th>Hora fin</th>
-              <th>Estado</th>
-              <th>Tipo traslado</th>
-              <th>Origen</th>
-              <th>Destino</th>
-              <th>Justificación cancelación</th>
-              <th>Hora límite</th>
+              <th>ID Asignación</th><th>ID Vuelo</th><th>ID PMR</th><th>ID Agente</th><th>Fecha</th>
+              <th>Hora Asig.</th><th>Hora inicio</th><th>Hora fin</th><th>Estado</th><th>Tipo traslado</th>
+              <th>Origen</th><th>Destino</th><th>Justificación cancelación</th><th>Hora límite</th>
             </tr>
           </thead>
           <tbody id="tbody-asignaciones"></tbody>
         </table>
-        <div class="empty-state" id="empty-asignaciones" style="display:none;">
-          No hay asignaciones registradas para los filtros seleccionados.
-        </div>
+        <div class="empty-state" id="empty-asignaciones" style="display:none;">No hay asignaciones registradas para los filtros seleccionados.</div>
       </section>
 
-      <!-- VISTA AGENTES -->
       <section id="view-agentes" class="view-section">
         <table>
           <thead>
             <tr>
-              <th>ID Agente</th>
-              <th>Nombre</th>
-              <th>RUT</th>
-              <th>Teléfono</th>
-              <th>Estado</th>
-              <th>Estado Servicio</th>
-              <th>Último Servicio</th>
-              <th>Observaciones</th>
-              <th>Ubicación</th>
+              <th>ID Agente</th><th>Nombre</th><th>RUT</th><th>Teléfono</th><th>Estado</th>
+              <th>Estado Servicio</th><th>Último Servicio</th><th>Observaciones</th><th>Ubicación</th>
             </tr>
           </thead>
           <tbody id="tbody-agentes"></tbody>
         </table>
-        <div class="empty-state" id="empty-agentes" style="display:none;">
-          No hay agentes configurados.
-        </div>
+        <div class="empty-state" id="empty-agentes" style="display:none;">No hay agentes configurados.</div>
       </section>
     </div>
   </main>
 </div>
 
 <script>
-  // 👉 URL del Web App
   const API_URL = "https://script.google.com/macros/s/AKfycbwFBHpIx-gQrVAvj5Vv-I-l1X3NR9MYbyTV9CtxgKCw7oPeuxIE5qrYx3eZdDoIroTE/exec";
 
   let cacheVuelos = [];
@@ -785,7 +535,6 @@
   let cacheAsignaciones = [];
   let cacheAgentes = [];
 
-  // Autorefresco (3 minutos, aviso últimos 45 s)
   let autoRefreshInterval = null;
   let autoRefreshSeconds = 180;
 
@@ -816,33 +565,29 @@
     }, 1000);
   }
 
-  function detenerAutoRefresh() {
-    if (autoRefreshInterval) {
-      clearInterval(autoRefreshInterval);
-      autoRefreshInterval = null;
-    }
-    const box = document.getElementById("auto-refresh-box");
-    if (box) box.style.display = "none";
-  }
+  /* --------- FECHA / HORA (✅ mismos FIX del código que sí funcionó) --------- */
 
-  /* --------- UTILIDADES FECHA / HORA --------- */
+  // ✅ FIX: soporta yyyy-mm-ddTHH:..Z sin corrimiento de día
   function parseFechaSolo(fecha) {
     if (!fecha) return null;
     if (fecha instanceof Date) return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
 
     const s = String(fecha).trim();
+
+    // dd/mm/yyyy o dd-mm-yyyy
     let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-    if (m) {
-      return new Date(parseInt(m[3],10), parseInt(m[2],10)-1, parseInt(m[1],10));
-    }
+    if (m) return new Date(parseInt(m[3],10), parseInt(m[2],10)-1, parseInt(m[1],10));
+
+    // yyyy-mm-dd o yyyy/mm/dd
     m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
-    if (m) {
-      return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
-    }
+    if (m) return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
+
+    // yyyy-mm-ddTHH:... (ISO)
+    m = s.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+    if (m) return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
+
     const d = new Date(s);
-    if (!isNaN(d)) {
-      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    }
+    if (!isNaN(d)) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
     return null;
   }
 
@@ -870,6 +615,87 @@
     return s;
   }
 
+  // ✅ FIX TZ: siempre devuelve yyyy-mm-dd SIN “día anterior”
+  function normalizarFechaExcel(valor) {
+    if (valor === null || valor === undefined || valor === "") return "";
+
+    // Serial Excel
+    if (typeof valor === "number") {
+      const ms = Math.round((valor - 25569) * 86400 * 1000);
+      const d = new Date(ms);
+      const yyyy = d.getUTCFullYear();
+      const mm = String(d.getUTCMonth() + 1).padStart(2,"0");
+      const dd = String(d.getUTCDate()).padStart(2,"0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    // Date object
+    if (valor instanceof Date) {
+      const yyyy = valor.getUTCFullYear();
+      const mm = String(valor.getUTCMonth() + 1).padStart(2,"0");
+      const dd = String(valor.getUTCDate()).padStart(2,"0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    const s = String(valor).trim();
+
+    // ISO datetime
+    let m = s.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+    if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+
+    // yyyy-mm-dd / yyyy/mm/dd
+    m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+    if (m) return `${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
+
+    // dd-mm-yyyy / dd/mm/yyyy
+    m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (m) return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+
+    const d = new Date(s);
+    if (!isNaN(d)) {
+      const yyyy = d.getUTCFullYear();
+      const mm = String(d.getUTCMonth()+1).padStart(2,"0");
+      const dd = String(d.getUTCDate()).padStart(2,"0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    return s;
+  }
+
+  function normalizarHoraExcel(valor) {
+    if (valor === null || valor === undefined || valor === "") return "";
+    if (typeof valor === "number") {
+      const totalSeconds = Math.round(valor * 86400);
+      const hh = String(Math.floor(totalSeconds / 3600) % 24).padStart(2,"0");
+      const mm = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2,"0");
+      return `${hh}:${mm}`;
+    }
+    const s = String(valor).trim();
+    const m = s.match(/(\d{1,2}):(\d{2})/);
+    if (m) return `${m[1].padStart(2,"0")}:${m[2]}`;
+    return s;
+  }
+
+  // ✅ KEY de vuelo (número + fecha)
+  function vueloKey(numeroVuelo, fechaAny) {
+    const ymd = normalizarFechaExcel(fechaAny);
+    return `${String(numeroVuelo || "").trim()}||${ymd}`;
+  }
+  function vueloKeyFromVuelo(v) {
+    return vueloKey(v?.numeroVuelo, v?.fecha);
+  }
+
+  // ✅ PMR key (vuelo + fechaVuelo si existe; si no, usa vuelo.fecha del match)
+  function pmrFechaYmd(p) {
+    const f = p?.fechaVuelo || p?.fecha || p?.fechaVueloPmr || p?.fecha_vuelo || "";
+    if (f) return normalizarFechaExcel(f);
+    const v = getVueloDePmr(p);
+    return v ? normalizarFechaExcel(v.fecha) : "";
+  }
+  function pmrKey(p) {
+    const ymd = pmrFechaYmd(p);
+    return ymd ? `${String(p.vuelo || "").trim()}||${ymd}` : String(p.vuelo || "").trim();
+  }
+
   // ✅ DateTime (fecha + hora) para filtrar "solo próximas horas"
   function obtenerDateTimeVuelo(v) {
     const f = parseFechaSolo(v?.fecha);
@@ -895,53 +721,7 @@
     return dt.getTime() >= ahora.getTime();
   }
 
-  // Normalizar fecha proveniente de Excel a yyyy-mm-dd
-  function normalizarFechaExcel(valor) {
-    if (valor === null || valor === undefined || valor === "") return "";
-
-    if (typeof valor === "number") {
-      const date = new Date(Math.round((valor - 25569) * 86400 * 1000));
-      const yyyy = date.getFullYear();
-      const mm = String(date.getMonth() + 1).padStart(2,"0");
-      const dd = String(date.getDate()).padStart(2,"0");
-      return `${yyyy}-${mm}-${dd}`;
-    }
-
-    const s = String(valor).trim();
-    let m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
-    if (m) return `${m[1]}-${m[2].padStart(2,"0")}-${m[3].padStart(2,"0")}`;
-
-    m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-    if (m) return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
-
-    const d = new Date(s);
-    if (!isNaN(d)) {
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth()+1).padStart(2,"0");
-      const dd = String(d.getDate()).padStart(2,"0");
-      return `${yyyy}-${mm}-${dd}`;
-    }
-    return s;
-  }
-
-  // Normalizar hora Excel a HH:mm
-  function normalizarHoraExcel(valor) {
-    if (valor === null || valor === undefined || valor === "") return "";
-
-    if (typeof valor === "number") {
-      const totalSeconds = Math.round(valor * 86400);
-      const hh = String(Math.floor(totalSeconds / 3600) % 24).padStart(2,"0");
-      const mm = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2,"0");
-      return `${hh}:${mm}`;
-    }
-
-    const s = String(valor).trim();
-    const m = s.match(/(\d{1,2}):(\d{2})/);
-    if (m) return `${m[1].padStart(2,"0")}:${m[2]}`;
-    return s;
-  }
-
-  /* --------- CÁLCULO ORIGEN/DESTINO (MISMA LÓGICA QUE BACKEND) --------- */
+  /* --------- ORIGEN/DESTINO FRONT --------- */
   function calcularOrigenDestinoFront(tipoServicioVuelo, tipoAsistencia, tipoTraslado, puerta, espigon) {
     const ts = (tipoServicioVuelo || "").toString().toLowerCase().trim();
     const ta = (tipoAsistencia || "").toString().toUpperCase().trim();
@@ -950,8 +730,8 @@
     const puertaEspigon   = ((puerta || "") + (espigon || "")).trim();
     const puertaEmbarque  = puertaEspigon ? `Puerta Embarque ${puertaEspigon}` : "Puerta Embarque";
 
-    const esUltimaMilla   = tt.indexOf("ultima") !== -1 || tt.indexOf("última") !== -1;
-    const esTramoCompleto = tt.indexOf("tramo") !== -1;
+    const esUltimaMilla   = tt.includes("ultima") || tt.includes("última");
+    const esTramoCompleto = tt.includes("tramo");
 
     const esWHC          = (ta === "WHC");
     const etiquetaAvion  = esWHC ? "Asiento Avión" : "Puerta Avión";
@@ -966,182 +746,178 @@
       if (ts === "embarque") { origen = "Elección del Pasajero"; destino = etiquetaAvion; }
       else if (ts === "desembarque") { origen = etiquetaAvion; destino = "Elección del Pasajero"; }
     }
-
     return { origen, destino };
   }
 
-  /* ----------------- OSTRUM: UTILIDADES ----------------- */
-  function limpiarStr(v) {
-    return (v === null || v === undefined) ? "" : String(v).trim();
+  /* ----------------- OSTRUM helpers ----------------- */
+  function limpiarStr(v){ return (v === null || v === undefined) ? "" : String(v).trim(); }
+  function detectarSeparadorCsv(text){
+    const sample=(text||"").split(/\r?\n/).slice(0,10).join("\n");
+    const commas=(sample.match(/,/g)||[]).length;
+    const semis=(sample.match(/;/g)||[]).length;
+    return semis>commas?";":",";
   }
-
-  function detectarSeparadorCsv(text) {
-    const sample = (text || "").split(/\r?\n/).slice(0, 10).join("\n");
-    const commas = (sample.match(/,/g) || []).length;
-    const semis  = (sample.match(/;/g) || []).length;
-    return semis > commas ? ";" : ",";
-  }
-
-  function parseCSV(text) {
-    const sep = detectarSeparadorCsv(text);
-    const rows = [];
-    let row = [];
-    let cur = "";
-    let inQuotes = false;
-
-    function pushCell() { row.push(cur); cur = ""; }
-    function pushRow() { rows.push(row); row = []; }
-
-    for (let i = 0; i < text.length; i++) {
-      const ch = text[i];
-      const next = text[i+1];
-
-      if (ch === '"') {
-        if (inQuotes && next === '"') { cur += '"'; i++; }
-        else { inQuotes = !inQuotes; }
+  function parseCSV(text){
+    const sep=detectarSeparadorCsv(text);
+    const rows=[]; let row=[]; let cur=""; let inQuotes=false;
+    function pushCell(){ row.push(cur); cur=""; }
+    function pushRow(){ rows.push(row); row=[]; }
+    for (let i=0;i<text.length;i++){
+      const ch=text[i], next=text[i+1];
+      if (ch==='"'){
+        if (inQuotes && next==='"'){ cur+='"'; i++; }
+        else inQuotes=!inQuotes;
         continue;
       }
-
-      if (!inQuotes && ch === sep) { pushCell(); continue; }
-
-      if (!inQuotes && (ch === "\n" || ch === "\r")) {
-        if (ch === "\r" && next === "\n") i++;
+      if (!inQuotes && ch===sep){ pushCell(); continue; }
+      if (!inQuotes && (ch==="\n"||ch==="\r")){
+        if (ch==="\r"&&next==="\n") i++;
         pushCell(); pushRow(); continue;
       }
-
-      cur += ch;
+      cur+=ch;
     }
-
     pushCell(); pushRow();
-    return rows.filter(r => r.some(c => String(c || "").trim() !== ""));
+    return rows.filter(r=>r.some(c=>String(c||"").trim()!==""));
   }
-
-  function getColIndex(headers, candidates) {
-    const norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
-    const hs = headers.map(h => norm(h));
-
-    for (const cand of candidates) {
-      const c = norm(cand);
-      const idx = hs.indexOf(c);
-      if (idx !== -1) return idx;
+  function getColIndex(headers,candidates){
+    const norm=(s)=>String(s||"").toLowerCase().replace(/\s+/g," ").trim();
+    const hs=headers.map(h=>norm(h));
+    for (const cand of candidates){
+      const c=norm(cand); const idx=hs.indexOf(c);
+      if (idx!==-1) return idx;
     }
-    for (let i = 0; i < hs.length; i++) {
-      for (const cand of candidates) {
-        const c = norm(cand);
+    for (let i=0;i<hs.length;i++){
+      for (const cand of candidates){
+        const c=norm(cand);
         if (c && hs[i].includes(c)) return i;
       }
     }
     return -1;
   }
-
-  function extraerAerolineaDesdeVuelo(vuelo) {
-    const m = String(vuelo || "").match(/^([A-Za-z]{2,3})/);
-    if (!m) return "";
-    return m[1].toUpperCase();
+  function extraerAerolineaDesdeVuelo(vuelo){
+    const m=String(vuelo||"").match(/^([A-Za-z]{2,3})/);
+    return m?m[1].toUpperCase():"";
   }
-
-  function normalizarTerminalOstrum(term) {
-    const t = limpiarStr(term).toUpperCase();
-    if (t === "T1") return "Nacional";
-    if (t === "T2") return "Internacional";
-    if (t.toLowerCase() === "nacional") return "Nacional";
-    if (t.toLowerCase() === "internacional") return "Internacional";
+  function normalizarTerminalOstrum(term){
+    const t=limpiarStr(term).toUpperCase();
+    if (t==="T1") return "Nacional";
+    if (t==="T2") return "Internacional";
+    if (t.toLowerCase()==="nacional") return "Nacional";
+    if (t.toLowerCase()==="internacional") return "Internacional";
     return limpiarStr(term);
   }
+  function parseFechaOstrumToYmd(valor){
+    if (valor===null||valor===undefined||valor==="") return "";
+    if (typeof valor==="number" || valor instanceof Date) return normalizarFechaExcel(valor);
 
-  function parseFechaOstrumToYmd(valor) {
-    if (valor === null || valor === undefined || valor === "") return "";
-    if (typeof valor === "number") return normalizarFechaExcel(valor);
-
-    if (valor instanceof Date) {
-      const yyyy = valor.getFullYear();
-      const mm = String(valor.getMonth()+1).padStart(2,"0");
-      const dd = String(valor.getDate()).padStart(2,"0");
-      return `${yyyy}-${mm}-${dd}`;
-    }
-
-    const s0 = String(valor).trim();
-    const byNormal = normalizarFechaExcel(s0);
+    const s0=String(valor).trim();
+    const byNormal=normalizarFechaExcel(s0);
     if (/^\d{4}-\d{2}-\d{2}$/.test(byNormal)) return byNormal;
 
-    const s = s0.replace(/,/g, " ").replace(/\s+/g, " ").trim();
-    const m = s.match(/^(\d{1,2})[ \-\/]?([A-Za-zÁÉÍÓÚáéíóú]{3,})[ \-\/]?(\d{4})?$/);
-    if (m) {
-      const dd = String(parseInt(m[1],10)).padStart(2,"0");
-      const monTxt = m[2].toLowerCase();
-      const map = {
-        jan:1, january:1, ene:1, enero:1,
-        feb:2, february:2,
-        mar:3, march:3,
-        apr:4, april:4, abr:4,
-        may:5, mayo:5,
-        jun:6, june:6,
-        jul:7, july:7,
-        aug:8, august:8, ago:8,
-        sep:9, sept:9, september:9, set:9,
-        oct:10, october:10,
-        nov:11, november:11,
-        dec:12, december:12, dic:12, diciembre:12
+    const s=s0.replace(/,/g," ").replace(/\s+/g," ").trim();
+    const m=s.match(/^(\d{1,2})[ \-\/]?([A-Za-zÁÉÍÓÚáéíóú]{3,})[ \-\/]?(\d{4})?$/);
+    if (m){
+      const dd=String(parseInt(m[1],10)).padStart(2,"0");
+      const monTxt=m[2].toLowerCase();
+      const map={ jan:1,january:1,ene:1,enero:1, feb:2,february:2, mar:3,march:3, apr:4,april:4,abr:4,
+        may:5,mayo:5, jun:6,june:6, jul:7,july:7, aug:8,august:8,ago:8,
+        sep:9,sept:9,september:9,set:9, oct:10,october:10, nov:11,november:11, dec:12,december:12,dic:12,diciembre:12
       };
-      const key = monTxt.slice(0,3);
-      const mmNum = map[monTxt] || map[key];
+      const key=monTxt.slice(0,3);
+      const mmNum=map[monTxt]||map[key];
       if (!mmNum) return "";
-
-      const today = new Date();
-      let yyyy = m[3] ? parseInt(m[3],10) : today.getFullYear();
-      if (!m[3]) {
-        const todayM = today.getMonth()+1;
-        if (todayM >= 11 && mmNum <= 3) yyyy = yyyy + 1;
+      const today=new Date();
+      let yyyy=m[3]?parseInt(m[3],10):today.getFullYear();
+      if (!m[3]){
+        const todayM=today.getMonth()+1;
+        if (todayM>=11 && mmNum<=3) yyyy=yyyy+1;
       }
-      const mm = String(mmNum).padStart(2,"0");
+      const mm=String(mmNum).padStart(2,"0");
       return `${yyyy}-${mm}-${dd}`;
     }
 
-    const d = new Date(s0);
-    if (!isNaN(d)) {
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth()+1).padStart(2,"0");
-      const dd = String(d.getDate()).padStart(2,"0");
-      return `${yyyy}-${mm}-${dd}`;
-    }
-
+    const d=new Date(s0);
+    if (!isNaN(d)) return normalizarFechaExcel(d);
     return "";
   }
-
-  function elegirHoraOstrum(row, idxAct, idxEst, idxSch) {
-    const act = idxAct >= 0 ? row[idxAct] : "";
-    const est = idxEst >= 0 ? row[idxEst] : "";
-    const sch = idxSch >= 0 ? row[idxSch] : "";
-    const v = (act && String(act).trim() !== "-" ? act :
-              (est && String(est).trim() !== "-" ? est :
-              (sch && String(sch).trim() !== "-" ? sch : "" )));
+  function elegirHoraOstrum(row,idxAct,idxEst,idxSch){
+    const act=idxAct>=0?row[idxAct]:"";
+    const est=idxEst>=0?row[idxEst]:"";
+    const sch=idxSch>=0?row[idxSch]:"";
+    const v=(act && String(act).trim()!=="-"?act:(est && String(est).trim()!=="-"?est:(sch && String(sch).trim()!=="-"?sch:"")));
     return normalizarHoraExcel(v);
   }
-
-  function parsePmrBreakdown(pmrRaw) {
-    const s = limpiarStr(pmrRaw);
-    if (!s) return [];
-    const right = s.includes("-") ? s.split("-").slice(1).join("-").trim() : s.trim();
+  function parsePmrBreakdown(pmrRaw){
+    const s=limpiarStr(pmrRaw); if (!s) return [];
+    const right=s.includes("-")?s.split("-").slice(1).join("-").trim():s.trim();
     if (!right) return [];
-
-    const tokens = right.split(/\s+/).map(t => t.trim()).filter(Boolean);
-    const tipos = [];
-
-    for (const t of tokens) {
-      const m = t.match(/^([A-Za-z]+)\((\d+)\)$/);
+    const tokens=right.split(/\s+/).map(t=>t.trim()).filter(Boolean);
+    const tipos=[];
+    for (const t of tokens){
+      const m=t.match(/^([A-Za-z]+)\((\d+)\)$/);
       if (!m) continue;
-      const code = m[1].toUpperCase();
-      const n = parseInt(m[2], 10);
-      if (!n || n <= 0) continue;
-      const tipo = ("WH" + code);
-      for (let i = 0; i < n; i++) tipos.push(tipo);
+      const code=m[1].toUpperCase();
+      const n=parseInt(m[2],10);
+      if (!n || n<=0) continue;
+      const tipo=("WH"+code);
+      for (let i=0;i<n;i++) tipos.push(tipo);
     }
     return tipos;
   }
+  function construirRutOstrum(ymd,vuelo,tipo,nro2){
+    const yyyymmdd=String(ymd||"").replace(/-/g,"");
+    return `OSTRUM-${yyyymmdd}-${String(vuelo||"").trim()}-${String(tipo||"").trim()}-${String(nro2).padStart(2,"0")}`;
+  }
 
-  function construirRutOstrum(ymd, vuelo, tipo, nro2) {
-    const yyyymmdd = String(ymd || "").replace(/-/g, "");
-    return `OSTRUM-${yyyymmdd}-${String(vuelo || "").trim()}-${String(tipo || "").trim()}-${String(nro2).padStart(2,"0")}`;
+  /* --------- MATCH VUELO DE PMR (✅ PRIMERO POR idVuelo, LUEGO POR número+fecha) --------- */
+  function getVueloDePmr(pmr) {
+    if (!pmr) return null;
+
+    // 1) exacto por idVuelo
+    const idv = pmr.idVuelo || pmr.id_vuelo || "";
+    if (idv) {
+      const exactId = cacheVuelos.find(v => String(v.idVuelo) === String(idv));
+      if (exactId) return exactId;
+    }
+
+    // 2) match por (numero + fechaVuelo)
+    const num = pmr.vuelo ? String(pmr.vuelo).trim() : "";
+    if (!num) return null;
+
+    const fP = pmr.fechaVuelo || pmr.fecha || pmr.fechaVueloPmr || pmr.fecha_vuelo || "";
+    const fNorm = fP ? normalizarFechaExcel(fP) : "";
+
+    if (fNorm) {
+      const exact = cacheVuelos.find(v =>
+        String(v.numeroVuelo).trim() === num &&
+        normalizarFechaExcel(v.fecha) === fNorm
+      );
+      if (exact) return exact;
+    }
+
+    // 3) fallback hoy/mañana
+    const hoy = hoyTrunc();
+    const manana = addDias(hoy,1);
+    const candidates = cacheVuelos.filter(v => String(v.numeroVuelo).trim() === num);
+
+    const best = candidates.find(v => {
+      const f = parseFechaSolo(v.fecha);
+      if (!f) return false;
+      return f.getTime() === hoy.getTime() || f.getTime() === manana.getTime();
+    });
+
+    return best || candidates[0] || null;
+  }
+
+  function agentesDisponiblesEnTerminal(terminal) {
+    const term = String(terminal || "").toLowerCase().trim();
+    return cacheAgentes.filter(a => {
+      const est = String(a.estadoServicio || a.estado || "").toLowerCase().trim();
+      if (est !== "disponible") return false;
+      if (!term) return true;
+      const ub = String(a.ubicacion || "").toLowerCase().trim();
+      return ub === term;
+    });
   }
 
   /* --------- CARGA DE DATOS --------- */
@@ -1154,7 +930,8 @@
       const res = await fetch(API_URL + "?action=listAll");
       const text = await res.text();
       let json = null;
-      try { json = JSON.parse(text); } catch (e) { throw new Error("Respuesta no es JSON. Revisa permisos/deploy del WebApp."); }
+      try { json = JSON.parse(text); }
+      catch (e) { throw new Error("Respuesta no es JSON. Revisa permisos/deploy del WebApp."); }
 
       if (!json.ok) throw new Error(json.error || "Error en listAll");
 
@@ -1200,10 +977,14 @@
     const hoy = hoyTrunc();
     const manana = addDias(hoy, 1);
 
-    const vuelosConPmr = new Set();
+    // ✅ ahora usamos Set por ID_Vuelo (exacto), no solo por número
+    const vuelosConPmrIds = new Set();
     cachePasajeros
       .filter(p => (p.estadoPmr || "").toLowerCase() === "en espera")
-      .forEach(p => { if (p.vuelo) vuelosConPmr.add(String(p.vuelo)); });
+      .forEach(p => {
+        const v = getVueloDePmr(p);
+        if (v?.idVuelo) vuelosConPmrIds.add(String(v.idVuelo));
+      });
 
     const filtroNum = (filtroNumInput?.value || "").trim().toLowerCase();
     const filtroAero = (filtroAeroInput?.value || "").trim().toLowerCase();
@@ -1227,12 +1008,14 @@
       const esManana = f.getTime() === manana.getTime();
       if (!esHoy && !esManana) return false;
 
+      // ✅ conserva tu regla: solo próximas horas
       if (!vueloEsFuturo(v)) return false;
+
+      // ✅ solo vuelos que realmente tienen PMR en espera, diferenciando duplicados por fecha
+      if (!vuelosConPmrIds.has(String(v.idVuelo || ""))) return false;
 
       const numVuelo = (v.numeroVuelo || "").toString();
       const aerolinea = (v.aerolinea || "").toString();
-
-      if (!vuelosConPmr.has(numVuelo)) return false;
 
       if (filtroNum && !numVuelo.toLowerCase().includes(filtroNum)) return false;
       if (filtroAero && aerolinea.toLowerCase() !== filtroAero) return false;
@@ -1246,7 +1029,7 @@
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${v.idVuelo || ""}</td>
-        <td>${v.fecha || ""}</td>
+        <td>${normalizarFechaExcel(v.fecha) || (v.fecha || "")}</td>
         <td>${formatearHora(v.horaProgramada)}</td>
         <td>${v.aerolinea || ""}</td>
         <td>${v.numeroVuelo || ""}</td>
@@ -1281,38 +1064,45 @@
 
     let pmrBase = cachePasajeros.filter(p => {
       if ((p.estadoPmr || "").toLowerCase() !== "en espera") return false;
-
-      const vuelo = cacheVuelos.find(v => String(v.numeroVuelo) === String(p.vuelo));
+      const vuelo = getVueloDePmr(p);
       if (!vuelo) return false;
 
       const f = parseFechaSolo(vuelo.fecha);
       if (!f) return false;
 
-      const esHoy = f.getTime() === hoy.getTime();
-      const esManana = f.getTime() === manana.getTime();
-      if (!esHoy && !esManana) return false;
+      // hoy/mañana
+      const okDia = (f.getTime() === hoy.getTime() || f.getTime() === manana.getTime());
+      if (!okDia) return false;
 
+      // solo próximos vuelos (igual que vista vuelos)
       if (!vueloEsFuturo(vuelo)) return false;
+
       return true;
     });
 
+    // ✅ combo vuelo por N° + fecha (para separar duplicados)
     if (selFiltroVuelo) {
       const valorActual = selFiltroVuelo.value;
       selFiltroVuelo.innerHTML = '<option value="">Todos</option>';
-      const setVuelos = new Set();
-      pmrBase.forEach(p => { if (p.vuelo) setVuelos.add(String(p.vuelo)); });
-      Array.from(setVuelos).sort().forEach(vu => {
+
+      const setKeys = new Set();
+      pmrBase.forEach(p => setKeys.add(pmrKey(p)));
+
+      Array.from(setKeys).sort().forEach(k => {
+        const [num, ymd] = k.includes("||") ? k.split("||") : [k, ""];
         const opt = document.createElement("option");
-        opt.value = vu;
-        opt.textContent = vu;
+        opt.value = k;
+        opt.textContent = ymd ? `${num} | ${ymd}` : `${num}`;
         selFiltroVuelo.appendChild(opt);
       });
+
       if (valorActual) selFiltroVuelo.value = valorActual;
     }
 
     if (selFiltroEstado) {
       const valorActualEstado = selFiltroEstado.value;
       selFiltroEstado.innerHTML = '<option value="">Todos</option>';
+
       const setEstados = new Set();
       pmrBase.forEach(p => { if (p.estadoPmr) setEstados.add(String(p.estadoPmr)); });
       Array.from(setEstados).sort().forEach(est => {
@@ -1321,13 +1111,14 @@
         opt.textContent = est;
         selFiltroEstado.appendChild(opt);
       });
+
       if (valorActualEstado) selFiltroEstado.value = valorActualEstado;
     }
 
-    const vueloFiltro = (selFiltroVuelo?.value || "").trim();
+    const vueloFiltroKey = (selFiltroVuelo?.value || "").trim();
     const estadoFiltro = (selFiltroEstado?.value || "").trim();
 
-    if (vueloFiltro) pmrBase = pmrBase.filter(p => String(p.vuelo) === vueloFiltro);
+    if (vueloFiltroKey) pmrBase = pmrBase.filter(p => pmrKey(p) === vueloFiltroKey);
     if (estadoFiltro) pmrBase = pmrBase.filter(p => String(p.estadoPmr || "").trim() === estadoFiltro);
 
     empty.style.display = pmrBase.length ? "none" : "block";
@@ -1353,7 +1144,7 @@
 
     document.getElementById("view-title").textContent = "Pasajeros PMR";
     document.getElementById("chip-info-vista").innerHTML =
-      `<span class="chip-label">PMR:</span><span>Hoy y mañana (En espera, solo próximas horas)</span>`;
+      `<span class="chip-label">PMR:</span><span>Vuelos de hoy y mañana (solo próximas horas, En espera)</span>`;
   }
 
   function renderVistaAsignaciones() {
@@ -1395,11 +1186,9 @@
     }
 
     const numFiltro = (filtroNumInput?.value || "").trim().toLowerCase();
-    const fechaFiltro = (filtroFechaInput?.value || "").trim(); // yyyy-mm-dd
+    const fechaFiltro = (filtroFechaInput?.value || "").trim();
     const tipoFiltro = (selTipo?.value || "").trim().toLowerCase();
     const estadoFiltro = (selEstado?.value || "").trim().toLowerCase();
-
-    const fFiltro = fechaFiltro ? parseFechaSolo(fechaFiltro) : null;
 
     const filtrados = cacheAsignaciones.filter(a => {
       if (numFiltro) {
@@ -1407,17 +1196,16 @@
         const numVuelo = vuelo ? String(vuelo.numeroVuelo || "").toLowerCase() : "";
         if (!numVuelo.includes(numFiltro)) return false;
       }
-
-      if (fFiltro) {
+      if (fechaFiltro) {
         const fa = parseFechaSolo(a.fechaAsignacion);
+        const fFiltroDate = new Date(fechaFiltro);
+        const fFiltro = new Date(fFiltroDate.getFullYear(), fFiltroDate.getMonth(), fFiltroDate.getDate());
         if (!fa || fa.getTime() !== fFiltro.getTime()) return false;
       }
-
       if (tipoFiltro) {
         const t = (a.tipoTraslado || "").toString().toLowerCase();
         if (t !== tipoFiltro) return false;
       }
-
       if (estadoFiltro) {
         const e = (a.estadoAsignacion || "").toString().toLowerCase();
         if (e !== estadoFiltro) return false;
@@ -1458,10 +1246,7 @@
     const empty = document.getElementById("empty-agentes");
     tbody.innerHTML = "";
 
-    if (!cacheAgentes.length) {
-      empty.style.display = "block";
-      return;
-    }
+    if (!cacheAgentes.length) { empty.style.display = "block"; return; }
     empty.style.display = "none";
 
     cacheAgentes.forEach(a => {
@@ -1487,60 +1272,64 @@
 
   /* --------- LLENAR COMBOS DE ACCIONES --------- */
   function llenarCombosAcciones() {
-    const selMod = document.getElementById("modificar-id-vuelo");
-    selMod.innerHTML = '<option value="">— Seleccionar —</option>';
-
     const hoy = hoyTrunc();
     const manana = addDias(hoy, 1);
 
-    // MODIFICAR VUELO: solo vuelos de hoy (texto sin "undefined")
+    // MODIFICAR VUELO (solo hoy) - value = ID_Vuelo, label = N° | fecha
+    const selMod = document.getElementById("modificar-id-vuelo");
+    selMod.innerHTML = '<option value="">— Seleccionar —</option>';
     cacheVuelos.forEach(v => {
       const f = parseFechaSolo(v.fecha);
       if (!f || f.getTime() !== hoy.getTime()) return;
-
       const opt = document.createElement("option");
       opt.value = v.idVuelo;
-      const num = (v.numeroVuelo || "").toString().trim();
-      const fec = (v.fecha || "").toString().trim();
-      opt.textContent = `${num}${num && fec ? " | " : ""}${fec}`;
+      opt.textContent = `${v.numeroVuelo || ""} | ${normalizarFechaExcel(v.fecha)}`;
       selMod.appendChild(opt);
     });
 
-    // CREAR PASAJERO PMR: todos los vuelos
+    // CREAR PASAJERO: value = ID_Vuelo (anti-duplicados)
     const selCrearPmrVuelo = document.getElementById("crear-pmr-vuelo");
     selCrearPmrVuelo.innerHTML = '<option value="">— Seleccionar vuelo —</option>';
-    cacheVuelos.forEach(v => {
+
+    const vuelosOrdenados = [...cacheVuelos].sort((a,b)=>{
+      const da = parseFechaSolo(a.fecha)?.getTime() || 0;
+      const db = parseFechaSolo(b.fecha)?.getTime() || 0;
+      if (da !== db) return da - db;
+      return String(a.numeroVuelo||"").localeCompare(String(b.numeroVuelo||""));
+    });
+
+    vuelosOrdenados.forEach(v => {
+      const ymd = normalizarFechaExcel(v.fecha);
       const opt = document.createElement("option");
-      opt.value = v.numeroVuelo;
-      opt.textContent = `${v.numeroVuelo || ""} | ${v.fecha || ""} | ${v.terminal || ""}`;
+      opt.value = v.idVuelo || "";
+      opt.textContent = `${v.numeroVuelo || ""} | ${ymd} | ${v.terminal || ""}`;
       selCrearPmrVuelo.appendChild(opt);
     });
 
-    // ASIGNAR PMR: solo EN ESPERA y vuelos HOY o MAÑANA + solo futuros por hora
+    // ASIGNAR PMR: hoy/mañana, en espera (incluye vuelo+fecha en label)
     const selPmr = document.getElementById("asig-select-pmr");
     selPmr.innerHTML = '<option value="">— Seleccionar PMR —</option>';
 
     cachePasajeros
       .filter(p => (p.estadoPmr || "").toLowerCase() === "en espera")
       .filter(p => {
-        const vuelo = cacheVuelos.find(v => String(v.numeroVuelo) === String(p.vuelo));
+        const vuelo = getVueloDePmr(p);
         if (!vuelo) return false;
         const f = parseFechaSolo(vuelo.fecha);
         if (!f) return false;
-
-        const esHoy = f.getTime() === hoy.getTime();
-        const esManana = f.getTime() === manana.getTime();
-        if (!(esHoy || esManana)) return false;
-
+        const okDia = (f.getTime() === hoy.getTime() || f.getTime() === manana.getTime());
+        if (!okDia) return false;
         if (!vueloEsFuturo(vuelo)) return false;
         return true;
       })
       .forEach(p => {
-        const vuelo = cacheVuelos.find(v => String(v.numeroVuelo) === String(p.vuelo));
+        const vuelo = getVueloDePmr(p);
         const terminal = vuelo ? (vuelo.terminal || "") : "";
+        const key = pmrKey(p);
+        const [num, ymd] = key.includes("||") ? key.split("||") : [key, ""];
         const opt = document.createElement("option");
         opt.value = p.idPmr;
-        opt.textContent = `[${p.idPmr}] ${p.vuelo} · ${p.nombre} · ${terminal || "Sin terminal"}`;
+        opt.textContent = `[${p.idPmr}] ${num}${ymd?(" | "+ymd):""} · ${p.nombre} · ${terminal || "Sin terminal"}`;
         selPmr.appendChild(opt);
       });
 
@@ -1569,13 +1358,9 @@
       return;
     }
 
-    const vuelo = cacheVuelos.find(v => String(v.numeroVuelo) === String(pmr.vuelo));
+    const vuelo = getVueloDePmr(pmr);
     const terminal = vuelo ? (vuelo.terminal || "") : "";
-
-    const disponibles = cacheAgentes.filter(a =>
-      (a.estadoServicio || "").toLowerCase() === "disponible" &&
-      (!terminal || String(a.ubicacion).toLowerCase() === String(terminal).toLowerCase())
-    );
+    const disponibles = agentesDisponiblesEnTerminal(terminal);
 
     if (!disponibles.length) {
       selAg.innerHTML = `<option value="">No hay agentes disponibles en ${terminal || "la terminal"}</option>`;
@@ -1596,7 +1381,6 @@
     actualizarPreviewOrigenDestino();
   }
 
-  /* --------- PREVIEW ORIGEN/DESTINO EN ASIGNACIÓN --------- */
   function actualizarPreviewOrigenDestino() {
     const inputOrigen  = document.getElementById("asig-origen");
     const inputDestino = document.getElementById("asig-destino");
@@ -1605,16 +1389,12 @@
 
     if (!inputOrigen || !inputDestino) return;
 
-    if (!idPmr || !tipoT) {
-      inputOrigen.value = "";
-      inputDestino.value = "";
-      return;
-    }
+    if (!idPmr || !tipoT) { inputOrigen.value = ""; inputDestino.value = ""; return; }
 
     const pmr = cachePasajeros.find(p => String(p.idPmr) === String(idPmr));
     if (!pmr) { inputOrigen.value = ""; inputDestino.value = ""; return; }
 
-    const vuelo = cacheVuelos.find(v => String(v.numeroVuelo) === String(pmr.vuelo));
+    const vuelo = getVueloDePmr(pmr);
     if (!vuelo) { inputOrigen.value = ""; inputDestino.value = ""; return; }
 
     const od = calcularOrigenDestinoFront(
@@ -1632,8 +1412,7 @@
   /* --------- ACCIONES --------- */
   async function accionCrearVuelo() {
     const msg = document.getElementById("msg-crear-vuelo");
-    msg.textContent = "";
-    msg.className = "msg";
+    msg.textContent = ""; msg.className = "msg";
 
     const fecha    = document.getElementById("crear-fecha").value;
     const hora     = document.getElementById("crear-hora").value;
@@ -1677,7 +1456,6 @@
       const res = await fetch(API_URL + "?" + params.toString());
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || "Error al crear vuelo");
-
       msg.textContent = "Vuelo creado correctamente. ID: " + json.idVuelo;
       msg.className = "msg ok";
       await cargarDatos();
@@ -1689,15 +1467,10 @@
 
   async function accionModificarVuelo() {
     const msg = document.getElementById("msg-modificar-vuelo");
-    msg.textContent = "";
-    msg.className = "msg";
+    msg.textContent = ""; msg.className = "msg";
 
     const idVuelo = document.getElementById("modificar-id-vuelo").value;
-    if (!idVuelo) {
-      msg.textContent = "Selecciona un vuelo.";
-      msg.className = "msg err";
-      return;
-    }
+    if (!idVuelo) { msg.textContent = "Selecciona un vuelo."; msg.className = "msg err"; return; }
 
     const nuevaFecha   = document.getElementById("modificar-fecha").value;
     const nuevaHora    = document.getElementById("modificar-hora").value;
@@ -1715,14 +1488,15 @@
     params.append("idVuelo",idVuelo);
     if (nuevaFecha)   params.append("nuevaFecha",nuevaFecha);
     if (nuevaHora)    params.append("nuevaHora",nuevaHora);
-    if (nuevaPuerta)  params.append("nuevoPuerta",nuevaPuerta);
-    if (nuevoEspigon) params.append("nuevoEspigon",nuevoEspigon);
+
+    // compat backend
+    if (nuevaPuerta)  { params.append("nuevaPuerta",nuevaPuerta); params.append("nuevoPuerta",nuevaPuerta); }
+    if (nuevoEspigon) { params.append("nuevoEspigon",nuevoEspigon); params.append("nuevo_espigon",nuevoEspigon); }
 
     try {
       const res = await fetch(API_URL + "?" + params.toString());
       const json = await res.json();
       if (!json.ok) throw new Error(json.error || "Error al modificar vuelo");
-
       msg.textContent = "Vuelo modificado correctamente.";
       msg.className = "msg ok";
       await cargarDatos();
@@ -1732,32 +1506,21 @@
     }
   }
 
-  // 👉 CARGA MASIVA: bloques de 2 registros + reintentos automáticos (hasta 5) por bloque
   async function accionCargaMasiva() {
     const msg   = document.getElementById("msg-carga-masiva");
     const input = document.getElementById("input-carga-masiva");
     const btn   = document.getElementById("btn-carga-masiva");
 
-    msg.textContent = "";
-    msg.className = "msg";
+    msg.textContent = ""; msg.className = "msg";
 
     const file = input.files && input.files[0];
-    if (!file) {
-      msg.textContent = "Selecciona un archivo Excel (.xlsx / .xls).";
-      msg.className = "msg err";
-      return;
-    }
+    if (!file) { msg.textContent = "Selecciona un archivo Excel (.xlsx / .xls)."; msg.className = "msg err"; return; }
 
     btn.disabled = true;
     msg.textContent = "Leyendo archivo...";
 
     const reader = new FileReader();
-
-    reader.onerror = () => {
-      msg.textContent = "No se pudo leer el archivo.";
-      msg.className = "msg err";
-      btn.disabled = false;
-    };
+    reader.onerror = () => { msg.textContent = "No se pudo leer el archivo."; msg.className = "msg err"; btn.disabled = false; };
 
     reader.onload = async (e) => {
       try {
@@ -1805,20 +1568,12 @@
           if (!numeroVuelo || !fechaVuelo) continue;
 
           registros.push({
-            nombre,
-            rut,
-            edad,
-            fechaVuelo,
-            hora,
+            nombre, rut, edad,
+            fechaVuelo, hora,
             tipoVuelo,
             vuelo: numeroVuelo,
-            tipoAvion,
-            aerolinea,
-            terminal,
-            origen,
-            destino,
-            puerta,
-            espigon,
+            tipoAvion, aerolinea, terminal,
+            origen, destino, puerta, espigon,
             tipoPmr
           });
         }
@@ -1904,29 +1659,22 @@
     reader.readAsArrayBuffer(file);
   }
 
-  // 👉 CARGA OSTRUM (Excel/CSV)
   async function accionCargaOstrum() {
     const msg   = document.getElementById("msg-carga-ostrum");
     const input = document.getElementById("input-carga-ostrum");
     const btn   = document.getElementById("btn-carga-ostrum");
     const tipoOperacion = document.getElementById("ostrum-tipo-operacion").value || "Embarque";
 
-    msg.textContent = "";
-    msg.className = "msg";
+    msg.textContent = ""; msg.className = "msg";
 
     const file = input.files && input.files[0];
-    if (!file) {
-      msg.textContent = "Selecciona un archivo Ostrum (.xlsx / .xls / .csv).";
-      msg.className = "msg err";
-      return;
-    }
+    if (!file) { msg.textContent = "Selecciona un archivo Ostrum (.xlsx / .xls / .csv)."; msg.className = "msg err"; return; }
 
     btn.disabled = true;
     msg.textContent = "Leyendo archivo Ostrum...";
 
     try {
       const ext = (file.name || "").toLowerCase().split(".").pop();
-
       let rows = [];
       if (ext === "csv") {
         const text = await file.text();
@@ -1963,8 +1711,7 @@
       const idxAerol = getColIndex(headers, ["airline", "aerolinea", "aerolínea", "carrier"]);
 
       if (idxVuelo < 0 || idxFecha < 0 || idxPmr < 0) {
-        msg.textContent =
-          "No pude detectar columnas obligatorias en Ostrum. Necesito al menos: Flight/Vuelo, Date/Fecha y PMR/PRM.";
+        msg.textContent = "No pude detectar columnas obligatorias en Ostrum. Necesito al menos: Flight/Vuelo, Date/Fecha y PMR/PRM.";
         msg.className = "msg err";
         return;
       }
@@ -1987,12 +1734,13 @@
 
         const hora = elegirHoraOstrum(r, idxAct, idxEst, idxSch);
 
-        const tipos = parsePmrBreakdown(r[idxPmr]);
+        const pmrRaw = r[idxPmr];
+        const tipos = parsePmrBreakdown(pmrRaw);
         if (!tipos.length) { filasSaltadas++; continue; }
 
         const aerolinea = idxAerol >= 0 ? limpiarStr(r[idxAerol]) : extraerAerolineaDesdeVuelo(vuelo);
-
         const contadorPorTipo = new Map();
+
         for (const tipo of tipos) {
           const cur = (contadorPorTipo.get(tipo) || 0) + 1;
           contadorPorTipo.set(tipo, cur);
@@ -2023,7 +1771,7 @@
       }
 
       if (!registros.length) {
-        msg.textContent = "No se generaron registros válidos desde Ostrum (revisa que la columna PMR tenga S( ) / R( ) / C( ) / EMA( )).";
+        msg.textContent = "No se generaron registros válidos desde Ostrum (revisa columna PMR).";
         msg.className = "msg err";
         return;
       }
@@ -2100,12 +1848,12 @@
     }
   }
 
+  // ✅ CREAR PASAJERO: selecciona por ID_Vuelo y envía vuelo+fechaVuelo (+ idVuelo)
   async function accionCrearPasajero() {
     const msg = document.getElementById("msg-crear-pmr");
-    msg.textContent = "";
-    msg.className = "msg";
+    msg.textContent = ""; msg.className = "msg";
 
-    const vueloSel = document.getElementById("crear-pmr-vuelo").value;
+    const idVueloSel = document.getElementById("crear-pmr-vuelo").value;
     const nombre   = document.getElementById("crear-pmr-nombre").value.trim();
     const tipoAsis = document.getElementById("crear-pmr-tipo").value.trim();
     const edad     = document.getElementById("crear-pmr-edad").value;
@@ -2113,15 +1861,32 @@
     const destino  = document.getElementById("crear-pmr-destino").value.trim();
     const obs      = document.getElementById("crear-pmr-obs").value.trim();
 
-    if (!vueloSel || !nombre || !tipoAsis) {
+    if (!idVueloSel || !nombre || !tipoAsis) {
       msg.textContent = "Ingresa al menos vuelo, nombre y tipo de asistencia.";
+      msg.className = "msg err";
+      return;
+    }
+
+    const vueloObj = cacheVuelos.find(v => String(v.idVuelo) === String(idVueloSel));
+    const numeroVuelo = vueloObj ? String(vueloObj.numeroVuelo || "").trim() : "";
+    const fechaVueloYmd = vueloObj ? normalizarFechaExcel(vueloObj.fecha) : "";
+
+    if (!numeroVuelo) {
+      msg.textContent = "No pude encontrar el vuelo seleccionado en cache. Actualiza datos y reintenta.";
       msg.className = "msg err";
       return;
     }
 
     const params = new URLSearchParams();
     params.append("action","crearPasajero");
-    params.append("vuelo",vueloSel);
+
+    // compat backend antiguo
+    params.append("vuelo", numeroVuelo);
+
+    // nuevo (anti-duplicados)
+    params.append("idVuelo", idVueloSel);
+    if (fechaVueloYmd) params.append("fechaVuelo", fechaVueloYmd);
+
     params.append("nombre",nombre);
     params.append("tipoAsistencia",tipoAsis);
     if (edad)    params.append("edad",edad);
@@ -2145,17 +1910,16 @@
 
   async function accionAsignarPmr() {
     const msg = document.getElementById("msg-asignar-pmr");
-    msg.textContent = "";
-    msg.className = "msg";
+    msg.textContent = ""; msg.className = "msg";
 
     const idPmr    = document.getElementById("asig-select-pmr").value;
     const idAgente = document.getElementById("asig-select-agente").value;
     const tipoT    = document.getElementById("asig-tipo-traslado").value;
     const obs      = document.getElementById("asig-obs").value.trim();
 
-    if (!idPmr) { msg.textContent = "Selecciona un pasajero PMR."; msg.className = "msg err"; return; }
+    if (!idPmr)    { msg.textContent = "Selecciona un pasajero PMR."; msg.className = "msg err"; return; }
     if (!idAgente) { msg.textContent = "Selecciona un agente disponible."; msg.className = "msg err"; return; }
-    if (!tipoT) { msg.textContent = "Selecciona un tipo de traslado."; msg.className = "msg err"; return; }
+    if (!tipoT)    { msg.textContent = "Selecciona un tipo de traslado."; msg.className = "msg err"; return; }
 
     const params = new URLSearchParams();
     params.append("action","asignarPmrAgente");
@@ -2233,6 +1997,3 @@
 </script>
 </body>
 </html>
-
-
-
