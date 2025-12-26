@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Cargo Mobility PMR – Portal Aerolínea</title>
+  <title>Cargo Mobility PMR – Coordinador de Operaciones</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
@@ -564,7 +564,7 @@
     </div>
     <div class="brand">
       <span class="brand-name">Cargo Mobility – PMR</span>
-      <span class="brand-sub">Portal Aerolínea (Vuelos & Pasajeros)</span>
+      <span class="brand-sub">Coordinador de Operaciones (Carga Manual Vuelos y Pasajeros)</span>
     </div>
   </div>
 
@@ -704,6 +704,44 @@
    * CONFIG
    ***************************************************************/
   const API_URL = "https://script.google.com/macros/s/AKfycbwFBHpIx-gQrVAvj5Vv-I-l1X3NR9MYbyTV9CtxgKCw7oPeuxIE5qrYx3eZdDoIroTE/exec";
+
+  // ✅ Lista desplegable Aerolíneas (CDO / Super)
+  const AIRLINES = [
+    "COPA",
+	"LATAM",
+    "QUANTAS",
+    "IBERIA/LEVEL",
+    "AIR BRITISH",
+    "AEROLINEAS ARGETINAS",
+    "ARAJET",
+    "AVIANCA",
+    "DELTA",
+    "AIR CANADA",
+    "AMERICAN AIRLINE",
+    "UNITED AIRLINE",
+    "KAM ACCIONA",
+    "AIR FRANCE",
+    "AEROLINEA BOLIVIANA"
+  ];
+
+  function escapeHtml(s){
+    return String(s || "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function buildAirlineOptionsHtml(extraValue=""){
+    const exists = (val) => AIRLINES.some(a => a.toLowerCase() === String(val||"").trim().toLowerCase());
+    const extra = String(extraValue || "").trim();
+    const extrasHtml = (extra && !exists(extra))
+      ? `<option value="${escapeHtml(extra)}">${escapeHtml(extra)}</option>`
+      : "";
+    const listHtml = AIRLINES.map(a => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join("");
+    return extrasHtml + listHtml;
+  }
 
   /***************************************************************
    * STATE
@@ -1127,7 +1165,10 @@
       <div class="flight-card-b">
         <div class="span2">
           <label>Aerolínea <span style="color:var(--danger)">*</span>
-            <input type="text" class="flight-aerolinea" value="${escapeHtml(aeroVal)}" placeholder="LATAM / SKY / etc." ${aeroDisabled} />
+            <select class="flight-aerolinea" ${aeroDisabled}>
+              <option value="">— Seleccionar —</option>
+              ${buildAirlineOptionsHtml(lockedAero)}
+            </select>
           </label>
         </div>
 
@@ -1216,6 +1257,10 @@
     `;
 
     body.appendChild(card);
+
+    // set aerolínea (prefill o lock)
+    const selAero = card.querySelector(".flight-aerolinea");
+    if (selAero) selAero.value = aeroVal;
 
     // Terminal prefill si viene
     if (prefill.terminal){
@@ -1313,15 +1358,6 @@
     });
   }
 
-  function escapeHtml(s){
-    return String(s || "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
-  }
-
   /***************************************************************
    * SUBMIT: guardar todos los vuelos y pasajeros
    ***************************************************************/
@@ -1363,7 +1399,7 @@
     // Validación pasajeros
     (b.pasajeros || []).forEach((p, i)=>{
       if (!p.nombre) errs.push(`Pasajero #${i+1}: Nombre`);
-      // Tipo asistencia obligatorio (según tu requerimiento)
+      // Tipo asistencia obligatorio
       if (!p.tipoAsistencia){
         errs.push(`Pasajero #${i+1}: Tipo Asistencia`);
       }
@@ -1385,7 +1421,7 @@
     if (b.puerta) params.append("puerta", b.puerta);
     if (b.espigon) params.append("espigon", b.espigon);
 
-    // importante para el sistema (por defecto Embarque; editable en UI)
+    // importante para el sistema
     if (b.tipoServicio) params.append("tipoServicio", b.tipoServicio);
 
     // cant PMR = N pasajeros ingresados
@@ -1398,7 +1434,7 @@
     const res = await fetch(API_URL + "?" + params.toString());
     const json = await res.json();
     if (!json.ok) throw new Error(json.error || "Error al crear vuelo");
-    return json; // espera json.idVuelo
+    return json;
   }
 
   async function apiCreatePasajero(b, idVuelo, p){
@@ -1415,9 +1451,6 @@
 
     if (p.edad) params.append("edad", p.edad);
 
-    // Campo ID (RUT/Pasaporte/Ticket):
-    // - si el backend soporta "rut", lo tomará;
-    // - si no, igual queda en observaciones (para no perderlo).
     if (p.id) params.append("rut", p.id);
 
     const obs = [];
@@ -1429,7 +1462,7 @@
     const res = await fetch(API_URL + "?" + params.toString());
     const json = await res.json();
     if (!json.ok) throw new Error(json.error || "Error al crear pasajero");
-    return json; // espera json.idPmr
+    return json;
   }
 
   async function submitAll(){
@@ -1481,7 +1514,6 @@
       // refrescar vistas
       await cargarDatos(true);
 
-      // cerrar modal con una pequeña pausa (opcional)
       setTimeout(()=> closeModal(), 700);
 
     }catch(err){
@@ -1541,7 +1573,6 @@
     // filtros
     document.getElementById("filtro-vuelo-num").addEventListener("input", renderVistaVuelos);
     document.getElementById("filtro-aerolinea").addEventListener("input", ()=>{
-      // si no está lockeado, filtra normal
       renderVistaVuelos();
       renderVistaPmr();
     });
@@ -1558,7 +1589,6 @@
     });
     document.getElementById("btn-close-modal").addEventListener("click", closeModal);
     document.getElementById("modal-backdrop").addEventListener("click", (e)=>{
-      // cerrar si hace click afuera del modal
       if (e.target && e.target.id === "modal-backdrop") closeModal();
     });
     document.addEventListener("keydown", (e)=>{
@@ -1579,3 +1609,4 @@
 </script>
 </body>
 </html>
+
