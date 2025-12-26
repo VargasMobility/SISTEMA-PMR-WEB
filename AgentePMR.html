@@ -5,180 +5,204 @@
   <title>Panel Agente PMR</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    :root { color-scheme: dark; }
-    * { box-sizing: border-box; }
+    :root{
+      color-scheme: light;
 
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #020617 0, #020617 40%, #020617 100%);
-      color: #e5e7eb;
+      /* Base */
+      --bg:#f3f4f6;
+      --surface:#ffffff;
+      --surface-2:#f9fafb;
+      --text:#111827;
+      --muted:#6b7280;
+      --muted-2:#9ca3af;
+      --border:#e5e7eb;
+      --border-2:#d1d5db;
+
+      /* Accento (suave) */
+      --accent:#1d4ed8;
+
+      /* Estados */
+      --ok:#16a34a;
+      --warn:#f59e0b;
+      --danger:#dc2626;
+
+      /* Sombras */
+      --shadow:0 10px 30px rgba(0,0,0,.08);
+      --shadow-strong:0 18px 45px rgba(0,0,0,.12);
     }
 
-    .topbar {
+    * { box-sizing: border-box; }
+
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(180deg, #f9fafb 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+
+    /* TOPBAR */
+    .topbar{
       padding: 10px 14px;
-      background: linear-gradient(90deg,#020617,#0f766e,#22d3ee);
+      background: linear-gradient(90deg, #ffffff, #f3f4f6);
       display:flex;
       justify-content:space-between;
       align-items:center;
       font-size:14px;
-      border-bottom:1px solid #1f2937;
-      box-shadow:0 2px 12px rgba(15,23,42,0.9);
+      border-bottom:1px solid var(--border);
+      box-shadow: 0 6px 18px rgba(0,0,0,.08);
       gap:10px;
       flex-wrap:wrap;
     }
-    .topbar-title {
-      font-weight:600;
-      letter-spacing:0.03em;
+    .topbar-title{
+      font-weight:700;
+      letter-spacing:0.02em;
       display:flex;
       flex-direction:column;
       gap:2px;
     }
-    .topbar-sub {
+    .topbar-sub{
       font-size:11px;
-      color:#bae6fd;
-      opacity:0.95;
+      color: var(--muted);
+      opacity:1;
       display:flex;
       gap:8px;
       align-items:center;
       flex-wrap:wrap;
     }
-    .topbar-sub .chip {
+    .topbar-sub .chip{
       display:inline-flex;
       align-items:center;
       gap:6px;
       padding:2px 8px;
       border-radius:999px;
-      border:1px solid rgba(34,211,238,0.45);
-      background:rgba(15,23,42,0.92);
-      color:#e0f2fe;
+      border:1px solid var(--border-2);
+      background: var(--surface);
+      color: var(--text);
       white-space:nowrap;
     }
-    .topbar-sub .chip.warn {
-      border-color: rgba(250,204,21,0.75);
-      background: rgba(250,204,21,0.10);
-      color:#fde68a;
-      font-weight:700;
+    .topbar-sub .chip.warn{
+      border-color: rgba(245,158,11,0.55);
+      background: rgba(245,158,11,0.12);
+      color:#92400e;
+      font-weight:800;
     }
-    .topbar-sub .chip .dot {
+    .topbar-sub .chip .dot{
       width:8px;height:8px;border-radius:999px;
-      background:#22d3ee;
-      box-shadow:0 0 12px rgba(34,211,238,0.9);
+      background: var(--accent);
+      box-shadow: 0 0 10px rgba(29,78,216,0.22);
     }
     .topbar-sub .chip.warn .dot{
-      background:#facc15;
-      box-shadow:0 0 12px rgba(250,204,21,0.75);
+      background: var(--warn);
+      box-shadow: 0 0 10px rgba(245,158,11,0.22);
     }
 
-    .badge {
+    .badge{
       padding:2px 8px;
       border-radius:999px;
       font-size:11px;
-      border:1px solid #22d3ee55;
+      border:1px solid var(--border-2);
       display:flex;
       align-items:center;
       gap:6px;
-      background:rgba(15,23,42,0.95);
+      background: var(--surface);
       white-space:nowrap;
+      color: var(--text);
     }
-    .badge-dot {
-      width:8px;
-      height:8px;
-      border-radius:999px;
-      background:#22d3ee;
-      box-shadow:0 0 12px rgba(34,211,238,0.9);
+    .badge-dot{
+      width:8px;height:8px;border-radius:999px;
+      background: var(--accent);
+      box-shadow: 0 0 10px rgba(29,78,216,0.18);
     }
-    .badge-dot.error {
-      background:#ef4444;
-      box-shadow:0 0 10px rgba(239,68,68,0.7);
+    .badge-dot.error{
+      background: #ef4444;
+      box-shadow: 0 0 10px rgba(239,68,68,0.25);
     }
 
-    .container {
+    .container{
       padding:12px;
       max-width:560px;
       margin:0 auto;
     }
 
-    .card {
-      background:radial-gradient(circle at top left,#020617,#020617 65%);
+    /* CARDS */
+    .card{
+      background: var(--surface);
       border-radius:18px;
-      border:1px solid #0f766e;
+      border:1px solid var(--border);
       padding:14px;
       margin-bottom:12px;
-      box-shadow:0 18px 40px rgba(0,0,0,0.75);
+      box-shadow: var(--shadow);
     }
-    .card-header {
+    .card-header{
       display:flex;
       justify-content:space-between;
       align-items:center;
       margin-bottom:8px;
       font-size:13px;
-      color:#9ca3af;
+      color: var(--muted);
       gap:10px;
       flex-wrap:wrap;
     }
-    .card-title {
+    .card-title{
       font-size:15px;
-      font-weight:600;
-      color:#f9fafb;
+      font-weight:800;
+      color: var(--text);
     }
-    .pill {
+    .pill{
       padding:2px 8px;
       border-radius:999px;
       font-size:11px;
-      border:1px solid #22d3eeaa;
-      color:#e0f2fe;
-      background:rgba(15,23,42,0.9);
+      border:1px solid var(--border-2);
+      color: var(--text);
+      background: var(--surface-2);
     }
 
-    label {
-      display:block;
-      margin-bottom:6px;
-      font-size:13px;
-    }
-    input, select {
+    /* FORM */
+    label{ display:block; margin-bottom:6px; font-size:13px; color: var(--text); }
+    input, select{
       width:100%;
       padding:8px 10px;
       border-radius:10px;
-      border:1px solid #1f2937;
-      background:#020617;
-      color:#e5e7eb;
+      border:1px solid var(--border-2);
+      background: var(--surface);
+      color: var(--text);
       font-size:13px;
       margin-top:2px;
       outline:none;
     }
-    input:focus, select:focus {
-      border-color:#22d3ee;
-      box-shadow:0 0 0 1px rgba(34,211,238,0.6);
+    input:focus, select:focus{
+      border-color: rgba(29,78,216,0.55);
+      box-shadow: 0 0 0 3px rgba(29,78,216,0.12);
     }
 
-    textarea {
+    textarea{
       width:100%;
       padding:8px 10px;
       border-radius:10px;
-      border:1px solid #1f2937;
-      background:#020617;
-      color:#e5e7eb;
+      border:1px solid var(--border-2);
+      background: var(--surface);
+      color: var(--text);
       font-size:13px;
       margin-top:2px;
       resize:vertical;
       min-height:52px;
       outline:none;
     }
-    textarea:focus {
-      border-color:#22d3ee;
-      box-shadow:0 0 0 1px rgba(34,211,238,0.6);
+    textarea:focus{
+      border-color: rgba(29,78,216,0.55);
+      box-shadow: 0 0 0 3px rgba(29,78,216,0.12);
     }
 
-    .btn {
+    /* BUTTONS (gris/white theme) */
+    .btn{
       border:none;
       border-radius:999px;
       padding:9px 14px;
       font-size:13px;
       cursor:pointer;
-      background:linear-gradient(135deg,#06b6d4,#22c55e);
-      color:#020617;
-      font-weight:600;
+      background: linear-gradient(135deg,#111827,#374151);
+      color: #ffffff;
+      font-weight:700;
       display:inline-flex;
       align-items:center;
       justify-content:center;
@@ -186,82 +210,88 @@
       margin-top:8px;
       width:100%;
       user-select:none;
+      box-shadow: 0 10px 18px rgba(17,24,39,0.18);
     }
-    .btn:disabled {
-      opacity:0.7;
+    .btn:disabled{
+      opacity:0.65;
       cursor:not-allowed;
       filter:saturate(0.7);
+      box-shadow:none;
     }
-    .btn.secondary {
-      background:#020617;
-      color:#e5e7eb;
-      border:1px solid #64748b;
+    .btn.secondary{
+      background: var(--surface);
+      color: var(--text);
+      border:1px solid var(--border-2);
       width:auto;
+      box-shadow:none;
     }
-    .btn.danger {
-      background:linear-gradient(135deg,#ef4444,#b91c1c);
-      color:#fef2f2;
+    .btn.danger{
+      background: linear-gradient(135deg,#ef4444,#b91c1c);
+      color:#ffffff;
+      box-shadow: 0 10px 18px rgba(185,28,28,0.18);
     }
-    .btn.warning {
-      background:linear-gradient(135deg,#f97316,#facc15);
+    .btn.warning{
+      background: linear-gradient(135deg,#f97316,#f59e0b);
       color:#111827;
+      box-shadow: 0 10px 18px rgba(245,158,11,0.18);
     }
-    .btn.small {
+    .btn.small{
       padding:5px 10px;
       font-size:12px;
       width:auto;
       margin-top:0;
     }
 
-    .msg {
+    .msg{
       font-size:12px;
       margin-top:6px;
       min-height:16px;
-      color:#e5e7eb;
+      color: var(--text);
       white-space:pre-wrap;
     }
-    .msg.err { color:#f97373; }
-    .msg.ok  { color:#4ade80; }
-    .msg.warn{ color:#facc15; }
+    .msg.err { color:#b91c1c; }
+    .msg.ok  { color:#166534; }
+    .msg.warn{ color:#92400e; }
 
-    /* Tabs principales */
-    .tabs {
+    /* Tabs */
+    .tabs{
       display:flex;
       gap:6px;
       margin-bottom:8px;
       flex-wrap:wrap;
     }
-    .tab-btn {
+    .tab-btn{
       flex:1;
       min-width:120px;
       border:none;
       border-radius:999px;
       padding:6px 8px;
       font-size:12px;
-      background:#020617;
-      color:#e5e7eb;
-      border:1px solid #1f2937;
+      background: var(--surface);
+      color: var(--text);
+      border:1px solid var(--border-2);
       cursor:pointer;
     }
-    .tab-btn.active {
-      background:linear-gradient(135deg,#0f766e,#22d3ee);
-      color:#e0f2fe;
-      border-color:#22d3ee;
-      font-weight:600;
-      box-shadow:0 0 12px rgba(34,211,238,0.4);
+    .tab-btn.active{
+      background: #111827;
+      color: #ffffff;
+      border-color:#111827;
+      font-weight:800;
+      box-shadow: 0 10px 18px rgba(17,24,39,0.14);
     }
 
-    .section { display:none; margin-top:6px; }
-    .section.active { display:block; }
+    .section{ display:none; margin-top:6px; }
+    .section.active{ display:block; }
 
-    .asignacion-card {
+    /* Asignaciones cards */
+    .asignacion-card{
       border-radius:14px;
-      border:1px solid #1e3a8a;
+      border:1px solid var(--border);
       padding:10px;
       margin-bottom:10px;
-      background:radial-gradient(circle at top left,#020617,#020617 60%);
+      background: var(--surface-2);
     }
-    .asignacion-header {
+    .asignacion-header{
       display:flex;
       justify-content:space-between;
       align-items:center;
@@ -269,82 +299,90 @@
       margin-bottom:4px;
       gap:6px;
       flex-wrap:wrap;
+      color: var(--text);
     }
-    .asignacion-body {
+    .asignacion-body{
       font-size:12px;
-      color:#d1d5db;
+      color: var(--muted);
       margin-bottom:6px;
     }
-    .asignacion-footer {
+    .asignacion-footer{
       display:flex;
       gap:6px;
       flex-wrap:wrap;
       align-items:center;
     }
-    .pill-state {
+
+    .pill-state{
       border-radius:999px;
       padding:2px 7px;
       font-size:11px;
-      border:1px solid #4b5563;
+      border:1px solid var(--border-2);
+      background: var(--surface);
       white-space:nowrap;
+      color: var(--text);
     }
-    .pill-asignacion {
-      border-color:#f59e0b;
-      color:#fde68a;
+    .pill-asignacion{
+      border-color: rgba(245,158,11,0.55);
+      background: rgba(245,158,11,0.12);
+      color:#92400e;
     }
-    .pill-aceptada {
-      border-color:#22d3ee;
-      color:#7dd3fc;
+    .pill-aceptada{
+      border-color: rgba(29,78,216,0.55);
+      background: rgba(29,78,216,0.10);
+      color:#1d4ed8;
     }
-    .pill-transito {
-      border-color:#22c55e;
-      color:#bbf7d0;
+    .pill-transito{
+      border-color: rgba(22,163,74,0.55);
+      background: rgba(22,163,74,0.10);
+      color:#166534;
     }
-    .pill-terminado {
-      border-color:#a855f7;
-      color:#e9d5ff;
+    .pill-terminado{
+      border-color: rgba(107,114,128,0.55);
+      background: rgba(107,114,128,0.10);
+      color:#374151;
     }
 
-    .warning-limit {
+    .warning-limit{
       margin-top:4px;
       padding:6px 8px;
       border-radius:10px;
       font-size:13px;
-      font-weight:700;
-      background:rgba(234,179,8,0.08);
-      border:1px solid #facc15;
-      color:#facc15;
+      font-weight:800;
+      background: rgba(245,158,11,0.12);
+      border:1px solid rgba(245,158,11,0.55);
+      color:#92400e;
     }
 
-    .expire-box {
+    .expire-box{
       margin-top:6px;
       padding:6px 8px;
       border-radius:10px;
       font-size:12px;
-      border:1px solid rgba(245,158,11,0.7);
-      background:rgba(245,158,11,0.08);
-      color:#fde68a;
+      border:1px solid rgba(245,158,11,0.55);
+      background: rgba(245,158,11,0.10);
+      color:#92400e;
     }
-    .expire-box.critical {
-      border-color: rgba(239,68,68,0.8);
-      background: rgba(239,68,68,0.10);
-      color:#fecaca;
-      font-weight:700;
+    .expire-box.critical{
+      border-color: rgba(220,38,38,0.60);
+      background: rgba(220,38,38,0.10);
+      color:#991b1b;
+      font-weight:800;
     }
 
     /* Historial */
-    .hist-card {
+    .hist-card{
       border-radius:12px;
-      border:1px solid #1f2937;
+      border:1px solid var(--border);
       padding:8px;
       margin-bottom:8px;
-      background:#020617;
+      background: var(--surface);
       font-size:12px;
-      color:#e5e7eb;
+      color: var(--text);
     }
 
-    /* Panel de refresco */
-    .refresh-panel {
+    /* Panel refresco */
+    .refresh-panel{
       display:flex;
       align-items:center;
       justify-content:space-between;
@@ -353,104 +391,106 @@
       margin-bottom:8px;
       padding:6px 10px;
       border-radius:999px;
-      background:rgba(15,23,42,0.95);
-      border:1px solid rgba(148,163,184,0.7);
+      background: var(--surface);
+      border:1px solid var(--border-2);
       flex-wrap:wrap;
     }
-    .refresh-countdown { display:none; color:#e5e7eb; }
-    .refresh-countdown strong { color:#fbbf24; }
+    .refresh-countdown{ display:none; color: var(--text); }
+    .refresh-countdown strong{ color:#b45309; }
 
     /* Loading overlay login */
-    .loading-overlay {
+    .loading-overlay{
       position:fixed;
       inset:0;
-      background:rgba(15,23,42,0.9);
+      background: rgba(17,24,39,0.35);
       display:none;
       align-items:center;
       justify-content:center;
       z-index:50;
-      backdrop-filter:blur(2px);
+      backdrop-filter: blur(2px);
     }
-    .loading-box {
-      background:#020617;
+    .loading-box{
+      background: var(--surface);
       border-radius:14px;
       padding:16px 18px;
-      border:1px solid #0f766e;
+      border:1px solid var(--border);
       width:280px;
       text-align:center;
-      box-shadow:0 16px 40px rgba(0,0,0,0.8);
+      box-shadow: var(--shadow-strong);
       font-size:13px;
+      color: var(--text);
     }
-    .loading-bar {
+    .loading-bar{
       width:100%;
       height:6px;
       border-radius:999px;
-      background:#020617;
-      border:1px solid #4b5563;
+      background: var(--surface-2);
+      border:1px solid var(--border-2);
       overflow:hidden;
       margin-top:8px;
     }
-    .loading-bar-inner {
+    .loading-bar-inner{
       height:100%;
       width:0%;
-      background:linear-gradient(90deg,#0f766e,#22d3ee,#a855f7);
-      transition:width 3s linear;
+      background: linear-gradient(90deg,#111827,#6b7280,#e5e7eb);
+      transition: width 3s linear;
     }
 
-    /* ⏸️ Modal descanso */
-    .modal-overlay {
+    /* Modal descanso */
+    .modal-overlay{
       position:fixed;
       inset:0;
-      background: rgba(2,6,23,0.65);
+      background: rgba(17,24,39,0.35);
       display:none;
       align-items:center;
       justify-content:center;
       z-index:60;
       backdrop-filter: blur(4px);
     }
-    .modal {
+    .modal{
       width:min(520px, calc(100vw - 24px));
       border-radius:18px;
-      border:1px solid rgba(250,204,21,0.55);
-      background: radial-gradient(circle at top left, rgba(2,6,23,0.95), rgba(2,6,23,0.98) 65%);
-      box-shadow: 0 24px 70px rgba(0,0,0,0.75);
+      border:1px solid rgba(245,158,11,0.45);
+      background: var(--surface);
+      box-shadow: var(--shadow-strong);
       overflow:hidden;
+      color: var(--text);
     }
-    .modal-head {
+    .modal-head{
       padding:12px 14px;
-      background: linear-gradient(90deg, rgba(250,204,21,0.12), rgba(34,211,238,0.10));
+      background: linear-gradient(90deg, rgba(245,158,11,0.12), rgba(107,114,128,0.10));
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:10px;
-      border-bottom:1px solid rgba(148,163,184,0.20);
+      border-bottom:1px solid var(--border);
     }
-    .modal-title {
-      font-weight:800;
+    .modal-title{
+      font-weight:900;
       letter-spacing:0.02em;
       display:flex;
       align-items:center;
       gap:8px;
     }
-    .modal-title .ico {
+    .modal-title .ico{
       width:28px;height:28px;border-radius:10px;
       display:inline-flex;align-items:center;justify-content:center;
-      background: rgba(250,204,21,0.12);
-      border:1px solid rgba(250,204,21,0.35);
-      color:#fde68a;
+      background: rgba(245,158,11,0.12);
+      border:1px solid rgba(245,158,11,0.35);
+      color:#92400e;
       font-weight:900;
     }
-    .modal-body {
+    .modal-body{
       padding:14px;
-      color:#e5e7eb;
+      color: var(--text);
       font-size:13px;
       line-height:1.4;
     }
-    .modal-kpi {
+    .modal-kpi{
       margin-top:10px;
       border-radius:14px;
-      border:1px solid rgba(250,204,21,0.45);
-      background: rgba(250,204,21,0.07);
+      border:1px solid rgba(245,158,11,0.35);
+      background: rgba(245,158,11,0.10);
       padding:10px 12px;
       display:flex;
       align-items:center;
@@ -458,50 +498,50 @@
       gap:10px;
       flex-wrap:wrap;
     }
-    .modal-kpi b { color:#fde68a; }
-    .modal-kpi .time {
+    .modal-kpi b { color:#92400e; }
+    .modal-kpi .time{
       font-size:22px;
       font-weight:900;
       letter-spacing:0.04em;
-      color:#fde68a;
-      text-shadow:0 0 18px rgba(250,204,21,0.25);
+      color:#92400e;
+      text-shadow:none;
     }
-    .modal-actions {
+    .modal-actions{
       padding:12px 14px;
       display:flex;
       gap:10px;
       justify-content:flex-end;
-      border-top:1px solid rgba(148,163,184,0.20);
-      background: rgba(15,23,42,0.35);
+      border-top:1px solid var(--border);
+      background: var(--surface-2);
     }
-    .modal-actions .btn { width:auto; margin-top:0; }
+    .modal-actions .btn{ width:auto; margin-top:0; }
 
     /* Config */
-    .config-info {
+    .config-info{
       font-size:12px;
-      color:#e5e7eb;
+      color: var(--text);
       margin-bottom:8px;
       border-radius:10px;
-      background:#020617;
+      background: var(--surface);
       padding:8px;
-      border:1px solid #1f2937;
+      border:1px solid var(--border);
     }
 
-    .hint {
+    .hint{
       font-size:11px;
-      color:#9ca3af;
+      color: var(--muted);
       margin-top:4px;
       line-height:1.35;
     }
-    .mono {
+    .mono{
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size:11px;
     }
 
-    @media (max-width:600px) {
-      .container { padding:8px; }
-      .card { border-radius:16px; }
-      .topbar { gap:8px; }
+    @media (max-width:600px){
+      .container{ padding:8px; }
+      .card{ border-radius:16px; }
+      .topbar{ gap:8px; }
     }
   </style>
 </head>
@@ -527,7 +567,7 @@
   <div class="loading-overlay" id="login-loading">
     <div class="loading-box">
       <div id="loading-title">Conectando con el sistema PMR...</div>
-      <div style="font-size:11px;color:#9ca3af;margin-top:2px;" id="loading-sub">Validando tus datos y marcando disponibilidad</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:2px;" id="loading-sub">Validando tus datos y marcando disponibilidad</div>
       <div class="loading-bar">
         <div class="loading-bar-inner" id="loading-bar-inner"></div>
       </div>
@@ -551,18 +591,18 @@
 
         <div class="modal-kpi">
           <div>
-            <div style="font-size:11px;color:#9ca3af;">Tiempo restante</div>
+            <div style="font-size:11px;color:#6b7280;">Tiempo restante</div>
             <div style="margin-top:2px;">
               <span class="time" id="descanso-mmss">45:00</span>
             </div>
           </div>
           <div style="text-align:right;">
-            <div style="font-size:11px;color:#9ca3af;">Vuelves a Disponible</div>
-            <div style="margin-top:2px;font-weight:800;color:#e0f2fe;" id="descanso-vuelve-a">—</div>
+            <div style="font-size:11px;color:#6b7280;">Vuelves a Disponible</div>
+            <div style="margin-top:2px;font-weight:900;color:#111827;" id="descanso-vuelve-a">—</div>
           </div>
         </div>
 
-        <div style="margin-top:10px;font-size:11px;color:#9ca3af;">
+        <div style="margin-top:10px;font-size:11px;color:#6b7280;">
           Al finalizar, el sistema te marcará automáticamente como <b>Disponible</b> y el contador desaparecerá.
         </div>
       </div>
@@ -607,7 +647,7 @@
       <div class="card-header">
         <div>
           <div class="card-title" id="titulo-agente">Agente</div>
-          <div id="subtitulo-agente" style="font-size:11px; color:#9ca3af; margin-top:2px;"></div>
+          <div id="subtitulo-agente" style="font-size:11px; color:#6b7280; margin-top:2px;"></div>
         </div>
         <span class="pill" id="pill-estado-servicio">—</span>
       </div>
@@ -650,7 +690,7 @@
         <div class="config-info" id="config-info"></div>
 
         <div class="hist-card">
-          <div style="font-weight:700;margin-bottom:6px;">Estado</div>
+          <div style="font-weight:900;margin-bottom:6px;">Estado</div>
           <button class="btn warning" id="btn-descanso">En Descanso</button>
           <button class="btn danger" id="btn-logout">Cerrar sesión</button>
           <div class="msg" id="msg-config"></div>
@@ -957,18 +997,24 @@
       descansoTicker = null;
     }
 
+    /* ✅ AJUSTE PARA TEMA CLARO */
     function updatePillEstado() {
       const pill = document.getElementById("pill-estado-servicio");
       if (!pill) return;
 
-      if (isEnDescanso_() && descansoUntilMs && getDescansoRemainingMs_() > 0) {
+      const enDescanso = (isEnDescanso_() && descansoUntilMs && getDescansoRemainingMs_() > 0);
+
+      if (enDescanso) {
         pill.textContent = `En descanso (${formatMMSS_(getDescansoRemainingMs_())})`;
+        pill.style.borderColor = "rgba(245,158,11,0.55)";
+        pill.style.color = "#92400e";
+        pill.style.background = "rgba(245,158,11,0.12)";
       } else {
         pill.textContent = estadoServicioAgente || "—";
+        pill.style.borderColor = "rgba(29,78,216,0.45)";
+        pill.style.color = "#1d4ed8";
+        pill.style.background = "rgba(29,78,216,0.10)";
       }
-
-      pill.style.borderColor = isEnDescanso_() ? "#facc15" : "#22d3eeaa";
-      pill.style.color = isEnDescanso_() ? "#fde68a" : "#e0f2fe";
 
       updateTopbarDescansoChip_();
     }
@@ -1436,10 +1482,10 @@
           </div>
           <div class="asignacion-body">
             <div><b>Vuelo:</b> ${vueloNum || "-"} · ${tipoServ || ""}</div>
-            <div style="font-size:11px;color:#9ca3af;margin-top:1px;">
+            <div style="font-size:11px;color:#6b7280;margin-top:1px;">
               Fecha: ${fechaVuelo || "-"} · Hora prog.: ${horaProg || "-"}
             </div>
-            <div style="font-size:11px;color:#9ca3af;margin-top:1px;">
+            <div style="font-size:11px;color:#6b7280;margin-top:1px;">
               Terminal: ${terminal || "-"} · Puerta: ${puerta || "-"} · Espigón: ${espigon || "-"}
             </div>
             <div style="margin-top:3px;"><b>PMR:</b> ${nombrePmr || "(sin nombre)"}</div>
@@ -1561,7 +1607,7 @@
         card.innerHTML = `
           <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
             <span><b>#${a.idAsignacion || ""}</b> · ${vueloNum || ""} · ${tipoServ || ""}</span>
-            <span style="font-size:11px;color:#9ca3af;">
+            <span style="font-size:11px;color:#6b7280;">
               ${a.fechaAsignacion || ""} · ${formatearHora(a.horaFin)}
             </span>
           </div>
@@ -1583,10 +1629,10 @@
       if (!cont) return;
       cont.innerHTML = `
         <div class="hist-card">
-          <div style="font-size:13px;font-weight:600;margin-bottom:4px;">
+          <div style="font-size:13px;font-weight:900;margin-bottom:4px;">
             Mi rango – próximamente
           </div>
-          <div style="font-size:12px;color:#9ca3af;">
+          <div style="font-size:12px;color:#6b7280;">
             Este módulo aún está en desarrollo. En una próxima versión podrás ver tu rango,
             estadísticas y resumen de asignaciones completadas.
           </div>
@@ -1617,7 +1663,7 @@
         <div><b>Ubicación actual:</b> ${ubicacionAgente || "-"}</div>
         <div><b>Estado servicio:</b> ${estadoServicioAgente || "Disponible"}</div>
         ${descansoExtra}
-        <div style="font-size:11px;color:#9ca3af;margin-top:4px;">
+        <div style="font-size:11px;color:#6b7280;margin-top:4px;">
           Usa "En Descanso" si estás en colación/pause (45 min). Al terminar, volverás automáticamente a "Disponible".
         </div>
       `;
