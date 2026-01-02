@@ -538,7 +538,76 @@
       font-size:11px;
     }
 
-    @media (max-width:600px){
+    
+    /* =========================
+       BULK POR VUELO (UI)
+       ========================= */
+    .vuelo-group{
+      background: var(--surface);
+    }
+    .vuelo-group.paused{
+      opacity:0.92;
+      border-color: rgba(245,158,11,0.55);
+      box-shadow: 0 10px 30px rgba(245,158,11,0.10);
+    }
+    .vuelo-group .group-meta{
+      font-size:11px;
+      color: var(--muted);
+      margin-top:2px;
+      line-height:1.35;
+    }
+    .group-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:8px;
+      align-items:center;
+    }
+    .group-actions .btn{
+      width:auto;
+      margin-top:0;
+    }
+    .chk-row{
+      display:flex;
+      gap:10px;
+      padding:8px 2px;
+      border-top:1px dashed var(--border);
+      align-items:flex-start;
+    }
+    .chk-row:first-child{ border-top:none; }
+    .chk-row input[type="checkbox"]{
+      width:18px;
+      height:18px;
+      margin-top:2px;
+      accent-color: var(--accent);
+    }
+    .chk-info{
+      flex:1;
+      min-width:0;
+    }
+    .chk-title{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+      font-size:12px;
+      color: var(--text);
+    }
+    .chk-sub{
+      margin-top:2px;
+      font-size:11px;
+      color: var(--muted);
+      line-height:1.35;
+    }
+    .pill-paused{
+      border-color: rgba(245,158,11,0.55);
+      background: rgba(245,158,11,0.12);
+      color:#92400e;
+      font-weight:900;
+    }
+
+@media (max-width:600px){
       .container{ padding:8px; }
       .card{ border-radius:16px; }
       .topbar{ gap:8px; }
@@ -819,6 +888,317 @@
     let cacheAsignaciones = [];
     let cachePasajeros = [];
     let cacheVuelos = [];
+    /* =========================
+       BULK UI (LOCAL): Selección por vuelo + Pausa UI
+       ========================= */
+    const LS_KEY_BULK_UI = "pmr_agente_bulk_ui_v1";
+    let bulkUi = { selectedByVuelo: {}, pausedVuelos: {} };
+
+    function loadBulkUi_() {
+      try {
+        const raw = localStorage.getItem(LS_KEY_BULK_UI);
+        if (!raw) return;
+        const obj = JSON.parse(raw);
+        if (obj && typeof obj === "object") {
+          bulkUi.selectedByVuelo = (obj.selectedByVuelo && typeof obj.selectedByVuelo === "object") ? obj.selectedByVuelo : {};
+          bulkUi.pausedVuelos    = (obj.pausedVuelos    && typeof obj.pausedVuelos    === "object") ? obj.pausedVuelos    : {};
+        }
+      } catch (_) {}
+    }
+
+    function saveBulkUi_() {
+      try { localStorage.setItem(LS_KEY_BULK_UI, JSON.stringify(bulkUi)); } catch (_) {}
+    }
+
+    function vueloKey_(idVuelo){ return String(idVuelo ?? ""); }
+
+    function isVueloPausadoUI_(idVuelo){
+      const k = vueloKey_(idVuelo);
+      return !!(bulkUi.pausedVuelos && bulkUi.pausedVuelos[k]);
+    }
+
+    function toggleVueloPausadoUI_(idVuelo){
+      const k = vueloKey_(idVuelo);
+      bulkUi.pausedVuelos = bulkUi.pausedVuelos || {};
+      bulkUi.pausedVuelos[k] = !bulkUi.pausedVuelos[k];
+      saveBulkUi_();
+      renderAsignacionesAgente();
+    }
+
+    function ensureVueloSelection_(idVuelo, asignaciones){
+      const k = vueloKey_(idVuelo);
+      bulkUi.selectedByVuelo = bulkUi.selectedByVuelo || {};
+      const map = (bulkUi.selectedByVuelo[k] && typeof bulkUi.selectedByVuelo[k] === "object") ? bulkUi.selectedByVuelo[k] : {};
+
+      // Default: todo seleccionado (solo si no existe decisión previa)
+      (asignaciones || []).forEach(a => {
+        const idA = String(a?.idAsignacion ?? "");
+        if (!idA) return;
+        if (map[idA] === undefined) map[idA] = false;
+      });
+
+      bulkUi.selectedByVuelo[k] = map;
+      saveBulkUi_();
+      return map;
+    }
+
+    function setSeleccionAsig_(idVuelo, idAsignacion, checked){
+      const k = vueloKey_(idVuelo);
+      const idA = String(idAsignacion ?? "");
+      if (!idA) return;
+
+      bulkUi.selectedByVuelo = bulkUi.selectedByVuelo || {};
+      const map = (bulkUi.selectedByVuelo[k] && typeof bulkUi.selectedByVuelo[k] === "object") ? bulkUi.selectedByVuelo[k] : {};
+      map[idA] = !!checked;
+      bulkUi.selectedByVuelo[k] = map;
+      saveBulkUi_();
+    }
+
+    function getSelectedIdsVuelo_(idVuelo, asignaciones){
+      const map = ensureVueloSelection_(idVuelo, asignaciones);
+      const out = new Set();
+      (asignaciones || []).forEach(a => {
+        const idA = String(a?.idAsignacion ?? "");
+        if (!idA) return;
+        if (map[idA] !== false) out.add(idA);
+      });
+      return out;
+    }
+
+    function isPendienteAceptar_(estadoN){ return (estadoN === "en asignacion" || estadoN === "en espera"); }
+    function isAceptada_(estadoN){ return (estadoN === "aceptada"); }
+    function isEnTransito_(estadoN){ return (estadoN === "en transito"); }
+
+    function computeExpiryVuelo_(asigsPendAceptar){
+      const list = (asigsPendAceptar || []).slice();
+      if (!list.length) return null;
+
+      // 1) Si backend entrega horaExpiracion, preferimos la más lejana.
+      let maxExp = null;
+      for (const a of list) {
+        if (a && a.fechaAsignacion && a.horaExpiracion) {
+          const dt = parseHoraToDate(a.fechaAsignacion, a.horaExpiracion);
+          if (dt && (!maxExp || dt.getTime() > maxExp.getTime())) maxExp = dt;
+        }
+      }
+      if (maxExp) return maxExp;
+
+      // 2) Si no, tomamos la última horaAsignacion del vuelo y sumamos 7 min (reinicio local por vuelo)
+      let maxAssign = null;
+      for (const a of list) {
+        const dt = parseHoraToDate(a?.fechaAsignacion, a?.horaAsignacion);
+        if (dt && (!maxAssign || dt.getTime() > maxAssign.getTime())) maxAssign = dt;
+      }
+      if (!maxAssign) return null;
+      const exp = new Date(maxAssign.getTime());
+      exp.setMinutes(exp.getMinutes() + 7);
+      return exp;
+    }
+
+    function msgOpsVuelo_(idVuelo){
+      return document.getElementById(`msg-ops-vuelo-${vueloKey_(idVuelo)}`);
+    }
+
+    function setBusyVuelo_(idVuelo, busy){
+      const k = vueloKey_(idVuelo);
+      const ids = [
+        `btn-accept-vuelo-${k}`,
+        `btn-start-vuelo-${k}`,
+        `btn-finish-vuelo-${k}`,
+        `btn-pause-vuelo-${k}`
+      ];
+      ids.forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.disabled = !!busy;
+      });
+    }
+
+    function getPendientesVuelo_(idVuelo){
+      const k = vueloKey_(idVuelo);
+      const propias = cacheAsignaciones.filter(a => String(a.idAgente) === String(idAgenteLogueado));
+      return propias.filter(a => String(a.idVuelo) === k && !esEstadoCerrado_(a.estadoAsignacion));
+    }
+
+    async function accionAceptarVueloTodos_(idVuelo){
+      const k = vueloKey_(idVuelo);
+      const el = msgOpsVuelo_(k);
+
+      const asigs = getPendientesVuelo_(k);
+      const toAccept = asigs.filter(a => isPendienteAceptar_(normalizarEstado(a.estadoAsignacion)));
+
+      if (!toAccept.length) {
+        showMsg(el, "No hay asignaciones pendientes de aceptación en este vuelo.", "warn");
+        return;
+      }
+
+      const vuelo = cacheVuelos.find(v => String(v.idVuelo) === k);
+      const vueloNum = vuelo ? (vuelo.numeroVuelo || k) : k;
+
+      if (!confirm(`¿Aceptar TODAS las asignaciones pendientes de este vuelo?
+
+Vuelo: ${vueloNum}
+Pendientes: ${toAccept.length}`)) return;
+
+      setBusyVuelo_(k, true);
+      showMsg(el, "Aceptando asignaciones...", "");
+      let okCount = 0, failCount = 0;
+
+      try {
+        for (const a of toAccept) {
+          try {
+            const url = buildUrl("agenteAceptarAsignacion", { idAsignacion: a.idAsignacion, idAgente: idAgenteLogueado });
+            const json = await fetchJson(url, { timeoutMs: 20000 });
+            if (!json.ok) throw new Error(json.error || "Error");
+            okCount++;
+          } catch (e) {
+            console.error(e);
+            failCount++;
+          }
+        }
+        showMsg(el, `Aceptación finalizada. OK: ${okCount} · Error: ${failCount}`, failCount ? "warn" : "ok");
+        await cargarDatosAgente(false);
+      } finally {
+        setBusyVuelo_(k, false);
+      }
+    }
+
+    async function accionIniciarVueloSeleccionados_(idVuelo){
+      const k = vueloKey_(idVuelo);
+      const el = msgOpsVuelo_(k);
+
+      if (isVueloPausadoUI_(k)) {
+        showMsg(el, "Este vuelo está en Pausa (UI). Reanuda para iniciar.", "warn");
+        return;
+      }
+
+      const asigs = getPendientesVuelo_(k);
+      const selected = getSelectedIdsVuelo_(k, asigs);
+      const toStart = asigs.filter(a => selected.has(String(a.idAsignacion)) && isAceptada_(normalizarEstado(a.estadoAsignacion)));
+
+      if (!toStart.length) {
+        showMsg(el, "No hay asignaciones en estado 'Aceptada' seleccionadas para iniciar.", "warn");
+        return;
+      }
+
+      const vuelo = cacheVuelos.find(v => String(v.idVuelo) === k);
+      const vueloNum = vuelo ? (vuelo.numeroVuelo || k) : k;
+
+      if (!confirm(`¿Iniciar trayecto para los seleccionados?
+
+Vuelo: ${vueloNum}
+Seleccionados a iniciar: ${toStart.length}`)) return;
+
+      setBusyVuelo_(k, true);
+      showMsg(el, "Iniciando trayectos...", "");
+      let okCount = 0, failCount = 0;
+
+      try {
+        for (const a of toStart) {
+          try {
+            const url = buildUrl("agenteIniciarTrayecto", { idAsignacion: a.idAsignacion, idAgente: idAgenteLogueado });
+            const json = await fetchJson(url, { timeoutMs: 20000 });
+            if (!json.ok) throw new Error(json.error || "Error");
+            okCount++;
+          } catch (e) {
+            console.error(e);
+            failCount++;
+          }
+        }
+        showMsg(el, `Inicio finalizado. OK: ${okCount} · Error: ${failCount}`, failCount ? "warn" : "ok");
+        await cargarDatosAgente(false);
+      } finally {
+        setBusyVuelo_(k, false);
+      }
+    }
+
+    async function accionTerminarVueloSeleccionados_(idVuelo){
+      const k = vueloKey_(idVuelo);
+      const el = msgOpsVuelo_(k);
+
+      if (isVueloPausadoUI_(k)) {
+        showMsg(el, "Este vuelo está en Pausa (UI). Reanuda para terminar.", "warn");
+        return;
+      }
+
+      const asigs = getPendientesVuelo_(k);
+      const selected = getSelectedIdsVuelo_(k, asigs);
+
+      const toFinish = asigs.filter(a => selected.has(String(a.idAsignacion)) && isEnTransito_(normalizarEstado(a.estadoAsignacion)));
+      const notSelected = asigs.filter(a => !selected.has(String(a.idAsignacion)));
+
+      if (!toFinish.length) {
+        showMsg(el, "No hay asignaciones 'En tránsito' seleccionadas para terminar.", "warn");
+        return;
+      }
+
+      // Auto-cancel: NO seleccionados que estén Aceptada o En tránsito
+      const toAutoCancel = notSelected.filter(a => {
+        const est = normalizarEstado(a.estadoAsignacion);
+        return isAceptada_(est) || isEnTransito_(est);
+      });
+
+      const vuelo = cacheVuelos.find(v => String(v.idVuelo) === k);
+      const vueloNum = vuelo ? (vuelo.numeroVuelo || k) : k;
+
+      const msgConfirm =
+        `¿Terminar trayecto para los seleccionados?
+
+` +
+        `Vuelo: ${vueloNum}
+` +
+        `A terminar: ${toFinish.length}` +
+        (toAutoCancel.length ? `
+
+Además, se cancelarán automáticamente los NO seleccionados (no conectados): ${toAutoCancel.length}` : "");
+
+      if (!confirm(msgConfirm)) return;
+
+      setBusyVuelo_(k, true);
+      showMsg(el, "Procesando cierre masivo...", "");
+      let okFinish = 0, failFinish = 0, okCancel = 0, failCancel = 0;
+
+      try {
+        // 1) Terminar seleccionados (en tránsito)
+        for (const a of toFinish) {
+          try {
+            const url = buildUrl("agenteTerminarTrayecto", { idAsignacion: a.idAsignacion, idAgente: idAgenteLogueado });
+            const json = await fetchJson(url, { timeoutMs: 20000 });
+            if (!json.ok) throw new Error(json.error || "Error");
+            okFinish++;
+          } catch (e) {
+            console.error(e);
+            failFinish++;
+          }
+        }
+
+        // 2) Cancelar NO seleccionados (aceptada/en tránsito) con motivo automático
+        if (toAutoCancel.length) {
+          const motivo = "No conectado (no seleccionado en cierre masivo)";
+          for (const a of toAutoCancel) {
+            try {
+              const url = buildUrl("agenteCancelarAsignacion", { idAsignacion: a.idAsignacion, idAgente: idAgenteLogueado, motivo });
+              const json = await fetchJson(url, { timeoutMs: 20000 });
+              if (!json.ok) throw new Error(json.error || "Error");
+              okCancel++;
+            } catch (e) {
+              console.error(e);
+              failCancel++;
+            }
+          }
+        }
+
+        const tail =
+          `Término OK: ${okFinish} · Error: ${failFinish}` +
+          (toAutoCancel.length ? `
+Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
+
+        showMsg(el, tail, (failFinish || failCancel) ? "warn" : "ok");
+        await cargarDatosAgente(false);
+      } finally {
+        setBusyVuelo_(k, false);
+      }
+    }
+
 
     let autoRefreshInterval = null;
     let autoRefreshSeconds = 300;
@@ -1392,6 +1772,9 @@
     /* =========================
        RENDER: ASIGNACIONES
        ========================= */
+        /* =========================
+       RENDER: ASIGNACIONES
+       ========================= */
     function renderAsignacionesAgente() {
       const cont = document.getElementById("lista-asignaciones");
       const msg  = document.getElementById("msg-asignaciones");
@@ -1412,17 +1795,24 @@
         return;
       }
 
+      // Orden por fecha/hora asignación (desc)
       pendientes.sort((a,b)=> {
         const sa = (a.fechaAsignacion || "") + " " + (a.horaAsignacion || "");
         const sb = (b.fechaAsignacion || "") + " " + (b.horaAsignacion || "");
         return sb.localeCompare(sa);
       });
 
+      // Agrupar por vuelo
+      const groups = new Map();
       pendientes.forEach(a => {
-        const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
-        const vuelo = cacheVuelos.find(v => String(v.idVuelo) === String(a.idVuelo));
+        const k = String(a.idVuelo ?? "");
+        if (!groups.has(k)) groups.set(k, []);
+        groups.get(k).push(a);
+      });
 
-        const nombrePmr = pmr ? (pmr.nombre || "") : "";
+      // Render por grupo
+      Array.from(groups.entries()).forEach(([idVuelo, asigs]) => {
+        const vuelo = cacheVuelos.find(v => String(v.idVuelo) === String(idVuelo));
         const vueloNum  = vuelo ? (vuelo.numeroVuelo || "") : "";
         const fechaVuelo= vuelo ? (vuelo.fecha || "") : "";
         const terminal  = vuelo ? (vuelo.terminal || "") : "";
@@ -1430,140 +1820,272 @@
         const espigon   = vuelo ? (vuelo.espigon || "") : "";
         const tipoServ  = vuelo ? (vuelo.tipoServicio || "") : "";
         const horaProg  = vuelo ? formatearHora(vuelo.horaProgramada) : "";
-        const estadoN   = normalizarEstado(a.estadoAsignacion);
-        const horaLimite= a.horaLimite ? formatearHora(a.horaLimite) : "";
 
-        let pillClass = "pill-state";
-        if (estadoN === "en asignacion" || estadoN === "en espera") pillClass += " pill-asignacion";
-        else if (estadoN === "aceptada") pillClass += " pill-aceptada";
-        else if (estadoN === "en transito") pillClass += " pill-transito";
-        else if (estadoN === "terminado") pillClass += " pill-terminado";
+        const multiple = (asigs.length >= 2);
 
-        let textoLimite = "";
-        if (horaLimite && horaProg) {
-          const t = normalizarEstado(tipoServ);
-          if (t === "embarque") {
-            textoLimite = `Debes TERMINAR el servicio 60 min antes del vuelo (${horaProg}). Hora límite recomendada: ${horaLimite}.`;
-          } else if (t === "desembarque") {
-            textoLimite = `Debes INICIAR el trayecto 10 min antes del vuelo (${horaProg}). Hora límite para iniciar: ${horaLimite}.`;
-          } else {
-            textoLimite = `Hora límite operativa: ${horaLimite}.`;
+        // ✅ 1 asignación: comportamiento original (sin cambios funcionales)
+        if (!multiple) {
+          const a = asigs[0];
+
+          const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
+          const nombrePmr = pmr ? (pmr.nombre || "") : "";
+
+          const estadoN   = normalizarEstado(a.estadoAsignacion);
+          const horaLimite= a.horaLimite ? formatearHora(a.horaLimite) : "";
+
+          let pillClass = "pill-state";
+          if (estadoN === "en asignacion" || estadoN === "en espera") pillClass += " pill-asignacion";
+          else if (estadoN === "aceptada") pillClass += " pill-aceptada";
+          else if (estadoN === "en transito") pillClass += " pill-transito";
+          else if (estadoN === "terminado") pillClass += " pill-terminado";
+
+          let textoLimite = "";
+          if (horaLimite && horaProg) {
+            const t = normalizarEstado(tipoServ);
+            if (t === "embarque") {
+              textoLimite = `Debes TERMINAR el servicio 60 min antes del vuelo (${horaProg}). Hora límite recomendada: ${horaLimite}.`;
+            } else if (t === "desembarque") {
+              textoLimite = `Debes INICIAR el trayecto 10 min antes del vuelo (${horaProg}). Hora límite para iniciar: ${horaLimite}.`;
+            } else {
+              textoLimite = `Hora límite operativa: ${horaLimite}.`;
+            }
           }
+
+          let expireHtml = "";
+          const esPendienteAceptar = (estadoN === "en asignacion" || estadoN === "en espera");
+          if (esPendienteAceptar) {
+            const exp = getExpiryDate(a);
+            if (exp) {
+              const hh = String(exp.getHours()).padStart(2,"0");
+              const mm = String(exp.getMinutes()).padStart(2,"0");
+              const expireAt = exp.getTime();
+              expireHtml = `
+                <div class="expire-box" id="expire-box-${a.idAsignacion}">
+                  ⏳ Aceptación vence a <b>${hh}:${mm}</b> · queda <b data-expire-at="${expireAt}" id="expire-left-${a.idAsignacion}">--:--</b>
+                </div>
+              `;
+            } else {
+              expireHtml = `
+                <div class="expire-box">
+                  ⏳ Pendiente de aceptación (vence a los 7 min desde asignación).
+                </div>
+              `;
+            }
+          }
+
+          const card = document.createElement("div");
+          card.className = "asignacion-card";
+          card.innerHTML = `
+            <div class="asignacion-header">
+              <span><b>#${a.idAsignacion || ""}</b></span>
+              <span class="${pillClass}">${a.estadoAsignacion || "Sin estado"}</span>
+            </div>
+            <div class="asignacion-body">
+              <div><b>Vuelo:</b> ${vueloNum || idVuelo || "-"} · ${tipoServ || ""}</div>
+              <div style="font-size:11px;color:#6b7280;margin-top:1px;">
+                Fecha: ${fechaVuelo || "-"} · Hora prog.: ${horaProg || "-"}
+              </div>
+              <div style="font-size:11px;color:#6b7280;margin-top:1px;">
+                Terminal: ${terminal || "-"} · Puerta: ${puerta || "-"} · Espigón: ${espigon || "-"}
+              </div>
+              <div style="margin-top:3px;"><b>PMR:</b> ${nombrePmr || "(sin nombre)"}</div>
+
+              ${expireHtml}
+              ${textoLimite ? `<div class="warning-limit">⚠ ${textoLimite}</div>` : ""}
+
+              <div class="msg" id="msg-ops-${a.idAsignacion}"></div>
+
+              <div class="cancel-panel" id="cancel-panel-${a.idAsignacion}" style="display:none;margin-top:6px;">
+                <label style="font-size:11px;display:block;margin-bottom:4px;">
+                  Motivo de cancelación
+                  <textarea id="cancel-motivo-${a.idAsignacion}" rows="2" placeholder="Ej: Pasajero no se presentó, se fue por sus medios, etc."></textarea>
+                </label>
+                <button class="btn small danger" id="btn-cancel-confirm-${a.idAsignacion}">
+                  Confirmar cancelación
+                </button>
+              </div>
+            </div>
+          `;
+
+          const footer = document.createElement("div");
+          footer.className = "asignacion-footer";
+
+          let permitirCancelar = false;
+
+          if (estadoN === "en asignacion" || estadoN === "en espera") {
+            const btnAceptar = document.createElement("button");
+            btnAceptar.className = "btn small";
+            btnAceptar.textContent = "Aceptar asignación";
+            btnAceptar.onclick = () => aceptarAsignacion(a.idAsignacion);
+            footer.appendChild(btnAceptar);
+          } else if (estadoN === "aceptada") {
+            const btnIniciar = document.createElement("button");
+            btnIniciar.className = "btn small";
+            btnIniciar.textContent = "Iniciar trayecto";
+            btnIniciar.onclick = () => iniciarTrayecto(a.idAsignacion);
+            footer.appendChild(btnIniciar);
+            permitirCancelar = true;
+          } else if (estadoN === "en transito") {
+            const btnTerminar = document.createElement("button");
+            btnTerminar.className = "btn small";
+            btnTerminar.textContent = "Terminar trayecto";
+            btnTerminar.onclick = () => terminarTrayecto(a.idAsignacion);
+            footer.appendChild(btnTerminar);
+            permitirCancelar = true;
+          }
+
+          if (permitirCancelar) {
+            const btnCancelar = document.createElement("button");
+            btnCancelar.className = "btn small danger";
+            btnCancelar.textContent = "Cancelar servicio";
+            btnCancelar.onclick = () => {
+              const panel = document.getElementById(`cancel-panel-${a.idAsignacion}`);
+              if (panel) panel.style.display = panel.style.display === "none" ? "block" : "none";
+            };
+            footer.appendChild(btnCancelar);
+          }
+
+          card.appendChild(footer);
+          cont.appendChild(card);
+
+          if (permitirCancelar) {
+            const btnConfirm = document.getElementById(`btn-cancel-confirm-${a.idAsignacion}`);
+            if (btnConfirm) {
+              btnConfirm.addEventListener("click", async () => {
+                const motivoEl = document.getElementById(`cancel-motivo-${a.idAsignacion}`);
+                const motivo = motivoEl ? motivoEl.value.trim() : "";
+                await cancelarAsignacion(a.idAsignacion, motivo);
+              });
+            }
+          }
+
+          return;
         }
 
-        let expireHtml = "";
-        const esPendienteAceptar = (estadoN === "en asignacion" || estadoN === "en espera");
-        if (esPendienteAceptar) {
-          const exp = getExpiryDate(a);
-          if (exp) {
-            const hh = String(exp.getHours()).padStart(2,"0");
-            const mm = String(exp.getMinutes()).padStart(2,"0");
-            const expireAt = exp.getTime();
-            expireHtml = `
-              <div class="expire-box" id="expire-box-${a.idAsignacion}">
-                ⏳ Aceptación vence a <b>${hh}:${mm}</b> · queda <b data-expire-at="${expireAt}" id="expire-left-${a.idAsignacion}">--:--</b>
-              </div>
-            `;
-          } else {
-            expireHtml = `
-              <div class="expire-box">
-                ⏳ Pendiente de aceptación (vence a los 7 min desde asignación).
-              </div>
-            `;
-          }
-        }
+        // ✅ 2+ asignaciones del mismo vuelo: modo "bulk" con casillas + cierre masivo
+        const contCard = document.createElement("div");
+        contCard.className = "asignacion-card vuelo-group" + (isVueloPausadoUI_(idVuelo) ? " paused" : "");
 
-        const card = document.createElement("div");
-        card.className = "asignacion-card";
-        card.innerHTML = `
+        const pendientesAceptar = asigs.filter(x => isPendienteAceptar_(normalizarEstado(x.estadoAsignacion)));
+        const exp = computeExpiryVuelo_(pendientesAceptar);
+        const expireHtml = (pendientesAceptar.length && exp)
+          ? (() => {
+              const hh = String(exp.getHours()).padStart(2,"0");
+              const mm = String(exp.getMinutes()).padStart(2,"0");
+              const expireAt = exp.getTime();
+              return `
+                <div class="expire-box">
+                  ⏳ Aceptación (vuelo) vence a <b>${hh}:${mm}</b> · queda <b data-expire-at="${expireAt}" id="expire-left-vuelo-${idVuelo}">--:--</b>
+                </div>
+              `;
+            })()
+          : (pendientesAceptar.length ? `<div class="expire-box">⏳ Pendiente de aceptación (vuelo): vence a los 7 min desde la ÚLTIMA asignación recibida.</div>` : "");
+
+        const selected = getSelectedIdsVuelo_(idVuelo, asigs);
+        const selCount = Array.from(selected).length;
+        const pausable = isVueloPausadoUI_(idVuelo);
+
+        const headerHtml = `
           <div class="asignacion-header">
-            <span><b>#${a.idAsignacion || ""}</b></span>
-            <span class="${pillClass}">${a.estadoAsignacion || "Sin estado"}</span>
+            <span><b>Vuelo:</b> ${vueloNum || idVuelo || "-"} · ${tipoServ || ""}</span>
+            <span class="pill-state ${pausable ? "pill-paused" : ""}">${pausable ? "Pausa (UI)" : "Bulk"}</span>
           </div>
-          <div class="asignacion-body">
-            <div><b>Vuelo:</b> ${vueloNum || "-"} · ${tipoServ || ""}</div>
-            <div style="font-size:11px;color:#6b7280;margin-top:1px;">
-              Fecha: ${fechaVuelo || "-"} · Hora prog.: ${horaProg || "-"}
-            </div>
-            <div style="font-size:11px;color:#6b7280;margin-top:1px;">
-              Terminal: ${terminal || "-"} · Puerta: ${puerta || "-"} · Espigón: ${espigon || "-"}
-            </div>
-            <div style="margin-top:3px;"><b>PMR:</b> ${nombrePmr || "(sin nombre)"}</div>
-
-            ${expireHtml}
-            ${textoLimite ? `<div class="warning-limit">⚠ ${textoLimite}</div>` : ""}
-
-            <div class="msg" id="msg-ops-${a.idAsignacion}"></div>
-
-            <div class="cancel-panel" id="cancel-panel-${a.idAsignacion}" style="display:none;margin-top:6px;">
-              <label style="font-size:11px;display:block;margin-bottom:4px;">
-                Motivo de cancelación
-                <textarea id="cancel-motivo-${a.idAsignacion}" rows="2" placeholder="Ej: Pasajero no se presentó, se fue por sus medios, etc."></textarea>
-              </label>
-              <button class="btn small danger" id="btn-cancel-confirm-${a.idAsignacion}">
-                Confirmar cancelación
-              </button>
-            </div>
+          <div class="group-meta">
+            Fecha: ${fechaVuelo || "-"} · Hora prog.: ${horaProg || "-"}<br>
+            Terminal: ${terminal || "-"} · Puerta: ${puerta || "-"} · Espigón: ${espigon || "-"}<br>
+            Selección: <b>${selCount}/${asigs.length}</b> (los NO seleccionados se consideran “no conectados” en el cierre masivo).
           </div>
         `;
 
-        const footer = document.createElement("div");
-        footer.className = "asignacion-footer";
+        // Lista con casillas
+        const listWrap = document.createElement("div");
+        listWrap.style.marginTop = "8px";
 
-        let permitirCancelar = false;
+        // Asegura default selection (todo marcado) y renderiza filas
+        ensureVueloSelection_(idVuelo, asigs);
 
-        if (estadoN === "en asignacion" || estadoN === "en espera") {
-          const btnAceptar = document.createElement("button");
-          btnAceptar.className = "btn small";
-          btnAceptar.textContent = "Aceptar asignación";
-          btnAceptar.onclick = () => aceptarAsignacion(a.idAsignacion);
-          footer.appendChild(btnAceptar);
-        } else if (estadoN === "aceptada") {
-          const btnIniciar = document.createElement("button");
-          btnIniciar.className = "btn small";
-          btnIniciar.textContent = "Iniciar trayecto";
-          btnIniciar.onclick = () => iniciarTrayecto(a.idAsignacion);
-          footer.appendChild(btnIniciar);
-          permitirCancelar = true;
-        } else if (estadoN === "en transito") {
-          const btnTerminar = document.createElement("button");
-          btnTerminar.className = "btn small";
-          btnTerminar.textContent = "Terminar trayecto";
-          btnTerminar.onclick = () => terminarTrayecto(a.idAsignacion);
-          footer.appendChild(btnTerminar);
-          permitirCancelar = true;
-        }
+        asigs.forEach(a => {
+          const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
+          const nombrePmr = pmr ? (pmr.nombre || "") : "";
+          const estN = normalizarEstado(a.estadoAsignacion);
 
-        if (permitirCancelar) {
-          const btnCancelar = document.createElement("button");
-          btnCancelar.className = "btn small danger";
-          btnCancelar.textContent = "Cancelar servicio";
-          btnCancelar.onclick = () => {
-            const panel = document.getElementById(`cancel-panel-${a.idAsignacion}`);
-            if (panel) panel.style.display = panel.style.display === "none" ? "block" : "none";
-          };
-          footer.appendChild(btnCancelar);
-        }
+          let pill = "pill-state";
+          if (estN === "en asignacion" || estN === "en espera") pill += " pill-asignacion";
+          else if (estN === "aceptada") pill += " pill-aceptada";
+          else if (estN === "en transito") pill += " pill-transito";
+          else if (estN === "terminado") pill += " pill-terminado";
 
-        card.appendChild(footer);
-        cont.appendChild(card);
-
-        if (permitirCancelar) {
-          const btnConfirm = document.getElementById(`btn-cancel-confirm-${a.idAsignacion}`);
-          if (btnConfirm) {
-            btnConfirm.addEventListener("click", async () => {
-              const motivoEl = document.getElementById(`cancel-motivo-${a.idAsignacion}`);
-              const motivo = motivoEl ? motivoEl.value.trim() : "";
-              await cancelarAsignacion(a.idAsignacion, motivo);
+          const row = document.createElement("div");
+          row.className = "chk-row";
+          row.innerHTML = `
+            <input type="checkbox" id="chk-${idVuelo}-${a.idAsignacion}">
+            <div class="chk-info">
+              <div class="chk-title">
+                <span><b>${nombrePmr || "(sin nombre)"}</b></span>
+                <span class="${pill}">${a.estadoAsignacion || "Sin estado"}</span>
+              </div>
+              <div class="chk-sub">
+                Asignación: <b>#${a.idAsignacion || "-"}</b>
+                ${a.horaAsignacion ? ` · Asignada: ${formatearHora(a.horaAsignacion)}` : ""}
+                ${a.horaInicio ? ` · Inicio: ${formatearHora(a.horaInicio)}` : ""}
+              </div>
+            </div>
+          `;
+          const chk = row.querySelector("input[type='checkbox']");
+          if (chk) {
+            chk.checked = selected.has(String(a.idAsignacion));
+            chk.addEventListener("change", () => {
+              setSeleccionAsig_(idVuelo, a.idAsignacion, chk.checked);
+              // Actualiza el contador en el header de la tarjeta (re-render rápido)
+              renderAsignacionesAgente();
             });
           }
-        }
+          listWrap.appendChild(row);
+        });
+
+        contCard.innerHTML = headerHtml + expireHtml + `<div class="msg" id="msg-ops-vuelo-${idVuelo}"></div>`;
+        contCard.appendChild(listWrap);
+
+        // Acciones por vuelo
+        const actions = document.createElement("div");
+        actions.className = "group-actions";
+
+        const btnAccept = document.createElement("button");
+        btnAccept.className = "btn small";
+        btnAccept.id = `btn-accept-vuelo-${idVuelo}`;
+        btnAccept.textContent = `Aceptar (vuelo)`;
+        btnAccept.onclick = () => accionAceptarVueloTodos_(idVuelo);
+        actions.appendChild(btnAccept);
+
+        const btnStart = document.createElement("button");
+        btnStart.className = "btn small";
+        btnStart.id = `btn-start-vuelo-${idVuelo}`;
+        btnStart.textContent = `Iniciar (seleccionados)`;
+        btnStart.onclick = () => accionIniciarVueloSeleccionados_(idVuelo);
+        actions.appendChild(btnStart);
+
+        const btnFinish = document.createElement("button");
+        btnFinish.className = "btn small";
+        btnFinish.id = `btn-finish-vuelo-${idVuelo}`;
+        btnFinish.textContent = `Terminar (cierre masivo)`;
+        btnFinish.onclick = () => accionTerminarVueloSeleccionados_(idVuelo);
+        actions.appendChild(btnFinish);
+
+        const btnPause = document.createElement("button");
+        btnPause.className = "btn small secondary";
+        btnPause.id = `btn-pause-vuelo-${idVuelo}`;
+        btnPause.textContent = isVueloPausadoUI_(idVuelo) ? "Reanudar (UI)" : "Pausa (UI)";
+        btnPause.onclick = () => toggleVueloPausadoUI_(idVuelo);
+        actions.appendChild(btnPause);
+
+        contCard.appendChild(actions);
+        cont.appendChild(contCard);
       });
 
       if (msg) showMsg(msg, "", "");
     }
 
-    /* =========================
+/* =========================
        RENDER: HISTORIAL
        ========================= */
     function renderHistorialAgente() {
@@ -1755,6 +2277,7 @@
        EVENTOS
        ========================= */
     document.addEventListener("DOMContentLoaded", () => {
+      loadBulkUi_();
       const inputRut = document.getElementById("login-rut");
       const selUbic  = document.getElementById("login-ubicacion");
       const btnLogin = document.getElementById("btn-login-agente");
@@ -1811,4 +2334,3 @@
   </script>
 </body>
 </html>
-
