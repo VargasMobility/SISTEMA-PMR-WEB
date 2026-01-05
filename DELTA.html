@@ -307,7 +307,7 @@
     }
 
     label{ display:block; margin-top:8px; font-size:11px; color:var(--text); font-weight:900; }
-    input[type="text"], input[type="number"], input[type="date"], input[type="time"], select, textarea{
+    input[type="text"], input[type="number"], input[type="date"], input[type="time"], select, textarea, input[type="password"]{
       width:100%;
       margin-top:4px;
       padding:8px 10px;
@@ -448,6 +448,7 @@
       align-items:end;
     }
     .flight-card-b .span2{ grid-column: span 2; }
+    .flight-card-b .span3{ grid-column: span 3; }
     .flight-card-b .span6{ grid-column: span 6; }
 
     .passengers-box{
@@ -569,9 +570,60 @@
       border-radius: 0 0 18px 18px;
     }
 
+    /* =========================
+       LOCK OVERLAY (INICIO DIFUMINADO)
+       ========================= */
+    body.locked header,
+    body.locked .app{
+      filter: blur(6px);
+      pointer-events:none;
+      user-select:none;
+    }
+    .lock-overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(15,23,42,.35);
+      backdrop-filter: blur(6px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:100;
+      padding:14px;
+    }
+    .lock-overlay.show{ display:flex; }
+    .lock-card{
+      width:min(520px, 96vw);
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:0 24px 60px rgba(15,23,42,.28);
+      padding:14px;
+    }
+    .lock-title{
+      font-size:14px;
+      font-weight:1100;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--accent);
+    }
+    .lock-sub{
+      margin-top:6px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+    .lock-row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      margin-top:12px;
+    }
+    .lock-row .btn-submit{ width:auto; flex:1; }
+    .lock-row .btn-mini{ width:auto; }
+
     @media(max-width:1050px){
       .flight-card-b{ grid-template-columns: 1fr 1fr; }
-      .flight-card-b .span2, .flight-card-b .span6{ grid-column: span 2; }
+      .flight-card-b .span2, .flight-card-b .span3, .flight-card-b .span6{ grid-column: span 2; }
     }
     @media(max-width:900px){
       .app{flex-direction:column;height:auto;}
@@ -583,21 +635,21 @@
   </style>
 </head>
 
-<body>
+<body class="locked">
 <header>
   <div class="header-bg" aria-hidden="true"></div>
 
   <div class="header-left">
     <div class="logo-box" aria-label="Delta Air Line">
-		<img
-		  class="delta-logo"
-		  src="https://lh3.googleusercontent.com/d/1P3X4_CNgOasGi1vS34cUKh0YfxDXRGAb=w900"
-		  alt="Delta Air Line"
-		  decoding="async"
-		  loading="eager"
-		  referrerpolicy="no-referrer"
-		  onerror="this.onerror=null; this.src='https://drive.google.com/uc?export=view&id=1P3X4_CNgOasGi1vS34cUKh0YfxDXRGAb';"
-		/>
+      <img
+        class="delta-logo"
+        src="https://lh3.googleusercontent.com/d/1P3X4_CNgOasGi1vS34cUKh0YfxDXRGAb=w900"
+        alt="Delta Air Line"
+        decoding="async"
+        loading="eager"
+        referrerpolicy="no-referrer"
+        onerror="this.onerror=null; this.src='https://drive.google.com/uc?export=view&id=1P3X4_CNgOasGi1vS34cUKh0YfxDXRGAb';"
+      />
     </div>
     <div class="brand">
       <span class="brand-name">Portal Delta Air Line</span>
@@ -624,9 +676,9 @@
     <div>
       <div class="sidebar-section-title">Acciones</div>
       <div class="actions-box">
-        <button class="btn-submit" id="btn-open-modal">Crear Vuelo / Pasajero(s)</button>
+        <button class="btn-submit" id="btn-open-modal" disabled>Crear Vuelo / Pasajero(s)</button>
         <div class="msg" id="sidebar-hint">
-          Por defecto se muestran vuelos <b>de hoy y mañana</b>. Si necesitas ver otras fechas, usa el filtro de fecha en cada vista.
+          Acceso en modo <b>bloqueado</b>. Ingresa la clave para habilitar creación/edición.
         </div>
       </div>
     </div>
@@ -740,9 +792,10 @@
       <div>
         <div class="modal-title" id="modal-title">Carga manual: Vuelos y Pasajeros (Delta)</div>
         <div class="modal-sub">
-          Completa la información del vuelo (obligatorio: <b>Vuelo</b>, <b>Fecha</b>, <b>Hora</b>, <b>Terminal</b>; opcional: Puerta, Espigón).
-          Luego completa al menos <b>1 pasajero</b> (obligatorio: <b>Nombre</b> y <b>Tipo Asistencia</b>; opcional: Edad y RUT/Pasaporte/Ticket).
-          Puedes agregar más pasajeros con <b>+ Pasajero</b> y agregar otro vuelo completo con <b>+ Vuelo adicional</b>.
+          Completa la información del vuelo (obligatorio: <b>Vuelo</b>, <b>Fecha</b>, <b>Hora</b> y <b>Terminal</b>;
+          adicional: <b>Origen</b> y <b>Destino</b>; opcional: Puerta, Espigón).
+          Luego completa al menos <b>1 pasajero</b> (obligatorio: <b>Nombre</b> y <b>Tipo Asistencia</b>).
+          <br/>Nota: el guardado requiere que el portal esté <b>desbloqueado</b> con la clave de acceso.
         </div>
       </div>
       <div class="btn-row">
@@ -765,6 +818,27 @@
   </div>
 </div>
 
+<!-- OVERLAY DE BLOQUEO (CLAVE) -->
+<div class="lock-overlay show" id="lock-overlay" aria-hidden="false">
+  <div class="lock-card" role="dialog" aria-modal="true" aria-labelledby="lock-title">
+    <div class="lock-title" id="lock-title">Acceso restringido</div>
+    <div class="lock-sub">
+      Ingresa la <b>clave de acceso</b> para habilitar creación/edición de vuelos y pasajeros en este portal.
+    </div>
+
+    <label style="margin-top:10px;">Clave de acceso
+      <input type="password" id="unlock-key" placeholder="Ingresa clave" autocomplete="off" />
+    </label>
+
+    <div class="lock-row">
+      <button class="btn-submit" id="btn-unlock" type="button">Ingresar</button>
+      <button class="btn-mini btn-danger" id="btn-unlock-clear" type="button">Limpiar</button>
+    </div>
+
+    <div class="msg" id="unlock-msg"></div>
+  </div>
+</div>
+
 <script>
   /***************************************************************
    * CONFIG
@@ -773,6 +847,94 @@
 
   const AIRLINE_LOCK = "DELTA";
   const AIRLINE_TAG  = "[DELTA_PORTAL]";
+  const ACCESS_KEY = "DLCM03121928";
+
+  /***************************************************************
+   * LOCK (INICIO DIFUMINADO + CLAVE GLOBAL)
+   ***************************************************************/
+  const UNLOCK_STORAGE_FLAG = "DELTA_PORTAL_UNLOCKED";
+  const UNLOCK_STORAGE_KEY  = "DELTA_PORTAL_KEY";
+
+  let ACCESS_GRANTED = false;
+  let SESSION_ACCESS = "";
+
+  function lockUI(){
+    ACCESS_GRANTED = false;
+    SESSION_ACCESS = "";
+
+    document.body.classList.add("locked");
+    const ov = document.getElementById("lock-overlay");
+    if (ov){
+      ov.classList.add("show");
+      ov.setAttribute("aria-hidden","false");
+    }
+
+    const btnOpen = document.getElementById("btn-open-modal");
+    if (btnOpen) btnOpen.disabled = true;
+
+    const hint = document.getElementById("sidebar-hint");
+    if (hint) hint.innerHTML = "Acceso en modo <b>bloqueado</b>. Ingresa la clave para habilitar creación/edición.";
+
+    setTimeout(()=> document.getElementById("unlock-key")?.focus?.(), 80);
+  }
+
+  function unlockUI(key){
+    ACCESS_GRANTED = true;
+    SESSION_ACCESS = key;
+
+    sessionStorage.setItem(UNLOCK_STORAGE_FLAG, "1");
+    sessionStorage.setItem(UNLOCK_STORAGE_KEY, key);
+
+    document.body.classList.remove("locked");
+    const ov = document.getElementById("lock-overlay");
+    if (ov){
+      ov.classList.remove("show");
+      ov.setAttribute("aria-hidden","true");
+    }
+
+    const btnOpen = document.getElementById("btn-open-modal");
+    if (btnOpen) btnOpen.disabled = false;
+
+    const hint = document.getElementById("sidebar-hint");
+    if (hint) hint.innerHTML = "Acceso autorizado. Por defecto se muestran vuelos <b>de hoy y mañana</b>. Si necesitas ver otras fechas, usa el filtro de fecha en cada vista.";
+  }
+
+  function initLock(){
+    const wasUnlocked = sessionStorage.getItem(UNLOCK_STORAGE_FLAG) === "1";
+    const key = (sessionStorage.getItem(UNLOCK_STORAGE_KEY) || "").trim();
+
+    if (wasUnlocked && key && (!ACCESS_KEY || key === ACCESS_KEY)){
+      unlockUI(key);
+      return;
+    }
+
+    sessionStorage.removeItem(UNLOCK_STORAGE_FLAG);
+    sessionStorage.removeItem(UNLOCK_STORAGE_KEY);
+    lockUI();
+  }
+
+  function tryUnlock(){
+    const input = document.getElementById("unlock-key");
+    const msg = document.getElementById("unlock-msg");
+    const key = (input?.value || "").trim();
+
+    if (!key){
+      msg.textContent = "Ingresa la clave.";
+      msg.className = "msg err";
+      return;
+    }
+    if (ACCESS_KEY && key !== ACCESS_KEY){
+      msg.textContent = "Clave incorrecta.";
+      msg.className = "msg err";
+      return;
+    }
+
+    msg.textContent = "Acceso autorizado.";
+    msg.className = "msg ok";
+    unlockUI(key);
+
+    if (input) input.value = "";
+  }
 
   /***************************************************************
    * STATE
@@ -902,6 +1064,38 @@
     return s;
   }
 
+  function normIata3(x){
+    const s = String(x||"").trim().toUpperCase();
+    if (!s) return "";
+    const m = s.match(/[A-Z]{3}/);
+    return m ? m[0] : s;
+  }
+
+  /* ✅ AUTO OD SEGÚN SERVICIO */
+  function aplicarOrigenDestinoSCL(card){
+    const servicio = String(card.querySelector(".flight-tipo-servicio")?.value || "").trim();
+    const oEl = card.querySelector(".flight-origen");
+    const dEl = card.querySelector(".flight-destino");
+    if (!oEl || !dEl) return;
+
+    let o = normIata3(oEl.value);
+    let d = normIata3(dEl.value);
+
+    if (servicio === "Embarque"){
+      // si venía invertido (destino=SCL y origen=XXX), hacemos swap
+      if (d === "SCL" && o && o !== "SCL") d = o;
+      o = "SCL";
+      if (d === "SCL") d = ""; // evita SCL-SCL
+    } else if (servicio === "Desembarque"){
+      if (o === "SCL" && d && d !== "SCL") o = d;
+      d = "SCL";
+      if (o === "SCL") o = "";
+    }
+
+    oEl.value = o;
+    dEl.value = d;
+  }
+
   function leerRangoFechas(desdeId, hastaId){
     const desdeRaw = (document.getElementById(desdeId)?.value || "").trim();
     const hastaRaw = (document.getElementById(hastaId)?.value || "").trim();
@@ -926,6 +1120,13 @@
 
   function setScopeChip(text){
     document.getElementById("chip-scope-text").textContent = text;
+  }
+
+  function appendAccessKey_(params){
+    const k = (SESSION_ACCESS || "").trim();
+    params.append("key", k);
+    params.append("accessKey", k);
+    params.append("clave", k);
   }
 
   /***************************************************************
@@ -1174,13 +1375,17 @@
   }
 
   /***************************************************************
-   * MODAL / SUBMIT (igual que antes)
+   * MODAL / SUBMIT
    ***************************************************************/
   function genId(prefix="blk"){
     return prefix + "-" + Math.random().toString(16).slice(2) + "-" + Date.now().toString(16);
   }
 
   function openModal(){
+    if (!ACCESS_GRANTED){
+      lockUI();
+      return;
+    }
     const backdrop = document.getElementById("modal-backdrop");
     backdrop.classList.add("show");
     backdrop.setAttribute("aria-hidden","false");
@@ -1203,6 +1408,10 @@
   }
 
   function clearModal(){
+    if (!ACCESS_GRANTED){
+      lockUI();
+      return;
+    }
     state.flightBlocks = [];
     const body = document.getElementById("modal-body");
     body.innerHTML = "";
@@ -1273,6 +1482,19 @@
           </label>
         </div>
 
+        <!-- ✅ ORIGEN / DESTINO (AUTO SCL) -->
+        <div>
+          <label>Origen (IATA)
+            <input type="text" class="flight-origen" value="${prefill.origen||""}" placeholder="SCL / ATL" maxlength="3" />
+          </label>
+        </div>
+
+        <div>
+          <label>Destino (IATA)
+            <input type="text" class="flight-destino" value="${prefill.destino||""}" placeholder="ATL / SCL" maxlength="3" />
+          </label>
+        </div>
+
         <div>
           <label>Puerta (opcional)
             <input type="text" class="flight-puerta" value="${prefill.puerta||""}" placeholder="1–13" />
@@ -1331,6 +1553,23 @@
       if (act === "add-pax") addPassengerRow(id);
       if (act === "remove-flight") removeFlightBlock(id);
     });
+
+    // Normaliza + fuerza SCL según servicio
+    card.querySelector(".flight-origen")?.addEventListener("blur", (e)=>{
+      e.target.value = normIata3(e.target.value);
+      aplicarOrigenDestinoSCL(card);
+    });
+    card.querySelector(".flight-destino")?.addEventListener("blur", (e)=>{
+      e.target.value = normIata3(e.target.value);
+      aplicarOrigenDestinoSCL(card);
+    });
+
+    card.querySelector(".flight-tipo-servicio")?.addEventListener("change", ()=>{
+      aplicarOrigenDestinoSCL(card);
+    });
+
+    // ✅ aplica al crear (por defecto Embarque => Origen SCL)
+    aplicarOrigenDestinoSCL(card);
 
     addPassengerRow(id);
     refreshFlightCardHeaders();
@@ -1412,6 +1651,11 @@
     const espigon = (card.querySelector(".flight-espigon")?.value || "").trim();
     const obs = (card.querySelector(".flight-obs")?.value || "").trim();
 
+    // Origen/Destino + regla SCL
+    aplicarOrigenDestinoSCL(card);
+    const origen = normIata3(card.querySelector(".flight-origen")?.value || "");
+    const destino = normIata3(card.querySelector(".flight-destino")?.value || "");
+
     const paxRows = Array.from(card.querySelectorAll(".pax-tbody tr"));
     const pasajeros = paxRows.map(row=>{
       const nombre = (row.querySelector(".pax-nombre")?.value || "").trim();
@@ -1423,15 +1667,26 @@
       return { nombre, tipoAsistencia, edad, id, obsP };
     });
 
-    return { aerolinea: AIRLINE_LOCK, numeroVuelo, fecha, hora, terminal, tipoServicio, puerta, espigon, obs, pasajeros };
+    return {
+      aerolinea: AIRLINE_LOCK,
+      numeroVuelo, fecha, hora, terminal, tipoServicio, puerta, espigon, obs,
+      origen, destino,
+      pasajeros
+    };
   }
 
   function validarBloque(b){
     const errs = [];
+    if (!ACCESS_GRANTED || !SESSION_ACCESS || (ACCESS_KEY && SESSION_ACCESS !== ACCESS_KEY)) errs.push("Acceso (portal bloqueado)");
     if (!b.numeroVuelo) errs.push("Vuelo");
     if (!b.fecha) errs.push("Fecha");
     if (!b.hora) errs.push("Hora");
     if (!b.terminal) errs.push("Terminal");
+
+    // Origen/Destino no obligatorios, pero si vienen deben ser 3 letras
+    if (b.origen && b.origen.length !== 3) errs.push("Origen (IATA 3 letras)");
+    if (b.destino && b.destino.length !== 3) errs.push("Destino (IATA 3 letras)");
+
     if (!b.pasajeros || b.pasajeros.length < 1) errs.push("Al menos 1 pasajero");
     (b.pasajeros || []).forEach((p, i)=>{
       if (!p.nombre) errs.push(`Pasajero #${i+1}: Nombre`);
@@ -1453,9 +1708,20 @@
     if (b.espigon) params.append("espigon", b.espigon);
     if (b.tipoServicio) params.append("tipoServicio", b.tipoServicio);
 
+    if (b.origen) params.append("origen", b.origen);
+    if (b.destino) params.append("destino", b.destino);
+
+    // ✅ clave global
+    appendAccessKey_(params);
+
     params.append("cantPmr", String((b.pasajeros || []).length));
 
-    const obsFinal = (b.obs ? (b.obs + " | ") : "") + AIRLINE_TAG;
+    const extraOD = (b.origen || b.destino) ? `OD:${b.origen || "-"}-${b.destino || "-"}` : "";
+    const obsFinal =
+      (b.obs ? (b.obs + " | ") : "") +
+      (extraOD ? (extraOD + " | ") : "") +
+      AIRLINE_TAG;
+
     params.append("observaciones", obsFinal);
 
     const res = await fetch(API_URL + "?" + params.toString());
@@ -1475,9 +1741,14 @@
     if (p.edad) params.append("edad", p.edad);
     if (p.id) params.append("rut", p.id);
 
+    // ✅ clave global
+    appendAccessKey_(params);
+
     const obs = [];
     if (p.id) obs.push(`ID:${p.id}`);
     if (p.obsP) obs.push(p.obsP);
+    if (b.origen || b.destino) obs.push(`OD:${b.origen || "-"}-${b.destino || "-"}`);
+
     const obsFinal = obs.length ? (obs.join(" | ") + " | " + AIRLINE_TAG) : AIRLINE_TAG;
     params.append("observaciones", obsFinal);
 
@@ -1488,6 +1759,11 @@
   }
 
   async function submitAll(){
+    if (!ACCESS_GRANTED){
+      lockUI();
+      return;
+    }
+
     const btn = document.getElementById("btn-submit-all");
     btn.disabled = true;
     setModalMsg("Validando formulario...", "warn");
@@ -1550,6 +1826,24 @@
    * EVENTOS
    ***************************************************************/
   document.addEventListener("DOMContentLoaded", ()=>{
+    // Lock init
+    initLock();
+
+    document.getElementById("btn-unlock")?.addEventListener("click", tryUnlock);
+    document.getElementById("btn-unlock-clear")?.addEventListener("click", ()=>{
+      const i = document.getElementById("unlock-key");
+      const m = document.getElementById("unlock-msg");
+      if (i) i.value = "";
+      if (m){ m.textContent=""; m.className="msg"; }
+      i?.focus?.();
+    });
+    document.getElementById("unlock-key")?.addEventListener("keydown", (e)=>{
+      if (e.key === "Enter"){
+        e.preventDefault();
+        tryUnlock();
+      }
+    });
+
     document.querySelectorAll(".nav-btn").forEach(btn=>{
       btn.addEventListener("click", ()=> switchView(btn.dataset.view));
     });
@@ -1576,6 +1870,7 @@
     document.getElementById("btn-actualizar").addEventListener("click", ()=>cargarDatos());
 
     document.getElementById("btn-open-modal").addEventListener("click", ()=>{
+      if (!ACCESS_GRANTED){ lockUI(); return; }
       clearModal();
       openModal();
     });
@@ -1599,4 +1894,5 @@
 </script>
 </body>
 </html>
+
 
