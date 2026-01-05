@@ -273,7 +273,7 @@
     }
 
     label{ display:block; margin-top:8px; font-size:11px; color:var(--text); font-weight:800; }
-    input[type="text"], input[type="number"], input[type="date"], input[type="time"], select, textarea{
+    input[type="text"], input[type="number"], input[type="date"], input[type="time"], input[type="password"], select, textarea{
       width:100%;
       margin-top:4px;
       padding:8px 10px;
@@ -417,6 +417,12 @@
     .flight-card-b .span3{ grid-column: span 3; }
     .flight-card-b .span6{ grid-column: span 6; }
 
+    .iata-input{
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-weight: 900;
+    }
+
     .passengers-box{
       padding:10px;
       border-top:1px dashed var(--border);
@@ -536,6 +542,61 @@
       border-radius: 0 0 18px 18px;
     }
 
+    /* =========================
+       ACCESS GATE (difuminar todo)
+       ========================= */
+    .locked header,
+    .locked .app{
+      filter: blur(7px);
+      pointer-events: none;
+      user-select: none;
+    }
+    .locked{
+      overflow: hidden;
+    }
+    .access-backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(15,23,42,.55);
+      backdrop-filter: blur(4px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:100;
+      padding:14px;
+    }
+    .access-backdrop.show{ display:flex; }
+
+    .access-modal{
+      width:min(520px, 96vw);
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:0 28px 70px rgba(15,23,42,.30);
+      padding:14px 14px 12px 14px;
+    }
+    .access-title{
+      font-size:14px;
+      font-weight:1000;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:var(--text);
+    }
+    .access-sub{
+      margin-top:6px;
+      font-size:11px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+    .access-actions{
+      margin-top:10px;
+      display:flex;
+      gap:8px;
+      justify-content:flex-end;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
     @media(max-width:1050px){
       .flight-card-b{ grid-template-columns: 1fr 1fr; }
       .flight-card-b .span2, .flight-card-b .span3, .flight-card-b .span6{ grid-column: span 2; }
@@ -552,6 +613,28 @@
 </head>
 
 <body>
+
+<!-- =========================
+     ACCESS GATE (bloqueo por código)
+     ========================= -->
+<div class="access-backdrop" id="access-backdrop" aria-hidden="true">
+  <div class="access-modal" role="dialog" aria-modal="true" aria-labelledby="access-title">
+    <div class="access-title" id="access-title">Acceso requerido</div>
+    <div class="access-sub">
+      Ingresa el código de acceso para habilitar la aplicación. Sin el código correcto, no se cargan datos ni se permite crear vuelos/pasajeros.
+    </div>
+
+    <label for="access-code">Código de acceso</label>
+    <input type="password" id="access-code" placeholder="Código" autocomplete="off" />
+
+    <div class="access-actions">
+      <button class="btn-pill" id="btn-access" type="button">Ingresar</button>
+    </div>
+
+    <div class="msg" id="access-msg"></div>
+  </div>
+</div>
+
 <header>
   <div class="header-left">
     <div class="logo-box">
@@ -569,7 +652,7 @@
   </div>
 
   <div class="status">
-    <div id="api-status">Conectando con API...</div>
+    <div id="api-status">Acceso requerido</div>
     <div id="last-update">Última actualización: --</div>
   </div>
 </header>
@@ -626,6 +709,7 @@
           <thead>
             <tr>
               <th>ID Vuelo</th><th>Fecha</th><th>Hora</th><th>Aerolínea</th><th>N° Vuelo</th>
+              <th>Origen</th><th>Destino</th>
               <th>Terminal</th><th>Puerta</th><th>Espigón</th><th>Cant PMR</th><th>Tipo servicio</th><th>Estado</th><th>Obs</th>
             </tr>
           </thead>
@@ -672,7 +756,8 @@
       <div>
         <div class="modal-title" id="modal-title">Carga manual: Vuelos y Pasajeros</div>
         <div class="modal-sub">
-          Completa la información del vuelo (obligatorio: <b>Aerolínea</b>, <b>Vuelo</b>, <b>Fecha</b>, <b>Hora</b>, <b>Terminal</b>; opcional: Puerta, Espigón).
+          Completa la información del vuelo (obligatorio: <b>Aerolínea</b>, <b>Vuelo</b>, <b>Fecha</b>, <b>Hora</b>, <b>Terminal</b> y <b>Origen/Destino</b> según tipo de servicio;
+          opcional: Puerta, Espigón).
           Luego completa al menos <b>1 pasajero</b> (obligatorio: <b>Nombre</b> y <b>Tipo Asistencia</b>; opcional: Edad y RUT/Pasaporte/Ticket).
           Puedes agregar más pasajeros con <b>+ Pasajero</b> y agregar otro vuelo completo con <b>+ Vuelo adicional</b>.
         </div>
@@ -705,10 +790,14 @@
    ***************************************************************/
   const API_URL = "https://script.google.com/macros/s/AKfycbwFBHpIx-gQrVAvj5Vv-I-l1X3NR9MYbyTV9CtxgKCw7oPeuxIE5qrYx3eZdDoIroTE/exec";
 
+  // ✅ Código de acceso (UI gate)
+  const ACCESS_CODE = "CMPMR24112025";
+  const ACCESS_STORAGE_KEY = "CM_PMR_ACCESS_GRANTED_V1";
+
   // ✅ Lista desplegable Aerolíneas (CDO / Super)
   const AIRLINES = [
     "COPA",
-	"LATAM",
+    "LATAM",
     "QUANTAS",
     "IBERIA/LEVEL",
     "AIR BRITISH",
@@ -743,6 +832,10 @@
     return extrasHtml + listHtml;
   }
 
+  function sanitizeIata(val){
+    return String(val || "").toUpperCase().replace(/[^A-Z]/g,"").slice(0,3);
+  }
+
   /***************************************************************
    * STATE
    ***************************************************************/
@@ -753,9 +846,65 @@
   let autoRefreshSeconds = 180;
 
   const state = {
-    flightBlocks: [], // [{id, passengersCount}]
+    flightBlocks: [], // [{id}]
     airlineLock: "",  // si viene por query param
   };
+
+  /***************************************************************
+   * ACCESS GATE
+   ***************************************************************/
+  function isAccessGranted(){
+    return sessionStorage.getItem(ACCESS_STORAGE_KEY) === "1";
+  }
+
+  function lockApp(){
+    document.body.classList.add("locked");
+    const bd = document.getElementById("access-backdrop");
+    bd.classList.add("show");
+    bd.setAttribute("aria-hidden","false");
+
+    const apiStatus = document.getElementById("api-status");
+    if (apiStatus) apiStatus.textContent = "Acceso requerido";
+
+    setTimeout(()=> document.getElementById("access-code")?.focus(), 80);
+  }
+
+  function unlockApp(){
+    document.body.classList.remove("locked");
+    const bd = document.getElementById("access-backdrop");
+    bd.classList.remove("show");
+    bd.setAttribute("aria-hidden","true");
+
+    const msg = document.getElementById("access-msg");
+    msg.textContent = "";
+    msg.className = "msg";
+    const input = document.getElementById("access-code");
+    if (input) input.value = "";
+  }
+
+  function setAccessMsg(text, type){
+    const el = document.getElementById("access-msg");
+    el.textContent = text || "";
+    el.className = "msg" + (type ? (" " + type) : "");
+  }
+
+  async function tryAccess(){
+    const input = document.getElementById("access-code");
+    const code = (input?.value || "").trim();
+
+    if (code === ACCESS_CODE){
+      sessionStorage.setItem(ACCESS_STORAGE_KEY, "1");
+      unlockApp();
+      await cargarDatos();
+      return;
+    }
+
+    setAccessMsg("Código incorrecto. Acceso denegado.", "err");
+    if (input){
+      input.focus();
+      input.select();
+    }
+  }
 
   /***************************************************************
    * HELPERS (fecha/hora + query params)
@@ -904,7 +1053,7 @@
       autoRefreshSeconds--;
       if (autoRefreshSeconds <= 0) {
         autoRefreshSeconds = 180;
-        await cargarDatos(true);
+        if (isAccessGranted()) await cargarDatos(true);
       }
     }, 1000);
   }
@@ -923,6 +1072,13 @@
     const lock = (state.airlineLock || "").trim().toLowerCase();
     if (!lock) return true;
     return String(v?.aerolinea || "").trim().toLowerCase() === lock;
+  }
+
+  function getVueloIataOr(v){
+    return (v?.origenIata || v?.origen || v?.iataOrigen || v?.origen_iata || "").toString().trim();
+  }
+  function getVueloIataDst(v){
+    return (v?.destinoIata || v?.destino || v?.iataDestino || v?.destino_iata || "").toString().trim();
   }
 
   function renderVistaVuelos(){
@@ -975,6 +1131,8 @@
         <td>${formatearHora(v.horaProgramada)}</td>
         <td>${v.aerolinea || ""}</td>
         <td>${v.numeroVuelo || ""}</td>
+        <td>${escapeHtml(getVueloIataOr(v))}</td>
+        <td>${escapeHtml(getVueloIataDst(v))}</td>
         <td>${v.terminal || ""}</td>
         <td>${v.puerta || ""}</td>
         <td>${v.espigon || ""}</td>
@@ -1021,7 +1179,6 @@
     const hoy = hoyTrunc();
     const manana = addDias(hoy, 1);
 
-    // Base (hoy y mañana, asociado a vuelos futuros)
     let base = cachePasajeros.filter(p=>{
       const v = getVueloByIdOrNumFecha(p);
       if (!v) return false;
@@ -1036,7 +1193,6 @@
       return true;
     });
 
-    // Fill combos coherentes con base
     if (selVuelo){
       const curr = selVuelo.value;
       selVuelo.innerHTML = '<option value="">Todos</option>';
@@ -1069,7 +1225,6 @@
     if (filtroKey) base = base.filter(p=>pmrKey(p)===filtroKey);
     if (filtroEstado) base = base.filter(p=>String(p.estadoPmr||"").trim().toLowerCase()===filtroEstado);
 
-    // Orden por vuelo/hora y nombre
     base.sort((a,b)=>{
       const va = getVueloByIdOrNumFecha(a);
       const vb = getVueloByIdOrNumFecha(b);
@@ -1137,6 +1292,61 @@
     const el = document.getElementById("modal-msg");
     el.textContent = text || "";
     el.className = "msg" + (type ? (" " + type) : "");
+  }
+
+  function applyIataAutofill(card){
+    const selTipo = card.querySelector(".flight-tipo-servicio");
+    const tipo = (selTipo?.value || "").trim();
+
+    const inpOri = card.querySelector(".flight-origen");
+    const inpDes = card.querySelector(".flight-destino");
+    if (!inpOri || !inpDes) return;
+
+    // Si están vacíos o previamente auto-rellenados, se setea SCL según tipo.
+    if (tipo === "Embarque"){
+      const isAuto = inpOri.dataset.autofill === "1";
+      const isEmpty = !inpOri.value.trim();
+      if (isEmpty || isAuto){
+        inpOri.value = "SCL";
+        inpOri.dataset.autofill = "1";
+      }
+    } else if (tipo === "Desembarque"){
+      const isAuto = inpDes.dataset.autofill === "1";
+      const isEmpty = !inpDes.value.trim();
+      if (isEmpty || isAuto){
+        inpDes.value = "SCL";
+        inpDes.dataset.autofill = "1";
+      }
+    }
+  }
+
+  function wireIataInputs(card){
+    const inpOri = card.querySelector(".flight-origen");
+    const inpDes = card.querySelector(".flight-destino");
+    const selTipo = card.querySelector(".flight-tipo-servicio");
+
+    const onIataInput = (inp)=>{
+      const val = sanitizeIata(inp.value);
+      inp.value = val;
+      // si el usuario escribe algo distinto a lo auto, se considera manual (y deja de auto)
+      if (val && val !== "SCL") inp.dataset.autofill = "0";
+      if (!val) inp.dataset.autofill = "0";
+    };
+
+    if (inpOri){
+      inpOri.addEventListener("input", ()=> onIataInput(inpOri));
+      inpOri.addEventListener("blur",  ()=> { inpOri.value = sanitizeIata(inpOri.value); });
+    }
+    if (inpDes){
+      inpDes.addEventListener("input", ()=> onIataInput(inpDes));
+      inpDes.addEventListener("blur",  ()=> { inpDes.value = sanitizeIata(inpDes.value); });
+    }
+    if (selTipo){
+      selTipo.addEventListener("change", ()=> applyIataAutofill(card));
+    }
+
+    // Aplicación inicial
+    applyIataAutofill(card);
   }
 
   function addFlightBlock(prefill={}){
@@ -1210,6 +1420,18 @@
         </div>
 
         <div>
+          <label>Origen (IATA)
+            <input type="text" class="flight-origen iata-input" maxlength="3" value="${escapeHtml(sanitizeIata(prefill.origen||""))}" placeholder="SCL" />
+          </label>
+        </div>
+
+        <div>
+          <label>Destino (IATA)
+            <input type="text" class="flight-destino iata-input" maxlength="3" value="${escapeHtml(sanitizeIata(prefill.destino||""))}" placeholder="EZE / LIM / ..." />
+          </label>
+        </div>
+
+        <div>
           <label>Puerta (opcional)
             <input type="text" class="flight-puerta" value="${escapeHtml(prefill.puerta||"")}" placeholder="1–13" />
           </label>
@@ -1267,6 +1489,11 @@
       card.querySelector(".flight-terminal").value = normalizarTerminalGeneral(prefill.terminal);
     }
 
+    // Tipo servicio prefill si viene
+    if (prefill.tipoServicio){
+      card.querySelector(".flight-tipo-servicio").value = prefill.tipoServicio;
+    }
+
     // Eventos del card
     card.addEventListener("click", (e)=>{
       const act = e.target?.getAttribute?.("data-action") || "";
@@ -1278,10 +1505,12 @@
       }
     });
 
+    // wiring IATA + auto SCL
+    wireIataInputs(card);
+
     // 1 pasajero por defecto
     addPassengerRow(id, { required:true });
 
-    // Recalcular etiquetas (Vuelo #n) / mostrar u ocultar botón eliminar en #1
     refreshFlightCardHeaders();
   }
 
@@ -1337,10 +1566,9 @@
 
     tbody.appendChild(tr);
 
-    // Evitar borrar la única fila
     const refreshRemoveButtons = ()=>{
       const rows = Array.from(tbody.querySelectorAll("tr"));
-      rows.forEach((row, idx)=>{
+      rows.forEach((row)=>{
         const btn = row.querySelector('[data-action="remove-pax"]');
         if (btn) btn.disabled = (rows.length <= 1);
       });
@@ -1367,7 +1595,9 @@
     const fecha = (card.querySelector(".flight-fecha")?.value || "").trim();
     const hora = (card.querySelector(".flight-hora")?.value || "").trim();
     const terminal = (card.querySelector(".flight-terminal")?.value || "").trim();
-    const tipoServicio = (card.querySelector(".flight-tipo-servicio")?.value || "").trim(); // default Embarque
+    const tipoServicio = (card.querySelector(".flight-tipo-servicio")?.value || "").trim();
+    const origen = sanitizeIata(card.querySelector(".flight-origen")?.value || "");
+    const destino = sanitizeIata(card.querySelector(".flight-destino")?.value || "");
     const puerta = (card.querySelector(".flight-puerta")?.value || "").trim();
     const espigon = (card.querySelector(".flight-espigon")?.value || "").trim();
     const obs = (card.querySelector(".flight-obs")?.value || "").trim();
@@ -1383,7 +1613,7 @@
       return { nombre, tipoAsistencia, edad, id, obsP };
     });
 
-    return { aerolinea, numeroVuelo, fecha, hora, terminal, tipoServicio, puerta, espigon, obs, pasajeros };
+    return { aerolinea, numeroVuelo, fecha, hora, terminal, tipoServicio, origen, destino, puerta, espigon, obs, pasajeros };
   }
 
   function validarBloque(b){
@@ -1394,15 +1624,19 @@
     if (!b.hora) errs.push("Hora");
     if (!b.terminal) errs.push("Terminal");
 
+    // Origen/Destino según tipo de servicio (con auto SCL)
+    const ts = String(b.tipoServicio||"").toLowerCase();
+    if (ts === "embarque" && !b.origen) errs.push("Origen (IATA)");
+    if (ts === "desembarque" && !b.destino) errs.push("Destino (IATA)");
+
+    if (b.origen && b.origen.length !== 3) errs.push("Origen (IATA 3 letras)");
+    if (b.destino && b.destino.length !== 3) errs.push("Destino (IATA 3 letras)");
+
     if (!b.pasajeros || b.pasajeros.length < 1) errs.push("Al menos 1 pasajero");
 
-    // Validación pasajeros
     (b.pasajeros || []).forEach((p, i)=>{
       if (!p.nombre) errs.push(`Pasajero #${i+1}: Nombre`);
-      // Tipo asistencia obligatorio
-      if (!p.tipoAsistencia){
-        errs.push(`Pasajero #${i+1}: Tipo Asistencia`);
-      }
+      if (!p.tipoAsistencia) errs.push(`Pasajero #${i+1}: Tipo Asistencia`);
     });
 
     return errs;
@@ -1417,17 +1651,18 @@
     params.append("numeroVuelo", b.numeroVuelo);
     params.append("terminal", b.terminal);
 
+    // ✅ nuevos: Origen/Destino IATA
+    if (b.origen) params.append("origen", b.origen);
+    if (b.destino) params.append("destino", b.destino);
+
     // opcionales
     if (b.puerta) params.append("puerta", b.puerta);
     if (b.espigon) params.append("espigon", b.espigon);
 
-    // importante para el sistema
     if (b.tipoServicio) params.append("tipoServicio", b.tipoServicio);
 
-    // cant PMR = N pasajeros ingresados
     params.append("cantPmr", String((b.pasajeros || []).length));
 
-    // trazabilidad
     const obsFinal = (b.obs ? (b.obs + " | ") : "") + "[AIRLINE_PORTAL]";
     params.append("observaciones", obsFinal);
 
@@ -1441,7 +1676,6 @@
     const params = new URLSearchParams();
     params.append("action", "crearPasajero");
 
-    // compat: backend suele usar vuelo + idVuelo + fechaVuelo
     params.append("vuelo", b.numeroVuelo);
     params.append("idVuelo", idVuelo);
     params.append("fechaVuelo", b.fecha);
@@ -1450,7 +1684,6 @@
     params.append("tipoAsistencia", p.tipoAsistencia);
 
     if (p.edad) params.append("edad", p.edad);
-
     if (p.id) params.append("rut", p.id);
 
     const obs = [];
@@ -1474,7 +1707,6 @@
       const cards = Array.from(document.querySelectorAll(".flight-card"));
       const bloques = cards.map(getFlightBlockData);
 
-      // Validación global
       const errors = [];
       bloques.forEach((b, idx)=>{
         const e = validarBloque(b);
@@ -1501,7 +1733,6 @@
 
         totalVuelosOk++;
 
-        // Pasajeros
         for (let j=0; j<b.pasajeros.length; j++){
           setModalMsg(`Guardando Vuelo #${i+1}: pasajero ${j+1}/${b.pasajeros.length}...`, "warn");
           await apiCreatePasajero(b, idVuelo, b.pasajeros[j]);
@@ -1511,7 +1742,6 @@
 
       setModalMsg(`Guardado completado: Vuelos OK=${totalVuelosOk}, Pasajeros OK=${totalPaxOk}.`, "ok");
 
-      // refrescar vistas
       await cargarDatos(true);
 
       setTimeout(()=> closeModal(), 700);
@@ -1538,7 +1768,6 @@
       chip.style.display = "inline-flex";
       chipText.textContent = a;
 
-      // precargar filtro y bloquearlo
       filtroAero.value = a;
       filtroAero.disabled = true;
       filtroAero.title = "Filtro bloqueado por parámetro de URL.";
@@ -1563,6 +1792,12 @@
   document.addEventListener("DOMContentLoaded", ()=>{
     setAirlineLockFromQuery();
 
+    // Access gate events
+    document.getElementById("btn-access").addEventListener("click", tryAccess);
+    document.getElementById("access-code").addEventListener("keydown", (e)=>{
+      if (e.key === "Enter") tryAccess();
+    });
+
     // Nav
     document.querySelectorAll(".nav-btn").forEach(btn=>{
       btn.addEventListener("click", ()=>{
@@ -1580,10 +1815,14 @@
     document.getElementById("filtro-pmr-estado").addEventListener("change", renderVistaPmr);
 
     // actualizar
-    document.getElementById("btn-actualizar").addEventListener("click", ()=>cargarDatos());
+    document.getElementById("btn-actualizar").addEventListener("click", ()=>{
+      if (!isAccessGranted()) return;
+      cargarDatos();
+    });
 
     // modal open/close
     document.getElementById("btn-open-modal").addEventListener("click", ()=>{
+      if (!isAccessGranted()) return;
       clearModal();
       openModal();
     });
@@ -1603,10 +1842,14 @@
     document.getElementById("btn-clear-modal").addEventListener("click", clearModal);
     document.getElementById("btn-submit-all").addEventListener("click", submitAll);
 
-    // init
-    cargarDatos();
+    // init (bloqueado hasta código)
+    if (isAccessGranted()){
+      unlockApp();
+      cargarDatos();
+    } else {
+      lockApp();
+    }
   });
 </script>
 </body>
 </html>
-
