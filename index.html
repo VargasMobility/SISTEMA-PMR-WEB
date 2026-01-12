@@ -549,53 +549,6 @@
     }
     .btn-mini:hover{ background:#eef2ff; border-color:#c7d2fe; box-shadow:var(--shadow); transform:translateY(-1px); }
 
-    /* =========================
-       ✅ NUEVO: selector carrito (Tramo Completo) + box hitos
-       ========================= */
-    .carrito-select{
-      min-width:190px;
-      padding:6px 8px;
-      font-size:11px;
-      border-radius:10px;
-      border:1px solid var(--border);
-      background:var(--surface);
-      font-weight:800;
-    }
-    .hitos-box{
-      margin-top:10px;
-      border:1px solid var(--warn-border);
-      background:var(--warn);
-      border-radius:12px;
-      padding:10px;
-      box-shadow:var(--shadow-soft);
-      font-size:11px;
-      line-height:1.35;
-      color:#111827;
-    }
-    .hitos-box.hidden{ display:none; }
-    .hitos-title{
-      font-weight:900;
-      letter-spacing:.08em;
-      text-transform:uppercase;
-      margin-bottom:6px;
-    }
-    .hitos-sub{
-      font-size:10px;
-      color:#7c2d12;
-      font-weight:900;
-      margin-bottom:6px;
-    }
-    .hito-line{
-      display:flex;
-      justify-content:space-between;
-      gap:10px;
-      padding:4px 0;
-      border-top:1px dashed rgba(124,45,18,.25);
-    }
-    .hito-line:first-of-type{ border-top:none; }
-    .hito-left{ font-weight:900; }
-    .hito-right{ color:#0f172a; font-weight:800; }
-
     @media(max-width:900px){
       .app{flex-direction:column;height:auto;}
       .sidebar{width:100%;}
@@ -640,8 +593,8 @@
         <button class="nav-btn" data-view="pmr">Pasajeros PMR</button>
         <button class="nav-btn" data-view="asignaciones">Asignaciones</button>
         <button class="nav-btn" data-view="agentes">Agentes</button>
-        <button class="nav-btn" data-view="como">¿Cómo se usa?</button>
-      </div>
+              <button class="nav-btn" data-view="como">¿Cómo se usa?</button>
+</div>
     </div>
 
     <div>
@@ -649,7 +602,10 @@
       <div class="actions-box">
         <div class="action-tabs">
           <button class="action-tab-btn active" data-target="form-modificar-vuelo">Modificar vuelo</button>
+
+          <!-- ✅ CAMBIO: Carga masiva ahora abre ClientePMR en NUEVA PESTAÑA -->
           <button class="action-tab-btn" data-target="form-carga-masiva">Carga masiva</button>
+
           <button class="action-tab-btn" data-target="form-itinerario-latam">Itinerario LATAM</button>
           <button class="action-tab-btn" data-target="form-asignar-pmr">Asignar PMR</button>
         </div>
@@ -667,6 +623,7 @@
           <div class="msg" id="msg-modificar-vuelo"></div>
         </div>
 
+        <!-- ✅ CARGA MASIVA (DESHABILITADA) -> ahora sólo abre ClientePMR -->
         <div id="form-carga-masiva" class="action-form hidden">
           <div class="helper-text">
             La carga masiva por archivo (Excel/CSV) fue deshabilitada en este panel.<br>
@@ -676,6 +633,7 @@
           <div class="msg" id="msg-carga-masiva"></div>
         </div>
 
+        <!-- ✅ ITINERARIO LATAM (reemplaza Carga Ostrum) -->
         <div id="form-itinerario-latam" class="action-form hidden">
           <label>Archivo Itinerario LATAM (Excel o CSV)
             <input type="file" id="input-itinerario-latam" accept=".xlsx,.xls,.csv" />
@@ -695,7 +653,7 @@
             <select id="asig-select-pmr"><option value="">— Seleccionar PMR —</option></select>
           </label>
 
-          <label>Agente asignable (misma terminal)
+          <label>Agente disponible (misma terminal)
             <select id="asig-select-agente"><option value="">— Selecciona primero un PMR —</option></select>
           </label>
 
@@ -709,19 +667,13 @@
 
           <label>Origen (auto) <input type="text" id="asig-origen" readonly /></label>
           <label>Destino (auto) <input type="text" id="asig-destino" readonly /></label>
-
-          <!-- ✅ NUEVO: Plan de hitos para Tramo Completo -->
-          <div id="asig-hitos-box" class="hitos-box hidden"></div>
-
-        <div class="helper-text">
-			Origen/destino se calculan automáticamente. Para <b>Tramo Completo</b>, el sistema crea <b>2 asignaciones</b> (H1 y H2/H3).
-			Si el vuelo tiene <b>Carrito</b> asignado desde la vista de Vuelos, el tramo intermedio se gestiona mediante una <b>Asignación Carrito</b> del vuelo (registro independiente, con notificación por correo al agente Carrito).
-			</div>
-
+          <div class="helper-text">
+            Origen/destino se calculan automáticamente según tipo de servicio del vuelo, tipo de asistencia y tipo de traslado.
+          </div>
 
           <label>Observaciones <textarea id="asig-obs"></textarea></label>
           <button class="btn-submit" id="btn-asignar-pmr">Asignar</button>
-          <div class="helper-text">Se filtrarán agentes "Asignables" en la misma terminal del vuelo del PMR.</div>
+          <div class="helper-text">Se filtrarán agentes "Disponibles" en la misma terminal del vuelo del PMR.</div>
           <div class="msg" id="msg-asignar-pmr"></div>
         </div>
       </div>
@@ -762,10 +714,8 @@
           <thead>
             <tr>
               <th>ID Vuelo</th><th>Fecha</th><th>Hora</th><th>Hora ideal</th><th>Aerolínea</th><th>N° Vuelo</th>
-              <th>Terminal</th><th>Puerta</th><th>Espigón</th><th>Cant PMR</th>
-              <!-- ✅ NUEVO: Carrito asignado para Tramo Completo -->
-              <th>Carrito (TC)</th>
-              <th>Tipo servicio</th><th>Estado</th><th>Tipo</th><th>Origen</th><th>Destino</th><th>Obs</th>
+              <th>Terminal</th><th>Puerta</th><th>Espigón</th><th>Cant PMR</th><th>Tipo servicio</th>
+              <th>Estado</th><th>Tipo</th><th>Origen</th><th>Destino</th><th>Obs</th>
             </tr>
           </thead>
           <tbody id="tbody-vuelos"></tbody>
@@ -859,11 +809,82 @@
       </section>
 
       <section id="view-como" class="view-section">
-        <!-- (Se mantiene tu manual tal cual) -->
         <div style="padding:10px 8px; font-size:12px; line-height:1.45; color:var(--text);">
-          <!-- ... tu contenido completo sin cambios ... -->
-          <div style="color:var(--muted);font-size:11px;">
-            Manual sin cambios en esta versión.
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="border:1px solid var(--border); background:var(--surface-2); border-radius:14px; padding:12px; box-shadow:var(--shadow-soft);">
+              <div style="font-weight:900; letter-spacing:.04em; text-transform:uppercase; margin-bottom:6px;">Manual rápido — Panel Supervisor PMR</div>
+              <div style="color:var(--muted); font-size:11px;">
+                Esta vista explica cómo operar el sistema, qué significa cada pantalla y el flujo recomendado para planificar y ejecutar servicios PMR.
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px;">
+              <div style="border:1px solid var(--border); border-radius:14px; padding:12px; background:var(--surface); box-shadow:var(--shadow-soft);">
+                <div style="font-weight:900; margin-bottom:6px;">1) Menú de Vistas</div>
+                <ul style="margin-left:16px; display:flex; flex-direction:column; gap:6px;">
+                  <li><b>Vuelos</b>: muestra vuelos de <b>hoy y mañana</b> que aún están por ejecutarse y que tienen PMR <b>En espera</b>. Incluye <b>Hora ideal</b> (badge) para priorizar.</li>
+                  <li><b>Pasajeros PMR</b>: lista PMR operativos (En espera / En asignación / Asignado) para hoy y mañana. Incluye filtro por vuelo y por estado.</li>
+                  <li><b>Asignaciones</b>: auditoría operacional. Permite filtrar por vuelo, fecha, tipo de traslado y estado. Útil para seguimiento y trazabilidad.</li>
+                  <li><b>Agentes</b>: estado actual de dotación (disponible / en asignación / en servicio) y ubicación (Nacional/Internacional).</li>
+                  <li><b>¿Cómo se usa?</b>: este manual.</li>
+                </ul>
+              </div>
+
+              <div style="border:1px solid var(--border); border-radius:14px; padding:12px; background:var(--surface); box-shadow:var(--shadow-soft);">
+                <div style="font-weight:900; margin-bottom:6px;">2) Menú de Acciones</div>
+                <ul style="margin-left:16px; display:flex; flex-direction:column; gap:6px;">
+                  <li><b>Modificar vuelo</b>: ajusta fecha/hora/puerta/espigón en vuelos del día. Úsalo ante cambios operacionales.</li>
+                  <li><b>Carga masiva</b>: abre el portal <b>Cliente PMR</b> en una nueva pestaña para cargar información en forma acelerada (vuelos + PMR).</li>
+                  <li><b>Itinerario LATAM</b>: carga archivo (Excel/CSV) para poblar/actualizar vuelos LATAM de manera rápida.</li>
+                  <li><b>Asignar PMR</b>: crea asignaciones de agentes a PMR. Este panel permite planificar con anticipación.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div style="border:1px solid var(--border); border-radius:14px; padding:12px; background:var(--surface); box-shadow:var(--shadow-soft);">
+              <div style="font-weight:900; margin-bottom:8px;">3) Flujo recomendado (paso a paso)</div>
+              <ol style="margin-left:18px; display:flex; flex-direction:column; gap:6px;">
+                <li><b>Cargar información</b>:
+                  <ul style="margin-left:16px; margin-top:4px;">
+                    <li>Si tienes planilla: usa <b>Itinerario LATAM</b> o <b>Carga masiva</b> (Cliente PMR).</li>
+                    <li>Valida en <b>Vuelos</b> que el vuelo esté correcto (fecha/hora/terminal/estado).</li>
+                  </ul>
+                </li>
+                <li><b>Revisar demanda</b>:
+                  <ul style="margin-left:16px; margin-top:4px;">
+                    <li>En <b>Pasajeros PMR</b>, filtra por vuelo para ver PMR pendientes.</li>
+                    <li>Prioriza por <b>Hora ideal</b> (badge) y por tipo de servicio (Embarque/Desembarque).</li>
+                  </ul>
+                </li>
+                <li><b>Asignar</b>:
+                  <ul style="margin-left:16px; margin-top:4px;">
+                    <li>En <b>Asignar PMR</b>, selecciona el PMR “En espera”.</li>
+                    <li>Selecciona un agente por terminal. El sistema permite asignar agentes aunque estén <i>en asignación</i> o <i>en servicio</i>, siempre que su <b>carga activa</b> sea menor a <b>5</b>.</li>
+                    <li>Define <b>Tipo de traslado</b>. Origen/Destino se autocalculan.</li>
+                    <li>Presiona <b>Asignar</b>. Se generará una asignación y se notificará por correo (1 correo por asignación).</li>
+                  </ul>
+                </li>
+                <li><b>Seguimiento</b>:
+                  <ul style="margin-left:16px; margin-top:4px;">
+                    <li>Monitorea en <b>Asignaciones</b> el estado y la hora límite de aceptación.</li>
+                    <li>Usa <b>Agentes</b> para controlar disponibilidad por terminal.</li>
+                  </ul>
+                </li>
+              </ol>
+            </div>
+
+            <div style="border:1px solid var(--border); border-radius:14px; padding:12px; background:var(--surface); box-shadow:var(--shadow-soft);">
+              <div style="font-weight:900; margin-bottom:8px;">4) Interpretación de datos (tips)</div>
+              <ul style="margin-left:16px; display:flex; flex-direction:column; gap:6px;">
+                <li><b>Hora ideal</b>: referencia operativa para priorización (Embarque suele ser más anticipado que Desembarque).</li>
+                <li><b>Colores</b>: vuelos y badges resaltan proximidad a la hora ideal; agentes “Disponibles” se destacan con color distinto.</li>
+                <li><b>Terminal</b>: las asignaciones se filtran por terminal para evitar cruces (Nacional/Internacional).</li>
+                <li><b>Carga máxima por agente</b>: un agente puede acumular hasta <b>5</b> asignaciones activas (pendientes/aceptadas/en curso). Al llegar al límite, deja de aparecer como opción para nuevas asignaciones.</li>
+              </ul>
+              <div style="margin-top:8px; font-size:11px; color:var(--muted);">
+                Nota técnica: para que el “reinicio” del contador de 5 minutos aplique completamente, la API (Code.gs) debe recalcular <i>horaLimite</i> por cada nueva asignación del agente.
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -874,7 +895,7 @@
 
 <script>
   const API_URL = "https://script.google.com/macros/s/AKfycbwFBHpIx-gQrVAvj5Vv-I-l1X3NR9MYbyTV9CtxgKCw7oPeuxIE5qrYx3eZdDoIroTE/exec";
-  const CLIENTE_PMR_URL = "https://vargasmobility.github.io/SISTEMA-PMR-WEB/ClientePMR.html";
+  const CLIENTE_PMR_URL = "https://vargasmobility.github.io/SISTEMA-PMR-WEB/ClientePMR.html";	
   const maxRetries = 3;          // cantidad de reintentos por chunk (1 = sin reintentos)
   const retryBaseDelayMs = 800;  // backoff base en ms
 
@@ -1055,92 +1076,6 @@
     return s;
   }
 
-  /* =========================================================
-     ✅ NUEVO: Constantes Gerencia (aerolíneas por tipo traslado)
-     ========================================================= */
-  const AEROLINEAS_ULTIMA_MILLA = [
-    "LATAM","COPA","QANTAS","IBERIA","LEVEL","IBERIA/LEVEL","AIR BRITISH","BRITISH AIRWAYS",
-    "AEROLINEAS ARGENTINAS","AEROLÍNEAS ARGENTINAS","ARAJET","AVIANCA",
-    "AEROLINEA BOLIVIANA","AEROLÍNEA BOLIVIANA","BOLIVIANA DE AVIACION","BOLIVIANA DE AVIACIÓN","BOA"
-  ];
-  const AEROLINEAS_TRAMO_COMPLETO = [
-    "DELTA","AIR CANADA","AIR FRANCE","KLM","UNITED AIRLINE","UNITED AIRLINES","AMERICAN AIRLINE","AMERICAN AIRLINES"
-  ];
-  const AERO_UM_N = Array.from(new Set(AEROLINEAS_ULTIMA_MILLA.map(normTxt).filter(Boolean)));
-  const AERO_TC_N = Array.from(new Set(AEROLINEAS_TRAMO_COMPLETO.map(normTxt).filter(Boolean)));
-
-  function clasificarTrasladoPorAerolinea_(aerolinea){
-    const a = normTxt(aerolinea);
-    if (!a) return "";
-    if (AERO_UM_N.some(k => a.includes(k))) return "Ultima Milla";
-    if (AERO_TC_N.some(k => a.includes(k))) return "Tramo Completo";
-    return "";
-  }
-  function esTramoCompletoVuelo_(vuelo){
-    return clasificarTrasladoPorAerolinea_(vuelo?.aerolinea) === "Tramo Completo";
-  }
-  function esUltimaMillaVuelo_(vuelo){
-    return clasificarTrasladoPorAerolinea_(vuelo?.aerolinea) === "Ultima Milla";
-  }
-
-  /* =========================================================
-     ✅ NUEVO: Carrito por vuelo (asignación desde vista Vuelos)
-     - Persistencia: localStorage (y opcional backend si existe action=setCarritoVuelo)
-     ========================================================= */
-  const LS_CARRITOS_KEY = "PMR_CARRITOS_POR_VUELO_V1";
-  let carritoPorVuelo = (function(){
-    try { return JSON.parse(localStorage.getItem(LS_CARRITOS_KEY) || "{}") || {}; }
-    catch(e){ return {}; }
-  })();
-
-  function guardarCarritosLocal_(){
-    try { localStorage.setItem(LS_CARRITOS_KEY, JSON.stringify(carritoPorVuelo || {})); }
-    catch(e){}
-  }
-
-  function getCarritoAsignadoVuelo_(vuelo){
-    if (!vuelo) return null;
-    const idVuelo = String(vuelo.idVuelo || "").trim();
-    if (!idVuelo) return null;
-
-    // Si el backend ya lo trae, priorizarlo:
-    const apiId = vuelo.idCarrito || vuelo.carritoId || vuelo.carrito || "";
-    const apiName = vuelo.nombreCarrito || vuelo.carritoNombre || "";
-    if (apiId){
-      return { idCarrito: String(apiId).trim(), nombreCarrito: String(apiName || "").trim() };
-    }
-
-    const local = carritoPorVuelo[idVuelo];
-    if (local && local.idCarrito) return local;
-    return null;
-  }
-
-  async function setCarritoAsignadoVuelo_(vuelo, idCarrito){
-    const idVuelo = String(vuelo?.idVuelo || "").trim();
-    if (!idVuelo) return;
-
-    const id = String(idCarrito || "").trim();
-    if (!id){
-      delete carritoPorVuelo[idVuelo];
-      guardarCarritosLocal_();
-    } else {
-      const ag = (cacheAgentes || []).find(a => String(a.idAgente || "").trim() === id);
-      carritoPorVuelo[idVuelo] = { idCarrito: id, nombreCarrito: String(ag?.nombre || "").trim() };
-      guardarCarritosLocal_();
-    }
-
-    // Intento de persistencia en backend (si existe):
-    try{
-      const params = new URLSearchParams();
-      params.append("action","setCarritoVuelo");
-      params.append("idVuelo", idVuelo);
-      params.append("idCarrito", id);
-      await fetch(API_URL + "?" + params.toString());
-    } catch(e){
-      // silencioso: el sistema sigue funcionando con localStorage
-    }
-  }
-
   function vueloKey(numeroVuelo, fechaAny) {
     const ymd = normalizarFechaExcel(fechaAny);
     return `${String(numeroVuelo || "").trim()}||${ymd}`;
@@ -1259,64 +1194,99 @@
     return c;
   }
 
-  /* ✅ Ajuste: origen/destino para Última Milla (igual que antes) */
-  function calcularOrigenDestinoUltimaMilla_(tipoServicioVuelo, tipoAsistencia, puerta, espigon) {
+  function calcularOrigenDestinoFront(tipoServicioVuelo, tipoAsistencia, tipoTraslado, puerta, espigon) {
     const ts = (tipoServicioVuelo || "").toString().toLowerCase().trim();
     const ta = normalizarTipoAsistenciaPmr(tipoAsistencia || "");
+    const tt = (tipoTraslado || "").toString().toLowerCase().trim();
 
     const puertaEspigon   = ((puerta || "") + (espigon || "")).trim();
     const puertaEmbarque  = puertaEspigon ? `Puerta Embarque ${puertaEspigon}` : "Puerta Embarque";
-    const etiquetaAvion   = (ta === "WCHC" || ta === "WHC") ? "Asiento Avión" : "Puerta Avión";
 
-    if (ts === "embarque") return { origen: puertaEmbarque, destino: etiquetaAvion };
-    if (ts === "desembarque") return { origen: etiquetaAvion, destino: puertaEmbarque };
-    return { origen:"", destino:"" };
-  }
+    const esUltimaMilla   = tt.includes("ultima") || tt.includes("última");
+    const esTramoCompleto = tt.includes("tramo");
 
-  /* ✅ NUEVO: hitos Tramo Completo (2 hitos base; 3 si hay carrito) */
-  function construirHitosTramoCompleto_(vuelo, pmr){
-    const ts = normTxt(vuelo?.tipoServicio);
-    const ta = normalizarTipoAsistenciaPmr(pmr?.tipoAsistencia || "");
+    const etiquetaAvion  = (ta === "WCHC" || ta === "WHC") ? "Asiento Avión" : "Puerta Avión";
 
-    const puertaEspigon = ((vuelo?.puerta || "") + (vuelo?.espigon || "")).trim();
-    const puertaEmb = puertaEspigon ? `Puerta Embarque ${puertaEspigon}` : "Puerta Embarque";
-    const avion = (ta === "WCHC" || ta === "WHC") ? "Asiento Avión" : "Puerta Avión";
-    const minsal = "Punto MINSAL";
-    const libertad = "Libertad del Cliente";
+    let origen  = "";
+    let destino = "";
 
-    const carrito = getCarritoAsignadoVuelo_(vuelo);
-    const tieneCarrito = !!(carrito && carrito.idCarrito);
-
-    const hitos = [];
-
-    if (ts === "desembarque"){
-      // H1 fijo
-      hitos.push({ hito:"H1", titulo:"Hito 1", origen:avion, destino:puertaEmb, asignable:"principal" });
-
-      if (tieneCarrito){
-        // H2 carrito
-        hitos.push({ hito:"H2", titulo:"Hito 2 (Carrito Golf)", origen:puertaEmb, destino:minsal, asignable:"carrito" });
-        // H3 final
-        hitos.push({ hito:"H3", titulo:"Hito 3", origen:minsal, destino:libertad, asignable:"principal" });
-      } else {
-        // H2 directo (incluye MINSAL)
-        hitos.push({ hito:"H2", titulo:"Hito 2", origen:puertaEmb, destino:`${libertad} (incluye MINSAL)`, asignable:"principal" });
-      }
-    } else { // Embarque (default)
-      if (tieneCarrito){
-        hitos.push({ hito:"H1", titulo:"Hito 1", origen:libertad, destino:minsal, asignable:"principal" });
-        hitos.push({ hito:"H2", titulo:"Hito 2 (Carrito Golf)", origen:minsal, destino:puertaEmb, asignable:"carrito" });
-        hitos.push({ hito:"H3", titulo:"Hito 3", origen:puertaEmb, destino:avion, asignable:"principal" });
-      } else {
-        hitos.push({ hito:"H1", titulo:"Hito 1", origen:`${libertad} (incluye MINSAL)`, destino:puertaEmb, asignable:"principal" });
-        hitos.push({ hito:"H2", titulo:"Hito 2", origen:puertaEmb, destino:avion, asignable:"principal" });
-      }
+    if (esUltimaMilla) {
+      if (ts === "embarque") { origen = puertaEmbarque; destino = etiquetaAvion; }
+      else if (ts === "desembarque") { origen = etiquetaAvion; destino = puertaEmbarque; }
+    } else if (esTramoCompleto) {
+      if (ts === "embarque") { origen = "Elección del Pasajero"; destino = etiquetaAvion; }
+      else if (ts === "desembarque") { origen = etiquetaAvion; destino = "Elección del Pasajero"; }
     }
-
-    return { hitos, carrito, tieneCarrito };
+    return { origen, destino };
   }
 
   function limpiarStr(v){ return (v === null || v === undefined) ? "" : String(v).trim(); }
+  function detectarSeparadorCsv(text){
+    const sample=(text||"").split(/\r?\n/).slice(0,10).join("\n");
+    const commas=(sample.match(/,/g)||[]).length;
+    const semis=(sample.match(/;/g)||[]).length;
+    return semis>commas?";":",";
+  }
+  function parseCSV(text){
+    const sep=detectarSeparadorCsv(text);
+    const rows=[]; let row=[]; let cur=""; let inQuotes=false;
+    function pushCell(){ row.push(cur); cur=""; }
+    function pushRow(){ rows.push(row); row=[]; }
+    for (let i=0;i<text.length;i++){
+      const ch=text[i], next=text[i+1];
+      if (ch==='"'){
+        if (inQuotes && next==='"'){ cur+='"'; i++; }
+        else inQuotes=!inQuotes;
+        continue;
+      }
+      if (!inQuotes && ch===sep){ pushCell(); continue; }
+      if (!inQuotes && (ch==="\n"||ch==="\r")){
+        if (ch==="\r"&&next==="\n") i++;
+        pushCell(); pushRow(); continue;
+      }
+      cur+=ch;
+    }
+    pushCell(); pushRow();
+    return rows.filter(r=>r.some(c=>String(c||"").trim()!==""));
+  }
+  function getColIndex(headers,candidates){
+    const norm=(s)=>String(s||"").toLowerCase().replace(/\s+/g," ").trim();
+    const hs=headers.map(h=>norm(h));
+    for (const cand of candidates){
+      const c=norm(cand); const idx=hs.indexOf(c);
+      if (idx!==-1) return idx;
+    }
+    for (let i=0;i<hs.length;i++){
+      for (const cand of candidates){
+        const c=norm(cand);
+        if (c && hs[i].includes(c)) return i;
+      }
+    }
+    return -1;
+  }
+
+  function splitOrigenDestino_(ruta){
+    const s = String(ruta || "").trim();
+    if (!s) return { origen:"", destino:"" };
+
+    const parts = s.split(/[-–—]/).map(p => p.trim()).filter(Boolean);
+    if (parts.length >= 2){
+      return { origen: parts[0].toUpperCase(), destino: parts[1].toUpperCase() };
+    }
+
+    const parts2 = s.split(/[\/|]/).map(p => p.trim()).filter(Boolean);
+    if (parts2.length >= 2){
+      return { origen: parts2[0].toUpperCase(), destino: parts2[1].toUpperCase() };
+    }
+
+    return { origen:"", destino:"" };
+  }
+
+  function inferirTipoServicioPorRuta_(origen, destino){
+    const d = String(destino||"").trim().toUpperCase();
+    if (!d) return "";
+    return (d === "SCL") ? "Desembarque" : "Embarque";
+  }
 
   function getVueloDePmr(pmr) {
     if (!pmr) return null;
@@ -1360,8 +1330,15 @@
     const s = normTxt(estado);
     if (!s) return false;
 
+    // Estados que consideramos "cerrados" (no cuentan para la carga del agente)
     const cerrados = [
-      "finalizado","terminado","cancelado","rechazado","expirado","vencido","anulado"
+      "finalizado",
+      "terminado",
+      "cancelado",
+      "rechazado",
+      "expirado",
+      "vencido",
+      "anulado"
     ];
     return !cerrados.includes(s);
   }
@@ -1385,11 +1362,10 @@
     return s;
   }
 
-  function terminalFromAgente_(a){
-    const raw = a?.ubicacion ?? a?.terminal ?? "";
-    return normalizarTerminalGeneral(raw);
-  }
-
+  // ✅ Nuevo criterio: un agente es "asignable" si:
+  //  - Está en la misma terminal del PMR (Nacional/Internacional)
+  //  - Su estado de servicio es compatible (disponible / en asignación / en servicio)
+  //  - Tiene menos de MAX_ASIG_POR_AGENTE asignaciones activas
   function agentesAsignablesEnTerminal(terminal) {
     const term = normTxt(terminal);
     const estadosPermitidos = ["disponible", "en asignacion", "en servicio", "asignado"];
@@ -1412,11 +1388,68 @@
       .sort((a, b) => (a._carga - b._carga) || String(a.nombre || "").localeCompare(String(b.nombre || "")));
   }
 
+
   function sugerirTipoTrasladoPorAerolinea(vuelo){
-    return clasificarTrasladoPorAerolinea_(vuelo?.aerolinea) || "";
+    const aero = String(vuelo?.aerolinea || "").trim().toUpperCase();
+    if (aero === "LATAM") return "Ultima Milla";
+    return "";
   }
 
-  /* ---------------- API + DATA ---------------- */
+  function terminalFromAgente_(a){
+    const raw = a?.ubicacion ?? a?.terminal ?? "";
+    return normalizarTerminalGeneral(raw);
+  }
+
+  function statsAgentesPorTerminal_(terminal){
+    const termN = normTxt(terminal);
+    let total = 0;
+    let disponibles = 0;
+
+    for (const a of (cacheAgentes || [])){
+      const t = normTxt(terminalFromAgente_(a));
+      if (!t || t !== termN) continue;
+
+      const est = normTxt(a.estadoServicio || a.estado || "");
+      const presente = (est === "disponible" || est === "en servicio" || est === "en asignacion");
+      if (!presente) continue;
+
+      total++;
+      if (est === "disponible") disponibles++;
+    }
+
+    const pct = total ? (disponibles / total) : 0;
+    return { total, disponibles, pct };
+  }
+
+  function rightColorForStats_(stats){
+    if (!stats || !stats.total) return "var(--term-right-neutral)";
+    if (stats.pct >= 0.75) return "var(--term-right-ok)";
+    if (stats.pct >= 0.40) return "var(--term-right-warn)";
+    return "var(--term-right-bad)";
+  }
+
+  function actualizarTarjetasDisponibilidadPmr(){
+    const cardN = document.getElementById("term-card-nacional");
+    const cardI = document.getElementById("term-card-internacional");
+    if (!cardN || !cardI) return;
+
+    const n = statsAgentesPorTerminal_("Nacional");
+    const i = statsAgentesPorTerminal_("Internacional");
+
+    cardN.style.setProperty("--right-color", rightColorForStats_(n));
+    cardI.style.setProperty("--right-color", rightColorForStats_(i));
+
+    const nCount = document.getElementById("term-nac-count");
+    const nMeta  = document.getElementById("term-nac-meta");
+    const iCount = document.getElementById("term-int-count");
+    const iMeta  = document.getElementById("term-int-meta");
+
+    if (nCount) nCount.textContent = String(n.disponibles ?? 0);
+    if (nMeta)  nMeta.textContent  = `${n.disponibles ?? 0} / ${n.total ?? 0} (${Math.round((n.pct || 0) * 100)}%)`;
+
+    if (iCount) iCount.textContent = String(i.disponibles ?? 0);
+    if (iMeta)  iMeta.textContent  = `${i.disponibles ?? 0} / ${i.total ?? 0} (${Math.round((i.pct || 0) * 100)}%)`;
+  }
 
   async function cargarDatos(silencioso = false) {
     const apiStatus = document.getElementById("api-status");
@@ -1464,38 +1497,9 @@
   }
 
   function renderVistaComo() {
-    document.getElementById("view-title").textContent = "¿Cómo se usa?";
-    document.getElementById("chip-info-vista").innerHTML =
-      `<span class="chip-label">Manual:</span><span>Guía rápida de uso del panel supervisor.</span>`;
-  }
-
-  function buildCarritoSelectHtml_(vuelo){
-    if (!esTramoCompletoVuelo_(vuelo)) {
-      return `<span style="color:var(--muted);font-weight:900;">—</span>`;
-    }
-
-    const car = getCarritoAsignadoVuelo_(vuelo);
-    const current = String(car?.idCarrito || "").trim();
-
-    const termVuelo = normalizarTerminalGeneral(vuelo?.terminal || "");
-    const termNorm = normTxt(termVuelo);
-
-    const candidatos = (cacheAgentes || []).filter(a => {
-      const t = normTxt(terminalFromAgente_(a));
-      if (!termNorm) return true;
-      return t === termNorm;
-    });
-
-    const opts = [];
-    opts.push(`<option value="" ${current ? "" : "selected"}>Sin carrito</option>`);
-    candidatos.forEach(a => {
-      const id = String(a.idAgente || "").trim();
-      const name = String(a.nombre || "").trim();
-      const sel = (id && id === current) ? "selected" : "";
-      opts.push(`<option value="${id}" ${sel}>${id} · ${name}</option>`);
-    });
-
-    return `<select class="carrito-select" data-idvuelo="${String(vuelo?.idVuelo || "").trim()}">${opts.join("")}</select>`;
+    setTituloVista("¿Cómo se usa?");
+    setChipInfo("Manual", "Guía rápida de uso del panel supervisor.");
+    // Contenido es estático (HTML), no requiere render dinámico.
   }
 
   function renderVistaVuelos() {
@@ -1562,8 +1566,6 @@
       const badgeCls = badgeClassIdeal(v);
       const badgeHtml = horaIdeal ? `<span class="${badgeCls}">${horaIdeal}</span>` : "";
 
-      const carritoHtml = buildCarritoSelectHtml_(v);
-
       tr.innerHTML = `
         <td>${v.idVuelo || ""}</td>
         <td>${normalizarFechaExcel(v.fecha) || (v.fecha || "")}</td>
@@ -1575,7 +1577,6 @@
         <td>${v.puerta || ""}</td>
         <td>${v.espigon || ""}</td>
         <td>${v.cantPmr || 0}</td>
-        <td>${carritoHtml}</td>
         <td>${v.tipoServicio || ""}</td>
         <td>${v.estadoVuelo || ""}</td>
         <td>${v.tipo || v.tipoAvion || ""}</td>
@@ -1586,75 +1587,9 @@
       tbody.appendChild(tr);
     });
 
-    // ✅ Evento: asignar carrito por vuelo (solo Tramo Completo)
-    tbody.querySelectorAll(".carrito-select").forEach(sel => {
-      sel.addEventListener("change", async () => {
-        const idVuelo = sel.getAttribute("data-idvuelo");
-        const vuelo = cacheVuelos.find(v => String(v.idVuelo) === String(idVuelo));
-        await setCarritoAsignadoVuelo_(vuelo, sel.value);
-
-        // refrescar previews (sin recargar API)
-        renderVistaActual();
-
-        // Si el panel de asignación está abierto, actualizar preview (por si afectó hitos)
-        actualizarPreviewOrigenDestino();
-      });
-    });
-
     document.getElementById("view-title").textContent = "Vuelos";
     document.getElementById("chip-info-vista").innerHTML =
       `<span class="chip-label">Vuelos:</span><span>Hoy y mañana (solo próximas horas, con PMR en espera)</span>`;
-  }
-
-  function statsAgentesPorTerminal_(terminal){
-    const termN = normTxt(terminal);
-    let total = 0;
-    let disponibles = 0;
-
-    for (const a of (cacheAgentes || [])){
-      const t = normTxt(terminalFromAgente_(a));
-      if (!t || t !== termN) continue;
-
-      const est = normTxt(a.estadoServicio || a.estado || "");
-      const presente = (est === "disponible" || est === "en servicio" || est === "en asignacion");
-      if (!presente) continue;
-
-      total++;
-      if (est === "disponible") disponibles++;
-    }
-
-    const pct = total ? (disponibles / total) : 0;
-    return { total, disponibles, pct };
-  }
-
-  function rightColorForStats_(stats){
-    if (!stats || !stats.total) return "var(--term-right-neutral)";
-    if (stats.pct >= 0.75) return "var(--term-right-ok)";
-    if (stats.pct >= 0.40) return "var(--term-right-warn)";
-    return "var(--term-right-bad)";
-  }
-
-  function actualizarTarjetasDisponibilidadPmr(){
-    const cardN = document.getElementById("term-card-nacional");
-    const cardI = document.getElementById("term-card-internacional");
-    if (!cardN || !cardI) return;
-
-    const n = statsAgentesPorTerminal_("Nacional");
-    const i = statsAgentesPorTerminal_("Internacional");
-
-    cardN.style.setProperty("--right-color", rightColorForStats_(n));
-    cardI.style.setProperty("--right-color", rightColorForStats_(i));
-
-    const nCount = document.getElementById("term-nac-count");
-    const nMeta  = document.getElementById("term-nac-meta");
-    const iCount = document.getElementById("term-int-count");
-    const iMeta  = document.getElementById("term-int-meta");
-
-    if (nCount) nCount.textContent = String(n.disponibles ?? 0);
-    if (nMeta)  nMeta.textContent  = `${n.disponibles ?? 0} / ${n.total ?? 0} (${Math.round((n.pct || 0) * 100)}%)`;
-
-    if (iCount) iCount.textContent = String(i.disponibles ?? 0);
-    if (iMeta)  iMeta.textContent  = `${i.disponibles ?? 0} / ${i.total ?? 0} (${Math.round((i.pct || 0) * 100)}%)`;
   }
 
   function renderVistaPmr() {
@@ -1773,14 +1708,6 @@
       let btnTxt = "Asignar";
       let btnCls = "btn-assign";
       let btnDisabled = "";
-
-      // ✅ NUEVO: etiqueta de hitos sólo para Tramo Completo
-      const clas = clasificarTrasladoPorAerolinea_(vuelo?.aerolinea);
-      if (clas === "Tramo Completo" && estadoBtnNorm === "en espera") {
-        const { hitos, tieneCarrito } = construirHitosTramoCompleto_(vuelo, p);
-        btnTxt = `Asignar TC (${hitos.length}H)${tieneCarrito ? "" : ""}`;
-      }
-
       if (estadoBtnNorm === "en asignacion") {
         btnTxt = "En asignación";
         btnCls = "btn-assign btn-assign--pending";
@@ -1790,7 +1717,6 @@
         btnCls = "btn-assign btn-assign--assigned";
         btnDisabled = "disabled";
       }
-
       const horaIdeal = vuelo ? calcularHoraIdealAsignacion(vuelo) : "";
       const badgeCls = vuelo ? badgeClassIdeal(vuelo) : "badge";
       const badgeHtml = horaIdeal ? `<span class="${badgeCls}">${horaIdeal}</span>` : "";
@@ -1968,8 +1894,13 @@
       const estServ = estServRaw.toLowerCase();
 
       let cls = "";
-      if (estServ === "disponible") cls = "row-agent-available";
-      else if (estServ === "en asignacion" || estServ === "en asignación" || estServ === "en servicio") cls = "row-agent-busy";
+      if (estServ === "disponible") {
+        cls = "row-agent-available";
+      } else if (estServ === "en asignacion" || estServ === "en asignación" || estServ === "en servicio") {
+        cls = "row-agent-busy";
+      } else {
+        cls = "";
+      }
 
       const tr = document.createElement("tr");
       if (cls) tr.className = cls;
@@ -1992,6 +1923,50 @@
     document.getElementById("chip-info-vista").innerHTML =
       `<span class="chip-label">Agentes:</span><span>Disponible (verde lima) / Ocupado (amarillo) / Otros (sin color)</span>`;
   }
+	function llenarComboCrearPmrVuelos() {
+	  // IDs posibles si en algún momento vuelves a crear el select
+	  const sel =
+		document.getElementById("crear-pmr-vuelo") ||
+		document.getElementById("crear-pasajero-vuelo") ||
+		document.getElementById("select-crear-pmr-vuelo");
+
+	  // Si el UI ya no lo tiene, salimos silenciosamente.
+	  if (!sel) return;
+
+	  const hoy = hoyTrunc();
+	  const manana = addDias(hoy, 1);
+
+	  const prev = sel.value;
+
+	  sel.innerHTML = '<option value="">— Seleccionar —</option>';
+
+	  const vuelos = (cacheVuelos || [])
+		.filter(v => {
+		  const f = parseFechaSolo(v.fecha);
+		  if (!f) return false;
+
+		  const esHoy = f.getTime() === hoy.getTime();
+		  const esManana = f.getTime() === manana.getTime();
+		  if (!esHoy && !esManana) return false;
+
+		  // Recomendado: solo futuros (evita poblar con vuelos ya pasados)
+		  if (!vueloEsFuturo(v)) return false;
+
+		  return true;
+		})
+		.sort((a, b) => timeOrdenVuelo(a) - timeOrdenVuelo(b));
+
+	  for (const v of vuelos) {
+		const opt = document.createElement("option");
+		opt.value = String(v.idVuelo || "");
+		opt.textContent =
+		  `${v.numeroVuelo || ""} | ${normalizarFechaExcel(v.fecha)} ${formatearHora(v.horaProgramada)} | ${v.terminal || ""}`;
+		sel.appendChild(opt);
+	  }
+
+	  // Restaurar selección previa si sigue existiendo
+	  if (prev) sel.value = prev;
+	}
 
   function llenarCombosAcciones() {
     const hoy = hoyTrunc();
@@ -2007,6 +1982,8 @@
       opt.textContent = `${v.numeroVuelo || ""} | ${normalizarFechaExcel(v.fecha)}`;
       selMod.appendChild(opt);
     });
+
+    llenarComboCrearPmrVuelos();
 
     const selPmr = document.getElementById("asig-select-pmr");
     selPmr.innerHTML = '<option value="">— Seleccionar PMR —</option>';
@@ -2048,19 +2025,6 @@
     actualizarPreviewOrigenDestino();
   }
 
-  function aplicarConstanteTraslado_(vuelo){
-    const selTipo = document.getElementById("asig-tipo-traslado");
-    if (!selTipo || !vuelo) return;
-
-    const clas = clasificarTrasladoPorAerolinea_(vuelo?.aerolinea);
-    if (clas){
-      selTipo.value = clas;
-      selTipo.disabled = true; // ✅ Gerencia: queda fijado por aerolínea
-    } else {
-      selTipo.disabled = false;
-    }
-  }
-
   function refrescarAgentesParaPmr() {
     const selPmr = document.getElementById("asig-select-pmr");
     const selAg = document.getElementById("asig-select-agente");
@@ -2085,12 +2049,8 @@
     const vuelo = getVueloDePmr(pmr);
     const terminal = vuelo ? (vuelo.terminal || "") : "";
 
-    // ✅ Nuevo: fija el tipo de traslado por aerolínea si aplica
-    if (vuelo){
-      aplicarConstanteTraslado_(vuelo);
-      const sugerido = sugerirTipoTrasladoPorAerolinea(vuelo);
-      if (selTipoTras && !selTipoTras.value && sugerido) selTipoTras.value = sugerido;
-    }
+    const sugerido = sugerirTipoTrasladoPorAerolinea(vuelo);
+    if (selTipoTras && !selTipoTras.value && sugerido) selTipoTras.value = sugerido;
 
     const disponibles = agentesAsignablesEnTerminal(terminal);
 
@@ -2111,84 +2071,34 @@
     }
 
     actualizarPreviewOrigenDestino();
-  }
+}
 
   function actualizarPreviewOrigenDestino() {
     const inputOrigen  = document.getElementById("asig-origen");
     const inputDestino = document.getElementById("asig-destino");
-    const hitosBox     = document.getElementById("asig-hitos-box");
-
     const idPmr = document.getElementById("asig-select-pmr").value;
     const tipoT = document.getElementById("asig-tipo-traslado").value;
 
     if (!inputOrigen || !inputDestino) return;
 
-    if (!idPmr || !tipoT) {
-      inputOrigen.value = "";
-      inputDestino.value = "";
-      if (hitosBox){ hitosBox.classList.add("hidden"); hitosBox.innerHTML = ""; }
-      return;
-    }
+    if (!idPmr || !tipoT) { inputOrigen.value = ""; inputDestino.value = ""; return; }
 
     const pmr = cachePasajeros.find(p => String(p.idPmr) === String(idPmr));
-    if (!pmr) {
-      inputOrigen.value = "";
-      inputDestino.value = "";
-      if (hitosBox){ hitosBox.classList.add("hidden"); hitosBox.innerHTML = ""; }
-      return;
-    }
+    if (!pmr) { inputOrigen.value = ""; inputDestino.value = ""; return; }
 
     const vuelo = getVueloDePmr(pmr);
-    if (!vuelo) {
-      inputOrigen.value = "";
-      inputDestino.value = "";
-      if (hitosBox){ hitosBox.classList.add("hidden"); hitosBox.innerHTML = ""; }
-      return;
-    }
+    if (!vuelo) { inputOrigen.value = ""; inputDestino.value = ""; return; }
 
-    // ✅ Para Tramo Completo: mostrar plan de hitos y setear origen/destino con H1
-    if (normTxt(tipoT) === "tramo completo" || esTramoCompletoVuelo_(vuelo)) {
-      const pack = construirHitosTramoCompleto_(vuelo, pmr);
-      const hitos = pack.hitos || [];
-      const car = pack.carrito;
-
-      if (hitos.length){
-        inputOrigen.value  = hitos[0].origen || "";
-        inputDestino.value = hitos[0].destino || "";
-      } else {
-        inputOrigen.value = "";
-        inputDestino.value = "";
-      }
-
-      if (hitosBox){
-        const carTxt = car?.idCarrito ? `Carrito: ${car.idCarrito}${car.nombreCarrito ? " · "+car.nombreCarrito : ""}` : "Carrito: NO asignado";
-        hitosBox.classList.remove("hidden");
-        hitosBox.innerHTML = `
-          <div class="hitos-title">Tramo Completo — Hitos</div>
-          <div class="hitos-sub">${carTxt} (se asigna desde Vuelos)</div>
-          ${hitos.map(h => `
-            <div class="hito-line">
-              <div class="hito-left">${h.titulo}</div>
-              <div class="hito-right">${h.origen} → ${h.destino}</div>
-            </div>
-          `).join("")}
-        `;
-      }
-      return;
-    }
-
-    // ✅ Última Milla (normal)
-    const od = calcularOrigenDestinoUltimaMilla_(
+    const od = calcularOrigenDestinoFront(
       vuelo.tipoServicio,
       pmr.tipoAsistencia,
+      tipoT,
       vuelo.puerta,
       vuelo.espigon
     );
 
     inputOrigen.value  = od.origen || "";
     inputDestino.value = od.destino || "";
-
-    if (hitosBox){ hitosBox.classList.add("hidden"); hitosBox.innerHTML = ""; }
   }
 
   function abrirAsignacionDesdePmr(idPmr){
@@ -2201,16 +2111,17 @@
     if (form) form.classList.remove("hidden");
 
     const selPmr = document.getElementById("asig-select-pmr");
-    if (selPmr) selPmr.value = String(idPmr);
+    if (selPmr){
+      selPmr.value = String(idPmr);
+    }
 
     const pmr = cachePasajeros.find(p => String(p.idPmr) === String(idPmr));
     const vuelo = pmr ? getVueloDePmr(pmr) : null;
 
-    if (vuelo){
-      aplicarConstanteTraslado_(vuelo);
-      const selTipoTras = document.getElementById("asig-tipo-traslado");
+    const selTipoTras = document.getElementById("asig-tipo-traslado");
+    if (selTipoTras && vuelo){
       const sugerido = sugerirTipoTrasladoPorAerolinea(vuelo);
-      if (selTipoTras && sugerido) selTipoTras.value = sugerido;
+      if (sugerido) selTipoTras.value = sugerido;
     }
 
     refrescarAgentesParaPmr();
@@ -2259,6 +2170,7 @@
     }
   }
 
+  /* ✅ CARGA MASIVA (DESHABILITADA) -> abre ClientePMR en nueva pestaña */
   async function accionCargaMasiva() {
     const msg = document.getElementById("msg-carga-masiva");
     if (msg) {
@@ -2268,7 +2180,7 @@
     window.open(CLIENTE_PMR_URL, "_blank", "noopener,noreferrer");
   }
 
-  // (Tu accionItinerarioLatam queda sin cambios funcionales para este requerimiento)
+  /* ✅ ITINERARIO LATAM (Excel/CSV) -> crea/actualiza vuelos usando action=createVuelo */
   async function accionItinerarioLatam() {
     const msg   = document.getElementById("msg-itinerario-latam");
     const input = document.getElementById("input-itinerario-latam");
@@ -2289,64 +2201,6 @@
     try {
       const ext = (file.name || "").toLowerCase().split(".").pop();
       let rows = [];
-
-      const detectarSeparadorCsv = (text)=>{
-        const sample=(text||"").split(/\r?\n/).slice(0,10).join("\n");
-        const commas=(sample.match(/,/g)||[]).length;
-        const semis=(sample.match(/;/g)||[]).length;
-        return semis>commas?";":",";
-      };
-      const parseCSV = (text)=>{
-        const sep=detectarSeparadorCsv(text);
-        const rows=[]; let row=[]; let cur=""; let inQuotes=false;
-        function pushCell(){ row.push(cur); cur=""; }
-        function pushRow(){ rows.push(row); row=[]; }
-        for (let i=0;i<text.length;i++){
-          const ch=text[i], next=text[i+1];
-          if (ch==='"'){
-            if (inQuotes && next==='"'){ cur+='"'; i++; }
-            else inQuotes=!inQuotes;
-            continue;
-          }
-          if (!inQuotes && ch===sep){ pushCell(); continue; }
-          if (!inQuotes && (ch==="\n"||ch==="\r")){
-            if (ch==="\r"&&next==="\n") i++;
-            pushCell(); pushRow(); continue;
-          }
-          cur+=ch;
-        }
-        pushCell(); pushRow();
-        return rows.filter(r=>r.some(c=>String(c||"").trim()!==""));
-      };
-      const getColIndex=(headers,candidates)=>{
-        const norm=(s)=>String(s||"").toLowerCase().replace(/\s+/g," ").trim();
-        const hs=headers.map(h=>norm(h));
-        for (const cand of candidates){
-          const c=norm(cand); const idx=hs.indexOf(c);
-          if (idx!==-1) return idx;
-        }
-        for (let i=0;i<hs.length;i++){
-          for (const cand of candidates){
-            const c=norm(cand);
-            if (c && hs[i].includes(c)) return i;
-          }
-        }
-        return -1;
-      };
-      const splitOrigenDestino_=(ruta)=>{
-        const s = String(ruta || "").trim();
-        if (!s) return { origen:"", destino:"" };
-        const parts = s.split(/[-–—]/).map(p => p.trim()).filter(Boolean);
-        if (parts.length >= 2) return { origen: parts[0].toUpperCase(), destino: parts[1].toUpperCase() };
-        const parts2 = s.split(/[\/|]/).map(p => p.trim()).filter(Boolean);
-        if (parts2.length >= 2) return { origen: parts2[0].toUpperCase(), destino: parts2[1].toUpperCase() };
-        return { origen:"", destino:"" };
-      };
-      const inferirTipoServicioPorRuta_=(origen,destino)=>{
-        const d = String(destino||"").trim().toUpperCase();
-        if (!d) return "";
-        return (d === "SCL") ? "Desembarque" : "Embarque";
-      };
 
       if (ext === "csv") {
         const text = await file.text();
@@ -2472,12 +2326,13 @@
               `Procesando vuelos ${inicio + 1} a ${fin} de ${unicos.length} ` +
               `(intento ${intentos}/${maxRetries})...`;
 
-				const body = new URLSearchParams();
-				body.append("action", "cargaItinerarioLatam");
-				body.append("payload", JSON.stringify(chunk));
+			const params = new URLSearchParams();
+			params.append("action", "cargaItinerarioLatam");
+			params.append("payload", JSON.stringify(chunk));
 
-				const res = await fetch(API_URL, { method: "POST", body });
-				const json = await res.json();
+			const res = await fetch(API_URL + "?" + params.toString()); // <-- GET
+			const json = await res.json();
+
 
             if (!json.ok) throw new Error(json.error || "Error en cargaItinerarioLatam");
 
@@ -2501,6 +2356,7 @@
       msg.className = "msg ok";
 
       await cargarDatos();
+      llenarComboCrearPmrVuelos();
 
     } catch (error) {
       console.error(error);
@@ -2511,149 +2367,44 @@
     }
   }
 
-  async function crearAsignacionApi_(payload){
-    const params = new URLSearchParams();
-    params.append("action","asignarPmrAgente");
-
-    params.append("idPmr", payload.idPmr);
-    params.append("idAgente", payload.idAgente);
-    params.append("tipoTraslado", payload.tipoTraslado);
-    params.append("observaciones", payload.observaciones || "");
-
-    // ✅ Opcionales (si tu backend ya los soporta, quedarán guardados; si no, los ignora)
-    if (payload.origenAsignacion) params.append("origenAsignacion", payload.origenAsignacion);
-    if (payload.destinoAsignacion) params.append("destinoAsignacion", payload.destinoAsignacion);
-    if (payload.hito) params.append("hito", payload.hito);
-
-    params.append("maxAsignaciones", String(MAX_ASIG_POR_AGENTE));
-    params.append("resetAceptacion", "1");
-
-    const res = await fetch(API_URL + "?" + params.toString());
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error || "Error al asignar");
-    return json;
-  }
-
   async function accionAsignarPmr() {
     const msg = document.getElementById("msg-asignar-pmr");
     msg.textContent = ""; msg.className = "msg";
 
     const idPmr    = document.getElementById("asig-select-pmr").value;
     const idAgente = document.getElementById("asig-select-agente").value;
-    const tipoTUI  = document.getElementById("asig-tipo-traslado").value;
-    const obsUser  = document.getElementById("asig-obs").value.trim();
+    const tipoT    = document.getElementById("asig-tipo-traslado").value;
+    const obs      = document.getElementById("asig-obs").value.trim();
 
+
+    // ✅ Nuevo: limitar a MAX_ASIG_POR_AGENTE asignaciones activas por agente
+    const cargaActual = contarAsignacionesActivasAgente_(idAgente);
+    if (cargaActual >= MAX_ASIG_POR_AGENTE) {
+      msg.textContent = `Agente sobrcargado (${MAX_ASIG_POR_AGENTE}/${MAX_ASIG_POR_AGENTE}). Selecciona otro agente.`;
+      msg.className = "msg err";
+      return;
+    }
     if (!idPmr)    { msg.textContent = "Selecciona un pasajero PMR."; msg.className = "msg err"; return; }
-    if (!idAgente) { msg.textContent = "Selecciona un agente."; msg.className = "msg err"; return; }
-    if (!tipoTUI)  { msg.textContent = "Selecciona un tipo de traslado."; msg.className = "msg err"; return; }
+    if (!idAgente) { msg.textContent = "Selecciona un agente disponible."; msg.className = "msg err"; return; }
+    if (!tipoT)    { msg.textContent = "Selecciona un tipo de traslado."; msg.className = "msg err"; return; }
 
-    const pmr = cachePasajeros.find(p => String(p.idPmr) === String(idPmr));
-    const vuelo = pmr ? getVueloDePmr(pmr) : null;
+    const params = new URLSearchParams();
+    params.append("action","asignarPmrAgente");
+    params.append("idPmr",idPmr);
+    params.append("idAgente",idAgente);
+    params.append("tipoTraslado",tipoT);
+    params.append("observaciones",obs);
 
-    const tipoConst = vuelo ? clasificarTrasladoPorAerolinea_(vuelo?.aerolinea) : "";
-    const tipoFinal = tipoConst || tipoTUI;
-
-    // ✅ Control de carga: Tramo Completo crea 2 asignaciones (o 3 si carrito) => validar capacidad
+    params.append("maxAsignaciones", String(MAX_ASIG_POR_AGENTE));
+    params.append("resetAceptacion", "1");
     try {
-      if (normTxt(tipoFinal) === "tramo completo") {
-        if (!pmr || !vuelo) throw new Error("No se pudo identificar vuelo del PMR para Tramo Completo.");
-
-        const pack = construirHitosTramoCompleto_(vuelo, pmr);
-        const hitos = pack.hitos || [];
-        const car = pack.carrito;
-
-        // Hitos asignables:
-        // - principal: siempre idAgente (supervisor)
-        // - carrito: idCarrito (asignado desde vista Vuelos)
-        const asignaciones = hitos.map(h => {
-          const esCarrito = (h.asignable === "carrito");
-          const agente = esCarrito ? String(car?.idCarrito || "").trim() : String(idAgente).trim();
-          return {
-            idPmr: String(idPmr),
-            idAgente: agente,
-            tipoTraslado: "Tramo Completo",
-            origenAsignacion: h.origen,
-            destinoAsignacion: h.destino,
-            hito: h.hito,
-            observaciones: `${obsUser ? obsUser + " | " : ""}[TC-${h.hito}] ${h.titulo}`
-          };
-        });
-
-        // Validaciones
-        const faltanCarrito = asignaciones.some(a => a.hito === "H2" && normTxt(a.observaciones).includes("carrito") && !a.idAgente);
-        if (faltanCarrito){
-          throw new Error("Este vuelo requiere Carrito para el hito intermedio, pero no hay Carrito asignado en la vista de Vuelos.");
-        }
-
-        // Validar carga agente principal (+ cantidad de hitos principales)
-        const nPrincipal = asignaciones.filter(a => a.idAgente === String(idAgente).trim()).length;
-        const cargaPrincipal = contarAsignacionesActivasAgente_(idAgente);
-        if (cargaPrincipal + nPrincipal > MAX_ASIG_POR_AGENTE) {
-          throw new Error(`Agente principal excede carga: tiene ${cargaPrincipal}/${MAX_ASIG_POR_AGENTE} activos y necesita ${nPrincipal} asignación(es) adicionales.`);
-        }
-
-        // Validar carga carrito (si aplica)
-        const carritoAsign = asignaciones.find(a => normTxt(a.observaciones).includes("carrito"));
-        if (carritoAsign && carritoAsign.idAgente) {
-          const cargaCar = contarAsignacionesActivasAgente_(carritoAsign.idAgente);
-          if (cargaCar + 1 > MAX_ASIG_POR_AGENTE) {
-            throw new Error(`Agente Carrito excede carga: tiene ${cargaCar}/${MAX_ASIG_POR_AGENTE} activos.`);
-          }
-        }
-
-        msg.textContent = `Creando ${asignaciones.length} asignaciones (Tramo Completo)...`;
-        msg.className = "msg";
-
-        // Intento batch (si tu backend lo implementa), con fallback a secuencial
-        let batchOk = false;
-        try {
-          const params = new URLSearchParams();
-          params.append("action","asignarPmrAgenteBatch");
-          params.append("payload", JSON.stringify(asignaciones));
-          const res = await fetch(API_URL + "?" + params.toString());
-          const json = await res.json();
-          if (json && json.ok) batchOk = true;
-        } catch(e) {}
-
-        if (!batchOk) {
-          // Fallback secuencial: crea una por una
-          for (let i=0;i<asignaciones.length;i++){
-            await crearAsignacionApi_(asignaciones[i]);
-          }
-        }
-
-        msg.textContent = `Asignaciones Tramo Completo creadas (${asignaciones.length}).`;
-        msg.className = "msg ok";
-        await cargarDatos();
-        return;
-      }
-
-      // ✅ Última Milla (1 asignación)
-      const cargaActual = contarAsignacionesActivasAgente_(idAgente);
-      if (cargaActual + 1 > MAX_ASIG_POR_AGENTE) {
-        msg.textContent = `Agente sobrecargado (${cargaActual}/${MAX_ASIG_POR_AGENTE}). Selecciona otro agente.`;
-        msg.className = "msg err";
-        return;
-      }
-
-      const od = (pmr && vuelo)
-        ? calcularOrigenDestinoUltimaMilla_(vuelo.tipoServicio, pmr.tipoAsistencia, vuelo.puerta, vuelo.espigon)
-        : { origen:"", destino:"" };
-
-      await crearAsignacionApi_({
-        idPmr: String(idPmr),
-        idAgente: String(idAgente),
-        tipoTraslado: "Ultima Milla",
-        origenAsignacion: od.origen,
-        destinoAsignacion: od.destino,
-        hito: "UM",
-        observaciones: obsUser
-      });
+      const res = await fetch(API_URL + "?" + params.toString());
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || "Error al asignar");
 
       msg.textContent = "Asignación creada correctamente.";
       msg.className = "msg ok";
       await cargarDatos();
-
     } catch (err) {
       msg.textContent = "Error al asignar PMR: " + (err.message || err);
       msg.className = "msg err";
@@ -2678,6 +2429,7 @@
       btn.addEventListener("click", () => {
         const target = btn.dataset.target;
 
+        // ✅ CAMBIO: si es "Carga masiva", abrir ClientePMR en nueva pestaña y NO mostrar panel de carga
         if (target === "form-carga-masiva") {
           window.open(CLIENTE_PMR_URL, "_blank", "noopener,noreferrer");
           return;
@@ -2689,13 +2441,15 @@
         btn.classList.add("active");
         const form = document.getElementById(target);
         if (form) form.classList.remove("hidden");
-      });
+});
     });
+document.getElementById("btn-modificar-vuelo").addEventListener("click", accionModificarVuelo);
 
-    document.getElementById("btn-modificar-vuelo").addEventListener("click", accionModificarVuelo);
+    // ✅ Se mantiene el botón interno (por si lo abres desde el panel), también abre en nueva pestaña
     document.getElementById("btn-carga-masiva").addEventListener("click", accionCargaMasiva);
+
     document.getElementById("btn-itinerario-latam").addEventListener("click", accionItinerarioLatam);
-    document.getElementById("btn-asignar-pmr").addEventListener("click", accionAsignarPmr);
+document.getElementById("btn-asignar-pmr").addEventListener("click", accionAsignarPmr);
 
     document.getElementById("asig-select-pmr").addEventListener("change", refrescarAgentesParaPmr);
     document.getElementById("asig-tipo-traslado").addEventListener("change", actualizarPreviewOrigenDestino);
