@@ -766,10 +766,76 @@
         opacity: .9;
       }
     }
+
+    /* =========================
+       LOCK OVERLAY (INICIO DIFUMINADO)
+       ========================= */
+    body.locked header,
+    body.locked .app {
+      filter: blur(6px);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .lock-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, .35);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 14px;
+    }
+
+    .lock-overlay.show {
+      display: flex;
+    }
+
+    .lock-card {
+      width: min(520px, 96vw);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, .28);
+      padding: 14px;
+    }
+
+    .lock-title {
+      font-size: 14px;
+      font-weight: 1100;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--primary);
+    }
+
+    .lock-sub {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .lock-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 12px;
+    }
+
+    .lock-row .btn-submit {
+      width: auto;
+      flex: 1;
+    }
+
+    .lock-row .btn-mini {
+      width: auto;
+    }
   </style>
 </head>
 
-<body>
+<body class="locked">
   <header>
     <div class="header-left">
       <div class="logo-box">
@@ -928,14 +994,12 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal-header">
         <div>
-          <div class="modal-title" id="modal-title">Carga manual: Vuelos y Pasajeros</div>
+          <div class="modal-title" id="modal-title">Carga manual: Vuelos y Pasajeros (Air France)</div>
           <div class="modal-sub">
-            Completa la información del vuelo (obligatorio: <b>Vuelo</b>, <b>Fecha</b>, <b>Hora</b>, <b>Terminal</b>;
-            opcional: Puerta, Espigón).
-            Luego completa al menos <b>1 pasajero</b> (obligatorio: <b>Nombre</b> y <b>Tipo Asistencia</b>; opcional:
-            Edad y RUT/Pasaporte/Ticket).
-            Puedes agregar más pasajeros con <b>+ Pasajero</b> y agregar otro vuelo completo con <b>+ Vuelo
-              adicional</b>.
+            Completa la información del vuelo (obligatorio: <b>Vuelo</b>, <b>Fecha</b>, <b>Hora</b> y <b>Terminal</b>;
+            adicional: <b>Origen</b> y <b>Destino</b>; opcional: Puerta, Espigón).
+            Luego completa al menos <b>1 pasajero</b> (obligatorio: <b>Nombre</b> y <b>Tipo Asistencia</b>).
+            <br />Nota: el guardado requiere que el portal esté <b>desbloqueado</b> con la clave de acceso.
           </div>
         </div>
         <div class="btn-row">
@@ -958,12 +1022,124 @@
     </div>
   </div>
 
+  <!-- OVERLAY DE BLOQUEO (CLAVE) -->
+  <div class="lock-overlay show" id="lock-overlay" aria-hidden="false">
+    <div class="lock-card" role="dialog" aria-modal="true" aria-labelledby="lock-title">
+      <div class="lock-title" id="lock-title">Acceso restringido</div>
+      <div class="lock-sub">
+        Ingresa la <b>clave de acceso</b> para habilitar creación/edición de vuelos y pasajeros en este portal.
+      </div>
+
+      <label style="margin-top:10px;">Clave de acceso
+        <input type="password" id="unlock-key" placeholder="Ingresa clave" autocomplete="off" />
+      </label>
+
+      <div class="lock-row">
+        <button class="btn-submit" id="btn-unlock" type="button">Ingresar</button>
+        <button class="btn-mini btn-danger" id="btn-unlock-clear" type="button">Limpiar</button>
+      </div>
+
+      <div class="msg" id="unlock-msg"></div>
+    </div>
+  </div>
+
   <script>
     /***************************************************************
      * CONFIG
      ***************************************************************/
     const API_URL = "https://script.google.com/macros/s/AKfycbwFBHpIx-gQrVAvj5Vv-I-l1X3NR9MYbyTV9CtxgKCw7oPeuxIE5qrYx3eZdDoIroTE/exec";
     const PORTAL_AIRLINE = "AIR FRANCE";
+
+    const AIRLINE_LOCK = "AIR FRANCE";
+    const AIRLINE_TAG = "[AIRFRANCE_PORTAL]";
+    const ACCESS_KEY = "AFCM07101933";
+
+    /***************************************************************
+     * LOCK (INICIO DIFUMINADO + CLAVE GLOBAL)
+     ***************************************************************/
+    const UNLOCK_STORAGE_FLAG = "AIRFRANCE_PORTAL_UNLOCKED";
+    const UNLOCK_STORAGE_KEY = "AIRFRANCE_PORTAL_KEY";
+
+    let ACCESS_GRANTED = false;
+    let SESSION_ACCESS = "";
+
+    function lockUI() {
+      ACCESS_GRANTED = false;
+      SESSION_ACCESS = "";
+
+      document.body.classList.add("locked");
+      const ov = document.getElementById("lock-overlay");
+      if (ov) {
+        ov.classList.add("show");
+        ov.setAttribute("aria-hidden", "false");
+      }
+
+      const btnOpen = document.getElementById("btn-open-modal");
+      if (btnOpen) btnOpen.disabled = true;
+
+      const hint = document.getElementById("sidebar-hint");
+      if (hint) hint.innerHTML = "Acceso en modo <b>bloqueado</b>. Ingresa la clave para habilitar creación/edición.";
+
+      setTimeout(() => document.getElementById("unlock-key")?.focus?.(), 80);
+    }
+
+    function unlockUI(key) {
+      ACCESS_GRANTED = true;
+      SESSION_ACCESS = key;
+
+      sessionStorage.setItem(UNLOCK_STORAGE_FLAG, "1");
+      sessionStorage.setItem(UNLOCK_STORAGE_KEY, key);
+
+      document.body.classList.remove("locked");
+      const ov = document.getElementById("lock-overlay");
+      if (ov) {
+        ov.classList.remove("show");
+        ov.setAttribute("aria-hidden", "true");
+      }
+
+      const btnOpen = document.getElementById("btn-open-modal");
+      if (btnOpen) btnOpen.disabled = false;
+
+      const hint = document.getElementById("sidebar-hint");
+      if (hint) hint.innerHTML = "Acceso autorizado. Por defecto se muestran vuelos <b>de hoy y mañana</b>. Si necesitas ver otras fechas, usa el filtro de fecha en cada vista.";
+    }
+
+    function initLock() {
+      const wasUnlocked = sessionStorage.getItem(UNLOCK_STORAGE_FLAG) === "1";
+      const key = (sessionStorage.getItem(UNLOCK_STORAGE_KEY) || "").trim();
+
+      if (wasUnlocked && key && (!ACCESS_KEY || key === ACCESS_KEY)) {
+        unlockUI(key);
+        return;
+      }
+
+      sessionStorage.removeItem(UNLOCK_STORAGE_FLAG);
+      sessionStorage.removeItem(UNLOCK_STORAGE_KEY);
+      lockUI();
+    }
+
+    function tryUnlock() {
+      const input = document.getElementById("unlock-key");
+      const msg = document.getElementById("unlock-msg");
+      const key = (input?.value || "").trim();
+
+      if (!key) {
+        msg.textContent = "Ingresa la clave.";
+        msg.className = "msg err";
+        return;
+      }
+      if (ACCESS_KEY && key !== ACCESS_KEY) {
+        msg.textContent = "Clave incorrecta.";
+        msg.className = "msg err";
+        return;
+      }
+
+      msg.textContent = "Acceso autorizado.";
+      msg.className = "msg ok";
+      unlockUI(key);
+
+      if (input) input.value = "";
+    }
 
     /***************************************************************
      * STATE
@@ -1381,7 +1557,7 @@
       body.innerHTML = "";
 
       // Resetear Título
-      document.getElementById('modal-title').textContent = "Carga manual: Vuelos y Pasajeros";
+      document.getElementById('modal-title').textContent = "Carga manual: Vuelos y Pasajeros (Air France)";
 
       // Resetear Botón de Guardar
       const submitBtn = document.getElementById('btn-submit-all');
@@ -1564,15 +1740,7 @@
           <option value="WCHC">WCHC</option>
           <option value="WCHR">WCHR</option>
           <option value="WCHS">WCHS</option>
-		      <option value="DEAF">DEAF</option>
-		      <option value="BLND">BLND</option>
-		      <option value="WCBW/WCBD">WCBW/WCBD</option>
-		      <option value="DPNA">DPNA</option>
-		      <option value="MEDA">MEDA</option>
-		      <option value="MAAS">MAAS</option>
-          <option value="SVAN">SVAN</option>
-		      <option value="ESAN">ESAN</option>
-		      <option value="UM">UM</option>
+          <option value="OTRO">OTRO</option>
         </select>
       </td>
       <td><input class="pax-input pax-edad" type="number" min="0" value="${prefill.edad || ""}" placeholder="(opcional)" /></td>
@@ -1718,11 +1886,10 @@
      * FUNCIONES DE EDICIÓN
      ***************************************************************/
     function appendAccessKey_(params) {
-      if (typeof ACCESS_KEY !== 'undefined') {
-        params.append("key", ACCESS_KEY);
-        params.append("accessKey", ACCESS_KEY);
-        params.append("clave", ACCESS_KEY);
-      }
+      const k = (SESSION_ACCESS || "").trim();
+      params.append("key", k);
+      params.append("accessKey", k);
+      params.append("clave", k);
     }
 
     function editarVuelo(vueloId) {
@@ -1898,7 +2065,7 @@
     /***************************************************************
      * EVENTS
      ***************************************************************/
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
       document.getElementById("chip-airline-text").textContent = PORTAL_AIRLINE;
 
       document.querySelectorAll(".nav-btn").forEach(btn => {
@@ -1939,6 +2106,12 @@
         renderVistaPmr();
       });
 
+      document.getElementById("btn-limpiar-fechas-pmr").addEventListener("click", () => {
+        document.getElementById("filtro-pmr-desde").value = "";
+        document.getElementById("filtro-pmr-hasta").value = "";
+        renderVistaActual();
+      });
+
       document.getElementById("filtro-pmr-vuelo").addEventListener("change", renderVistaPmr);
       document.getElementById("filtro-pmr-estado").addEventListener("change", renderVistaPmr);
 
@@ -1963,6 +2136,20 @@
       document.getElementById("btn-clear-modal").addEventListener("click", clearModal);
       document.getElementById("btn-submit-all").addEventListener("click", submitAll);
 
+      // --- LOCK EVENTS ---
+      document.getElementById("btn-unlock")?.addEventListener("click", tryUnlock);
+      document.getElementById("btn-unlock-clear")?.addEventListener("click", () => {
+        const input = document.getElementById("unlock-key");
+        if (input) input.value = "";
+        const msg = document.getElementById("unlock-msg");
+        if (msg) { msg.textContent = ""; msg.className = "msg"; }
+      });
+      document.getElementById("unlock-key")?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") tryUnlock();
+      });
+
+      // --- INIT ---
+      initLock();
       cargarDatos();
     });
   </script>
