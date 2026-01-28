@@ -511,6 +511,24 @@
       font-weight: 900;
     }
 
+    /* Barra de progreso */
+    .progress-container {
+      width: 100%;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      margin-top: 10px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary), var(--primary-2));
+      transition: width 0.3s ease;
+    }
+
     /* =========================
        MODAL (nublando fondo)
        ========================= */
@@ -1065,6 +1083,9 @@
           <button class="btn-pill" id="btn-submit-all" type="button">Guardar todo</button>
         </div>
         <div class="msg" id="modal-msg" style="flex-basis:100%;"></div>
+        <div class="progress-container" id="modal-progress-container" style="flex-basis:100%; margin-bottom: 10px;">
+          <div class="progress-bar" id="modal-progress-bar"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1569,6 +1590,7 @@
       document.body.style.overflow = "";
       document.getElementById("modal-msg").textContent = "";
       document.getElementById("modal-msg").className = "msg";
+      updateProgressBar(0, false);
     }
 
     function clearModal() {
@@ -1599,6 +1621,15 @@
       const el = document.getElementById("modal-msg");
       el.textContent = text || "";
       el.className = "msg" + (type ? (" " + type) : "");
+    }
+
+    function updateProgressBar(percent, show = true) {
+      const container = document.getElementById("modal-progress-container");
+      const bar = document.getElementById("modal-progress-bar");
+      if (container && bar) {
+        container.style.display = show ? "block" : "none";
+        bar.style.width = percent + "%";
+      }
     }
 
     function addFlightBlock(prefill = {}) {
@@ -1928,36 +1959,21 @@
       return json;
     }
 
-    async function apiCreatePasajero(b, idVuelo, p) {
+    async function apiCreatePasajerosBatch(b, idVuelo) {
       const params = new URLSearchParams();
-      params.append("action", "crearPasajero");
-
-      params.append("vuelo", b.numeroVuelo);
+      params.append("action", "crearPasajerosBatch");
       params.append("idVuelo", idVuelo);
-      params.append("fechaVuelo", b.fecha);
-
-      // Origen/Destino IATA (si el backend lo soporta; si no, se ignora)
-      if (b.origen) params.append("origen", b.origen);
-      if (b.destino) params.append("destino", b.destino);
-
-      params.append("nombre", p.nombre);
-      params.append("tipoAsistencia", p.tipoAsistencia);
-
-      if (p.edad) params.append("edad", p.edad);
-      if (p.id) params.append("rut", p.id);
+      params.append("vuelo", b.numeroVuelo);
+      params.append("fecha", b.fecha);
+      params.append("origen", b.origen);
+      params.append("destino", b.destino);
+      params.append("pasajeros", JSON.stringify(b.pasajeros));
 
       appendAccessKey_(params);
 
-      const obs = [];
-      if (p.id) obs.push(`ID:${p.id}`);
-      if (p.obsP) obs.push(p.obsP);
-      if (b.origen && b.destino) obs.unshift(`OD:${b.origen}-${b.destino}`);
-      const obsFinal = obs.length ? (obs.join(" | ") + " | [KLM_PORTAL]") : "[KLM_PORTAL]";
-      params.append("observaciones", obsFinal);
-
       const res = await fetch(API_URL + "?" + params.toString());
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error || "Error al crear pasajero");
+      if (!json.ok) throw new Error(json.error || "Error al crear pasajeros");
       return json;
     }
 
@@ -2035,13 +2051,15 @@
       const btn = document.getElementById("btn-submit-all");
       if (btn) btn.disabled = true;
       setModalMsg("Validando...", "warn");
+      updateProgressBar(10);
 
       try {
         const cards = Array.from(document.querySelectorAll(".flight-card"));
         const b = getFlightBlockData(cards[0]);
         const errs = validarBloque(b);
-        if (errs.length) { setModalMsg(errs.join(" · "), "err"); if (btn) btn.disabled = false; return; }
+        if (errs.length) { setModalMsg(errs.join(" · "), "err"); if (btn) btn.disabled = false; updateProgressBar(0, false); return; }
 
+        updateProgressBar(30);
         setModalMsg(`Actualizando Vuelo ${b.numeroVuelo}...`, "warn");
 
         const params = new URLSearchParams();
@@ -2070,11 +2088,11 @@
         const json = await res.json();
         if (!json.ok) throw new Error(json.error || "Error al actualizar");
 
-        for (let j = 0; j < b.pasajeros.length; j++) {
-          setModalMsg(`Creando pasajero ${j + 1}/${b.pasajeros.length}...`, "warn");
-          await apiCreatePasajero(b, vueloId, b.pasajeros[j]);
-        }
+        updateProgressBar(60);
+        setModalMsg(`Guardando pasajeros (${b.pasajeros.length})...`, "warn");
+        await apiCreatePasajerosBatch(b, vueloId);
 
+        updateProgressBar(100);
         setModalMsg("¡Actualización exitosa!", "ok");
         await cargarDatos(true);
         setTimeout(() => closeModal(), 1500);
@@ -2082,6 +2100,7 @@
         console.error(err);
         setModalMsg("Error: " + err.message, "err");
         if (btn) btn.disabled = false;
+        updateProgressBar(0, false);
       }
     }
 
@@ -2089,6 +2108,7 @@
       const btn = document.getElementById("btn-submit-all");
       btn.disabled = true;
       setModalMsg("Validando formulario...", "warn");
+      updateProgressBar(10);
 
       try {
         const cards = Array.from(document.querySelectorAll(".flight-card"));
@@ -2102,6 +2122,7 @@
         if (errors.length) {
           setModalMsg(errors.join(" · "), "err");
           btn.disabled = false;
+          updateProgressBar(0, false);
           return;
         }
 
@@ -2110,29 +2131,37 @@
 
         for (let i = 0; i < bloques.length; i++) {
           const b = bloques[i];
-          setModalMsg(`Guardando Vuelo #${i + 1} (${b.numeroVuelo} ${b.fecha})...`, "warn");
+          const stepBase = (i / bloques.length) * 80 + 10;
+          updateProgressBar(stepBase);
+          setModalMsg(`Guardando Vuelo #${i + 1} (${b.numeroVuelo})...`, "warn");
 
           const vueloResp = await apiCreateVuelo(b);
           const idVuelo = vueloResp.idVuelo || vueloResp.id_vuelo || vueloResp.vueloId || "";
           if (!idVuelo) throw new Error(`No se recibió idVuelo al crear el Vuelo #${i + 1}.`);
 
           totalVuelosOk++;
+          updateProgressBar(stepBase + (10 / bloques.length));
+          setModalMsg(`Guardando pasajeros para Vuelo #${i + 1}...`, "warn");
 
-          for (let j = 0; j < b.pasajeros.length; j++) {
-            setModalMsg(`Guardando Vuelo #${i + 1}: pasajero ${j + 1}/${b.pasajeros.length}...`, "warn");
-            await apiCreatePasajero(b, idVuelo, b.pasajeros[j]);
-            totalPaxOk++;
-          }
+          await apiCreatePasajerosBatch(b, idVuelo);
+          totalPaxOk += b.pasajeros.length;
         }
 
-        setModalMsg(`Guardado completado: Vuelos OK=${totalVuelosOk}, Pasajeros OK=${totalPaxOk}.`, "ok");
+        updateProgressBar(100);
+        setModalMsg(`¡Guardado exitoso! (${totalVuelosOk} vuelos, ${totalPaxOk} pasajeros)`, "ok");
         await cargarDatos(true);
-        setTimeout(() => closeModal(), 700);
+        setTimeout(() => closeModal(), 1500);
 
       } catch (err) {
         console.error(err);
-        setModalMsg("Error al guardar: " + (err.message || err), "err");
+        // Si el error es sobre el vuelo ya existente, podemos ser más específicos
+        let msg = err.message || err;
+        if (msg.includes("Ya existe un vuelo")) {
+          msg = "Error: El vuelo ya existe para esta fecha. Cambia el número de vuelo o edita el existente.";
+        }
+        setModalMsg(msg, "err");
         btn.disabled = false;
+        updateProgressBar(0, false);
       }
     }
 
@@ -2227,7 +2256,7 @@
 
       document.getElementById("btn-add-flight").addEventListener("click", () => addFlightBlock());
       document.getElementById("btn-clear-modal").addEventListener("click", clearModal);
-      document.getElementById("btn-submit-all").addEventListener("click", submitAll);
+      document.getElementById("btn-submit-all").onclick = submitAll;
 
       cargarDatos();
     });
