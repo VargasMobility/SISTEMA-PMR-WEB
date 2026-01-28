@@ -2166,7 +2166,7 @@
 
       document.getElementById("btn-add-flight").addEventListener("click", () => addFlightBlock());
       document.getElementById("btn-clear-modal").addEventListener("click", clearModal);
-      document.getElementById("btn-submit-all").addEventListener("click", submitAll);
+      document.getElementById("btn-submit-all").onclick = submitAll;
 
       // --- LOCK EVENTS ---
       const btnUnlock = document.getElementById("btn-unlock");
