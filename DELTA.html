@@ -519,6 +519,24 @@
       font-weight: 1000;
     }
 
+    /* Barra de progreso */
+    .progress-container {
+      width: 100%;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      margin-top: 10px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary), var(--primary-2));
+      transition: width 0.3s ease;
+    }
+
     /* =========================
        MODAL
        ========================= */
@@ -1072,6 +1090,9 @@
           <button class="btn-pill" id="btn-submit-all" type="button">Guardar todo</button>
         </div>
         <div class="msg" id="modal-msg" style="flex-basis:100%;"></div>
+        <div class="progress-container" id="modal-progress-container" style="flex-basis:100%; margin-bottom: 10px;">
+          <div class="progress-bar" id="modal-progress-bar"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1671,12 +1692,22 @@
       document.body.style.overflow = "";
       document.getElementById("modal-msg").textContent = "";
       document.getElementById("modal-msg").className = "msg";
+      updateProgressBar(0, false);
     }
 
     function setModalMsg(text, type) {
       const el = document.getElementById("modal-msg");
       el.textContent = text || "";
       el.className = "msg" + (type ? (" " + type) : "");
+    }
+
+    function updateProgressBar(percent, show = true) {
+      const container = document.getElementById("modal-progress-container");
+      const bar = document.getElementById("modal-progress-bar");
+      if (container && bar) {
+        container.style.display = show ? "block" : "none";
+        bar.style.width = percent + "%";
+      }
     }
 
     function clearModal() {
@@ -1896,15 +1927,7 @@
           <option value="WCHC">WCHC</option>
           <option value="WCHR">WCHR</option>
           <option value="WCHS">WCHS</option>
-		      <option value="DEAF">DEAF</option>
-    		  <option value="BLND">BLND</option>
-		      <option value="WCBW/WCBD">WCBW/WCBD</option>
-		      <option value="DPNA">DPNA</option>
-		      <option value="MEDA">MEDA</option>
-		      <option value="MAAS">MAAS</option>
-          <option value="SVAN">SVAN</option>
-		      <option value="ESAN">ESAN</option>
-		      <option value="UM">UM</option>
+          <option value="OTRO">OTRO</option>
         </select>
       </td>
       <td><input class="pax-input pax-edad" type="number" min="0" placeholder="(opcional)" /></td>
@@ -2027,31 +2050,19 @@
       return json;
     }
 
-    async function apiCreatePasajero(b, idVuelo, p) {
+    async function apiCreatePasajerosBatch(b, idVuelo) {
       const params = new URLSearchParams();
-      params.append("action", "crearPasajero");
-      params.append("vuelo", b.numeroVuelo);
+      params.append("action", "crearPasajerosBatch");
       params.append("idVuelo", idVuelo);
-      params.append("fechaVuelo", b.fecha);
-      params.append("nombre", p.nombre);
-      params.append("tipoAsistencia", p.tipoAsistencia);
-      if (p.edad) params.append("edad", p.edad);
-      if (p.id) params.append("rut", p.id);
+      params.append("vuelo", b.numeroVuelo);
+      params.append("fecha", b.fecha);
+      params.append("pasajeros", JSON.stringify(b.pasajeros));
 
-      // ✅ clave global
       appendAccessKey_(params);
-
-      const obs = [];
-      if (p.id) obs.push(`ID:${p.id}`);
-      if (p.obsP) obs.push(p.obsP);
-      if (b.origen || b.destino) obs.push(`OD:${b.origen || "-"}-${b.destino || "-"}`);
-
-      const obsFinal = obs.length ? (obs.join(" | ") + " | " + AIRLINE_TAG) : AIRLINE_TAG;
-      params.append("observaciones", obsFinal);
 
       const res = await fetch(API_URL + "?" + params.toString());
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error || "Error al crear pasajero");
+      if (!json.ok) throw new Error(json.error || "Error al crear pasajeros");
       return json;
     }
 
@@ -2141,100 +2152,67 @@
     }
 
     async function actualizarVueloExistente(vueloId) {
-      if (!ACCESS_GRANTED) {
-        lockUI();
-        return;
-      }
-
       const btn = document.getElementById("btn-submit-all");
-      btn.disabled = true;
-      setModalMsg("Validando formulario...", "warn");
+      if (btn) btn.disabled = true;
+      setModalMsg("Validando...", "warn");
+      updateProgressBar(10);
 
       try {
         const cards = Array.from(document.querySelectorAll(".flight-card"));
-        const bloques = cards.map(getFlightBlockData);
+        const b = getFlightBlockData(cards[0]);
+        const errs = validarBloque(b);
+        if (errs.length) { setModalMsg(errs.join(" · "), "err"); if (btn) btn.disabled = false; updateProgressBar(0, false); return; }
 
-        const errors = [];
-        bloques.forEach((b, idx) => {
-          const e = validarBloque(b);
-          if (e.length) errors.push(`Vuelo #${idx + 1}: faltan ${e.join(", ")}`);
-        });
-        if (errors.length) {
-          setModalMsg(errors.join(" · "), "err");
-          btn.disabled = false;
-          return;
-        }
-
-        const b = bloques[0]; // Solo editamos un vuelo a la vez
+        updateProgressBar(30);
         setModalMsg(`Actualizando Vuelo ${b.numeroVuelo}...`, "warn");
 
-        // Primero actualizar el vuelo
         const paramsVuelo = new URLSearchParams();
         paramsVuelo.append("action", "updateVuelo");
         paramsVuelo.append("idVuelo", vueloId);
-        paramsVuelo.append("id", vueloId); // alias
-
         paramsVuelo.append("fecha", b.fecha);
-        paramsVuelo.append("fechaVuelo", b.fecha); // alias
-
+        paramsVuelo.append("fechaVuelo", b.fecha);
         paramsVuelo.append("horaProgramada", b.hora);
-        paramsVuelo.append("hora", b.hora); // alias
-
+        paramsVuelo.append("hora", b.hora);
         paramsVuelo.append("aerolinea", AIRLINE_LOCK);
         paramsVuelo.append("numeroVuelo", b.numeroVuelo);
-        paramsVuelo.append("vuelo", b.numeroVuelo); // alias
-
+        paramsVuelo.append("vuelo", b.numeroVuelo);
         paramsVuelo.append("terminal", b.terminal);
-
         if (b.puerta) paramsVuelo.append("puerta", b.puerta);
         if (b.espigon) paramsVuelo.append("espigon", b.espigon);
         if (b.tipoServicio) paramsVuelo.append("tipoServicio", b.tipoServicio);
-
         if (b.origen) paramsVuelo.append("origen", b.origen);
         if (b.destino) paramsVuelo.append("destino", b.destino);
 
         appendAccessKey_(paramsVuelo);
         paramsVuelo.append("cantPmr", String((b.pasajeros || []).length));
-
         const extraOD = (b.origen || b.destino) ? `OD:${b.origen || "-"}-${b.destino || "-"}` : "";
         const obsFinal = (b.obs ? (b.obs + " | ") : "") + (extraOD ? (extraOD + " | ") : "") + AIRLINE_TAG;
         paramsVuelo.append("observaciones", obsFinal);
-
-        // ✅ BAJA MASIVA (resetPax=1)
         paramsVuelo.append("resetPax", "1");
 
         const resVuelo = await fetch(API_URL + "?" + paramsVuelo.toString());
         const jsonVuelo = await resVuelo.json();
         if (!jsonVuelo.ok) throw new Error(jsonVuelo.error || "Error al actualizar vuelo");
 
-        // 2. DAR DE BAJA a todos los pasajeros actuales (Lote anterior)
-        // AHORA: Lo hacemos via Backend con resetPax=1 al actualizar el vuelo.
-        // Por seguridad, añadimos la key resetPax=1 al paramsVuelo arriba.
+        updateProgressBar(60);
+        setModalMsg(`Guardando pasajeros (${b.pasajeros.length})...`, "warn");
+        await apiCreatePasajerosBatch(b, vueloId);
 
-        // 3. CREAR todos los pasajeros del formulario como NUEVOS (Lote nuevo)
-        let totalPaxOk = 0;
-        for (let j = 0; j < b.pasajeros.length; j++) {
-          setModalMsg(`Creando pasajero nuevo ${j + 1}/${b.pasajeros.length}...`, "warn");
-          // Siempre crear nuevo
-          await apiCreatePasajero(b, vueloId, b.pasajeros[j]);
-          totalPaxOk++;
-        }
-
-        setModalMsg(`Actualización completada: Vuelo actualizado, Lote anterior dado de baja, ${totalPaxOk} nuevos creados.`, "ok");
+        updateProgressBar(100);
+        setModalMsg(`¡Actualización exitosa!`, "ok");
         await cargarDatos(true);
         setTimeout(() => {
           closeModal();
-          // Restaurar botón a estado original
           const submitBtn = document.getElementById('btn-submit-all');
           submitBtn.textContent = 'Guardar todo';
           submitBtn.onclick = submitAll;
         }, 1500);
 
-
       } catch (err) {
         console.error(err);
         setModalMsg("Error al actualizar: " + (err.message || err), "err");
         btn.disabled = false;
+        updateProgressBar(0, false);
       }
     }
 
@@ -2265,6 +2243,7 @@
       const btn = document.getElementById("btn-submit-all");
       btn.disabled = true;
       setModalMsg("Validando formulario...", "warn");
+      updateProgressBar(10);
 
       try {
         const cards = Array.from(document.querySelectorAll(".flight-card"));
@@ -2278,6 +2257,7 @@
         if (errors.length) {
           setModalMsg(errors.join(" · "), "err");
           btn.disabled = false;
+          updateProgressBar(0, false);
           return;
         }
 
@@ -2286,29 +2266,36 @@
 
         for (let i = 0; i < bloques.length; i++) {
           const b = bloques[i];
-          setModalMsg(`Guardando Vuelo #${i + 1} (${b.numeroVuelo} ${b.fecha})...`, "warn");
+          const stepBase = (i / bloques.length) * 80 + 10;
+          updateProgressBar(stepBase);
+          setModalMsg(`Guardando Vuelo #${i + 1} (${b.numeroVuelo})...`, "warn");
 
           const vueloResp = await apiCreateVuelo(b);
           const idVuelo = vueloResp.idVuelo || vueloResp.id_vuelo || vueloResp.vueloId || "";
           if (!idVuelo) throw new Error(`No se recibió idVuelo al crear el Vuelo #${i + 1}.`);
 
           totalVuelosOk++;
+          updateProgressBar(stepBase + (10 / bloques.length));
+          setModalMsg(`Guardando pasajeros para Vuelo #${i + 1}...`, "warn");
 
-          for (let j = 0; j < b.pasajeros.length; j++) {
-            setModalMsg(`Guardando Vuelo #${i + 1}: pasajero ${j + 1}/${b.pasajeros.length}...`, "warn");
-            await apiCreatePasajero(b, idVuelo, b.pasajeros[j]);
-            totalPaxOk++;
-          }
+          await apiCreatePasajerosBatch(b, idVuelo);
+          totalPaxOk += b.pasajeros.length;
         }
 
-        setModalMsg(`Guardado completado: Vuelos OK=${totalVuelosOk}, Pasajeros OK=${totalPaxOk}.`, "ok");
+        updateProgressBar(100);
+        setModalMsg(`¡Guardado exitoso! (${totalVuelosOk} vuelos, ${totalPaxOk} pasajeros)`, "ok");
         await cargarDatos(true);
-        setTimeout(() => closeModal(), 700);
+        setTimeout(() => closeModal(), 1500);
 
       } catch (err) {
         console.error(err);
-        setModalMsg("Error al guardar: " + (err.message || err), "err");
+        let msg = err.message || err;
+        if (msg.includes("Ya existe un vuelo")) {
+          msg = "Error: El vuelo ya existe para esta fecha. Cambia el número de vuelo o edita el existente.";
+        }
+        setModalMsg(msg, "err");
         btn.disabled = false;
+        updateProgressBar(0, false);
       }
     }
 
