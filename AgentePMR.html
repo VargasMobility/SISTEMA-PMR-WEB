@@ -1,619 +1,729 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <title>Panel Agente PMR</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    :root{
+    :root {
       color-scheme: light;
 
       /* Base */
-      --bg:#f3f4f6;
-      --surface:#ffffff;
-      --surface-2:#f9fafb;
-      --text:#111827;
-      --muted:#6b7280;
-      --muted-2:#9ca3af;
-      --border:#e5e7eb;
-      --border-2:#d1d5db;
+      --bg: #f3f4f6;
+      --surface: #ffffff;
+      --surface-2: #f9fafb;
+      --text: #111827;
+      --muted: #6b7280;
+      --muted-2: #9ca3af;
+      --border: #e5e7eb;
+      --border-2: #d1d5db;
 
       /* Accento (suave) */
-      --accent:#1d4ed8;
+      --accent: #1d4ed8;
 
       /* Estados */
-      --ok:#16a34a;
-      --warn:#f59e0b;
-      --danger:#dc2626;
+      --ok: #16a34a;
+      --warn: #f59e0b;
+      --danger: #dc2626;
 
       /* Sombras */
-      --shadow:0 10px 30px rgba(0,0,0,.08);
-      --shadow-strong:0 18px 45px rgba(0,0,0,.12);
+      --shadow: 0 10px 30px rgba(0, 0, 0, .08);
+      --shadow-strong: 0 18px 45px rgba(0, 0, 0, .12);
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
-    body{
-      margin:0;
+    body {
+      margin: 0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: linear-gradient(180deg, #f9fafb 0%, var(--bg) 100%);
       color: var(--text);
     }
 
     /* TOPBAR */
-    .topbar{
+    .topbar {
       padding: 10px 14px;
       background: linear-gradient(90deg, #ffffff, #f3f4f6);
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      font-size:14px;
-      border-bottom:1px solid var(--border);
-      box-shadow: 0 6px 18px rgba(0,0,0,.08);
-      gap:10px;
-      flex-wrap:wrap;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, .08);
+      gap: 10px;
+      flex-wrap: wrap;
     }
-    .topbar-title{
-      font-weight:700;
-      letter-spacing:0.02em;
-      display:flex;
-      flex-direction:column;
-      gap:2px;
+
+    .topbar-title {
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
-    .topbar-sub{
-      font-size:11px;
+
+    .topbar-sub {
+      font-size: 11px;
       color: var(--muted);
-      opacity:1;
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:wrap;
+      opacity: 1;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
     }
-    .topbar-sub .chip{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:2px 8px;
-      border-radius:999px;
-      border:1px solid var(--border-2);
+
+    .topbar-sub .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border-2);
       background: var(--surface);
       color: var(--text);
-      white-space:nowrap;
+      white-space: nowrap;
     }
-    .topbar-sub .chip.warn{
-      border-color: rgba(245,158,11,0.55);
-      background: rgba(245,158,11,0.12);
-      color:#92400e;
-      font-weight:800;
+
+    .topbar-sub .chip.warn {
+      border-color: rgba(245, 158, 11, 0.55);
+      background: rgba(245, 158, 11, 0.12);
+      color: #92400e;
+      font-weight: 800;
     }
-    .topbar-sub .chip .dot{
-      width:8px;height:8px;border-radius:999px;
+
+    .topbar-sub .chip .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
       background: var(--accent);
-      box-shadow: 0 0 10px rgba(29,78,216,0.22);
+      box-shadow: 0 0 10px rgba(29, 78, 216, 0.22);
     }
-    .topbar-sub .chip.warn .dot{
+
+    .topbar-sub .chip.warn .dot {
       background: var(--warn);
-      box-shadow: 0 0 10px rgba(245,158,11,0.22);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.22);
     }
 
-    .badge{
-      padding:2px 8px;
-      border-radius:999px;
-      font-size:11px;
-      border:1px solid var(--border-2);
-      display:flex;
-      align-items:center;
-      gap:6px;
+    .badge {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      border: 1px solid var(--border-2);
+      display: flex;
+      align-items: center;
+      gap: 6px;
       background: var(--surface);
-      white-space:nowrap;
+      white-space: nowrap;
       color: var(--text);
     }
-    .badge-dot{
-      width:8px;height:8px;border-radius:999px;
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
       background: var(--accent);
-      box-shadow: 0 0 10px rgba(29,78,216,0.18);
-    }
-    .badge-dot.error{
-      background: #ef4444;
-      box-shadow: 0 0 10px rgba(239,68,68,0.25);
+      box-shadow: 0 0 10px rgba(29, 78, 216, 0.18);
     }
 
-    .container{
-      padding:12px;
-      max-width:560px;
-      margin:0 auto;
+    .badge-dot.error {
+      background: #ef4444;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+    }
+
+    .container {
+      padding: 12px;
+      max-width: 560px;
+      margin: 0 auto;
     }
 
     /* CARDS */
-    .card{
+    .card {
       background: var(--surface);
-      border-radius:18px;
-      border:1px solid var(--border);
-      padding:14px;
-      margin-bottom:12px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      padding: 14px;
+      margin-bottom: 12px;
       box-shadow: var(--shadow);
     }
-    .card-header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-bottom:8px;
-      font-size:13px;
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 13px;
       color: var(--muted);
-      gap:10px;
-      flex-wrap:wrap;
+      gap: 10px;
+      flex-wrap: wrap;
     }
-    .card-title{
-      font-size:15px;
-      font-weight:800;
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 800;
       color: var(--text);
     }
-    .pill{
-      padding:2px 8px;
-      border-radius:999px;
-      font-size:11px;
-      border:1px solid var(--border-2);
+
+    .pill {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      border: 1px solid var(--border-2);
       color: var(--text);
       background: var(--surface-2);
     }
 
     /* FORM */
-    label{ display:block; margin-bottom:6px; font-size:13px; color: var(--text); }
-    input, select{
-      width:100%;
-      padding:8px 10px;
-      border-radius:10px;
-      border:1px solid var(--border-2);
-      background: var(--surface);
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
       color: var(--text);
-      font-size:13px;
-      margin-top:2px;
-      outline:none;
-    }
-    input:focus, select:focus{
-      border-color: rgba(29,78,216,0.55);
-      box-shadow: 0 0 0 3px rgba(29,78,216,0.12);
     }
 
-    textarea{
-      width:100%;
-      padding:8px 10px;
-      border-radius:10px;
-      border:1px solid var(--border-2);
+    input,
+    select {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border-2);
       background: var(--surface);
       color: var(--text);
-      font-size:13px;
-      margin-top:2px;
-      resize:vertical;
-      min-height:52px;
-      outline:none;
+      font-size: 13px;
+      margin-top: 2px;
+      outline: none;
     }
-    textarea:focus{
-      border-color: rgba(29,78,216,0.55);
-      box-shadow: 0 0 0 3px rgba(29,78,216,0.12);
+
+    input:focus,
+    select:focus {
+      border-color: rgba(29, 78, 216, 0.55);
+      box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+    }
+
+    textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border-2);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 13px;
+      margin-top: 2px;
+      resize: vertical;
+      min-height: 52px;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: rgba(29, 78, 216, 0.55);
+      box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
     }
 
     /* BUTTONS (gris/white theme) */
-    .btn{
-      border:none;
-      border-radius:999px;
-      padding:9px 14px;
-      font-size:13px;
-      cursor:pointer;
-      background: linear-gradient(135deg,#111827,#374151);
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #111827, #374151);
       color: #ffffff;
-      font-weight:700;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:6px;
-      margin-top:8px;
-      width:100%;
-      user-select:none;
-      box-shadow: 0 10px 18px rgba(17,24,39,0.18);
-    }
-    .btn:disabled{
-      opacity:0.65;
-      cursor:not-allowed;
-      filter:saturate(0.7);
-      box-shadow:none;
-    }
-    .btn.secondary{
-      background: var(--surface);
-      color: var(--text);
-      border:1px solid var(--border-2);
-      width:auto;
-      box-shadow:none;
-    }
-    .btn.danger{
-      background: linear-gradient(135deg,#ef4444,#b91c1c);
-      color:#ffffff;
-      box-shadow: 0 10px 18px rgba(185,28,28,0.18);
-    }
-    .btn.warning{
-      background: linear-gradient(135deg,#f97316,#f59e0b);
-      color:#111827;
-      box-shadow: 0 10px 18px rgba(245,158,11,0.18);
-    }
-    .btn.small{
-      padding:5px 10px;
-      font-size:12px;
-      width:auto;
-      margin-top:0;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 8px;
+      width: 100%;
+      user-select: none;
+      box-shadow: 0 10px 18px rgba(17, 24, 39, 0.18);
     }
 
-    .msg{
-      font-size:12px;
-      margin-top:6px;
-      min-height:16px;
-      color: var(--text);
-      white-space:pre-wrap;
+    .btn:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      filter: saturate(0.7);
+      box-shadow: none;
     }
-    .msg.err { color:#b91c1c; }
-    .msg.ok  { color:#166534; }
-    .msg.warn{ color:#92400e; }
+
+    .btn.secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border-2);
+      width: auto;
+      box-shadow: none;
+    }
+
+    .btn.danger {
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      color: #ffffff;
+      box-shadow: 0 10px 18px rgba(185, 28, 28, 0.18);
+    }
+
+    .btn.warning {
+      background: linear-gradient(135deg, #f97316, #f59e0b);
+      color: #111827;
+      box-shadow: 0 10px 18px rgba(245, 158, 11, 0.18);
+    }
+
+    .btn.small {
+      padding: 5px 10px;
+      font-size: 12px;
+      width: auto;
+      margin-top: 0;
+    }
+
+    .msg {
+      font-size: 12px;
+      margin-top: 6px;
+      min-height: 16px;
+      color: var(--text);
+      white-space: pre-wrap;
+    }
+
+    .msg.err {
+      color: #b91c1c;
+    }
+
+    .msg.ok {
+      color: #166534;
+    }
+
+    .msg.warn {
+      color: #92400e;
+    }
 
     /* Tabs */
-    .tabs{
-      display:flex;
-      gap:6px;
-      margin-bottom:8px;
-      flex-wrap:wrap;
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
     }
-    .tab-btn{
-      flex:1;
-      min-width:120px;
-      border:none;
-      border-radius:999px;
-      padding:6px 8px;
-      font-size:12px;
+
+    .tab-btn {
+      flex: 1;
+      min-width: 120px;
+      border: none;
+      border-radius: 999px;
+      padding: 6px 8px;
+      font-size: 12px;
       background: var(--surface);
       color: var(--text);
-      border:1px solid var(--border-2);
-      cursor:pointer;
+      border: 1px solid var(--border-2);
+      cursor: pointer;
     }
-    .tab-btn.active{
+
+    .tab-btn.active {
       background: #111827;
       color: #ffffff;
-      border-color:#111827;
-      font-weight:800;
-      box-shadow: 0 10px 18px rgba(17,24,39,0.14);
+      border-color: #111827;
+      font-weight: 800;
+      box-shadow: 0 10px 18px rgba(17, 24, 39, 0.14);
     }
 
-    .section{ display:none; margin-top:6px; }
-    .section.active{ display:block; }
+    .section {
+      display: none;
+      margin-top: 6px;
+    }
+
+    .section.active {
+      display: block;
+    }
 
     /* Asignaciones cards */
-    .asignacion-card{
-      border-radius:14px;
-      border:1px solid var(--border);
-      padding:10px;
-      margin-bottom:10px;
+    .asignacion-card {
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 10px;
+      margin-bottom: 10px;
       background: var(--surface-2);
     }
-    .asignacion-header{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      font-size:12px;
-      margin-bottom:4px;
-      gap:6px;
-      flex-wrap:wrap;
+
+    .asignacion-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      margin-bottom: 4px;
+      gap: 6px;
+      flex-wrap: wrap;
       color: var(--text);
     }
-    .asignacion-body{
-      font-size:12px;
+
+    .asignacion-body {
+      font-size: 12px;
       color: var(--muted);
-      margin-bottom:6px;
-    }
-    .asignacion-footer{
-      display:flex;
-      gap:6px;
-      flex-wrap:wrap;
-      align-items:center;
+      margin-bottom: 6px;
     }
 
-    .pill-state{
-      border-radius:999px;
-      padding:2px 7px;
-      font-size:11px;
-      border:1px solid var(--border-2);
+    .asignacion-footer {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .pill-state {
+      border-radius: 999px;
+      padding: 2px 7px;
+      font-size: 11px;
+      border: 1px solid var(--border-2);
       background: var(--surface);
-      white-space:nowrap;
+      white-space: nowrap;
       color: var(--text);
     }
-    .pill-asignacion{
-      border-color: rgba(245,158,11,0.55);
-      background: rgba(245,158,11,0.12);
-      color:#92400e;
-    }
-    .pill-aceptada{
-      border-color: rgba(29,78,216,0.55);
-      background: rgba(29,78,216,0.10);
-      color:#1d4ed8;
-    }
-    .pill-transito{
-      border-color: rgba(22,163,74,0.55);
-      background: rgba(22,163,74,0.10);
-      color:#166534;
-    }
-    .pill-terminado{
-      border-color: rgba(107,114,128,0.55);
-      background: rgba(107,114,128,0.10);
-      color:#374151;
+
+    .pill-asignacion {
+      border-color: rgba(245, 158, 11, 0.55);
+      background: rgba(245, 158, 11, 0.12);
+      color: #92400e;
     }
 
-    .warning-limit{
-      margin-top:4px;
-      padding:6px 8px;
-      border-radius:10px;
-      font-size:13px;
-      font-weight:800;
-      background: rgba(245,158,11,0.12);
-      border:1px solid rgba(245,158,11,0.55);
-      color:#92400e;
+    .pill-aceptada {
+      border-color: rgba(29, 78, 216, 0.55);
+      background: rgba(29, 78, 216, 0.10);
+      color: #1d4ed8;
     }
 
-    .expire-box{
-      margin-top:6px;
-      padding:6px 8px;
-      border-radius:10px;
-      font-size:12px;
-      border:1px solid rgba(245,158,11,0.55);
-      background: rgba(245,158,11,0.10);
-      color:#92400e;
+    .pill-transito {
+      border-color: rgba(22, 163, 74, 0.55);
+      background: rgba(22, 163, 74, 0.10);
+      color: #166534;
     }
-    .expire-box.critical{
-      border-color: rgba(220,38,38,0.60);
-      background: rgba(220,38,38,0.10);
-      color:#991b1b;
-      font-weight:800;
+
+    .pill-terminado {
+      border-color: rgba(107, 114, 128, 0.55);
+      background: rgba(107, 114, 128, 0.10);
+      color: #374151;
+    }
+
+    .warning-limit {
+      margin-top: 4px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 800;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.55);
+      color: #92400e;
+    }
+
+    .expire-box {
+      margin-top: 6px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      font-size: 12px;
+      border: 1px solid rgba(245, 158, 11, 0.55);
+      background: rgba(245, 158, 11, 0.10);
+      color: #92400e;
+    }
+
+    .expire-box.critical {
+      border-color: rgba(220, 38, 38, 0.60);
+      background: rgba(220, 38, 38, 0.10);
+      color: #991b1b;
+      font-weight: 800;
     }
 
     /* Historial */
-    .hist-card{
-      border-radius:12px;
-      border:1px solid var(--border);
-      padding:8px;
-      margin-bottom:8px;
+    .hist-card {
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 8px;
+      margin-bottom: 8px;
       background: var(--surface);
-      font-size:12px;
+      font-size: 12px;
       color: var(--text);
     }
 
     /* Panel refresco */
-    .refresh-panel{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:8px;
-      font-size:11px;
-      margin-bottom:8px;
-      padding:6px 10px;
-      border-radius:999px;
+    .refresh-panel {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 11px;
+      margin-bottom: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
       background: var(--surface);
-      border:1px solid var(--border-2);
-      flex-wrap:wrap;
+      border: 1px solid var(--border-2);
+      flex-wrap: wrap;
     }
-    .refresh-countdown{ display:none; color: var(--text); }
-    .refresh-countdown strong{ color:#b45309; }
 
-    /* Loading overlay login */
-    .loading-overlay{
-      position:fixed;
-      inset:0;
-      background: rgba(17,24,39,0.35);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      z-index:50;
-      backdrop-filter: blur(2px);
-    }
-    .loading-box{
-      background: var(--surface);
-      border-radius:14px;
-      padding:16px 18px;
-      border:1px solid var(--border);
-      width:280px;
-      text-align:center;
-      box-shadow: var(--shadow-strong);
-      font-size:13px;
+    .refresh-countdown {
+      display: none;
       color: var(--text);
     }
-    .loading-bar{
-      width:100%;
-      height:6px;
-      border-radius:999px;
-      background: var(--surface-2);
-      border:1px solid var(--border-2);
-      overflow:hidden;
-      margin-top:8px;
+
+    .refresh-countdown strong {
+      color: #b45309;
     }
-    .loading-bar-inner{
-      height:100%;
-      width:0%;
-      background: linear-gradient(90deg,#111827,#6b7280,#e5e7eb);
+
+    /* Loading overlay login */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 24, 39, 0.35);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      backdrop-filter: blur(2px);
+    }
+
+    .loading-box {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 16px 18px;
+      border: 1px solid var(--border);
+      width: 280px;
+      text-align: center;
+      box-shadow: var(--shadow-strong);
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .loading-bar {
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-2);
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .loading-bar-inner {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #111827, #6b7280, #e5e7eb);
       transition: width 3s linear;
     }
 
     /* Modal descanso */
-    .modal-overlay{
-      position:fixed;
-      inset:0;
-      background: rgba(17,24,39,0.35);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      z-index:60;
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 24, 39, 0.35);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 60;
       backdrop-filter: blur(4px);
     }
-    .modal{
-      width:min(520px, calc(100vw - 24px));
-      border-radius:18px;
-      border:1px solid rgba(245,158,11,0.45);
+
+    .modal {
+      width: min(520px, calc(100vw - 24px));
+      border-radius: 18px;
+      border: 1px solid rgba(245, 158, 11, 0.45);
       background: var(--surface);
       box-shadow: var(--shadow-strong);
-      overflow:hidden;
+      overflow: hidden;
       color: var(--text);
     }
-    .modal-head{
-      padding:12px 14px;
-      background: linear-gradient(90deg, rgba(245,158,11,0.12), rgba(107,114,128,0.10));
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      border-bottom:1px solid var(--border);
+
+    .modal-head {
+      padding: 12px 14px;
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.12), rgba(107, 114, 128, 0.10));
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
     }
-    .modal-title{
-      font-weight:900;
-      letter-spacing:0.02em;
-      display:flex;
-      align-items:center;
-      gap:8px;
+
+    .modal-title {
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-    .modal-title .ico{
-      width:28px;height:28px;border-radius:10px;
-      display:inline-flex;align-items:center;justify-content:center;
-      background: rgba(245,158,11,0.12);
-      border:1px solid rgba(245,158,11,0.35);
-      color:#92400e;
-      font-weight:900;
+
+    .modal-title .ico {
+      width: 28px;
+      height: 28px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #92400e;
+      font-weight: 900;
     }
-    .modal-body{
-      padding:14px;
+
+    .modal-body {
+      padding: 14px;
       color: var(--text);
-      font-size:13px;
-      line-height:1.4;
+      font-size: 13px;
+      line-height: 1.4;
     }
-    .modal-kpi{
-      margin-top:10px;
-      border-radius:14px;
-      border:1px solid rgba(245,158,11,0.35);
-      background: rgba(245,158,11,0.10);
-      padding:10px 12px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      flex-wrap:wrap;
+
+    .modal-kpi {
+      margin-top: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      background: rgba(245, 158, 11, 0.10);
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
     }
-    .modal-kpi b { color:#92400e; }
-    .modal-kpi .time{
-      font-size:22px;
-      font-weight:900;
-      letter-spacing:0.04em;
-      color:#92400e;
-      text-shadow:none;
+
+    .modal-kpi b {
+      color: #92400e;
     }
-    .modal-actions{
-      padding:12px 14px;
-      display:flex;
-      gap:10px;
-      justify-content:flex-end;
-      border-top:1px solid var(--border);
+
+    .modal-kpi .time {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      color: #92400e;
+      text-shadow: none;
+    }
+
+    .modal-actions {
+      padding: 12px 14px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      border-top: 1px solid var(--border);
       background: var(--surface-2);
     }
-    .modal-actions .btn{ width:auto; margin-top:0; }
+
+    .modal-actions .btn {
+      width: auto;
+      margin-top: 0;
+    }
 
     /* Config */
-    .config-info{
-      font-size:12px;
+    .config-info {
+      font-size: 12px;
       color: var(--text);
-      margin-bottom:8px;
-      border-radius:10px;
+      margin-bottom: 8px;
+      border-radius: 10px;
       background: var(--surface);
-      padding:8px;
-      border:1px solid var(--border);
+      padding: 8px;
+      border: 1px solid var(--border);
     }
 
-    .hint{
-      font-size:11px;
+    .hint {
+      font-size: 11px;
       color: var(--muted);
-      margin-top:4px;
-      line-height:1.35;
-    }
-    .mono{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size:11px;
+      margin-top: 4px;
+      line-height: 1.35;
     }
 
-    
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 11px;
+    }
+
+
     /* =========================
        BULK POR VUELO (UI)
        ========================= */
-    .vuelo-group{
+    .vuelo-group {
       background: var(--surface);
     }
-    .vuelo-group.paused{
-      opacity:0.92;
-      border-color: rgba(245,158,11,0.55);
-      box-shadow: 0 10px 30px rgba(245,158,11,0.10);
-    }
-    .vuelo-group .group-meta{
-      font-size:11px;
-      color: var(--muted);
-      margin-top:2px;
-      line-height:1.35;
-    }
-    .group-actions{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      margin-top:8px;
-      align-items:center;
-    }
-    .group-actions .btn{
-      width:auto;
-      margin-top:0;
-    }
-    .chk-row{
-      display:flex;
-      gap:10px;
-      padding:8px 2px;
-      border-top:1px dashed var(--border);
-      align-items:flex-start;
-    }
-    .chk-row:first-child{ border-top:none; }
-    .chk-row input[type="checkbox"]{
-      width:18px;
-      height:18px;
-      margin-top:2px;
-      accent-color: var(--accent);
-    }
-    .chk-info{
-      flex:1;
-      min-width:0;
-    }
-    .chk-title{
-      display:flex;
-      justify-content:space-between;
-      gap:10px;
-      align-items:flex-start;
-      flex-wrap:wrap;
-      font-size:12px;
-      color: var(--text);
-    }
-    .chk-sub{
-      margin-top:2px;
-      font-size:11px;
-      color: var(--muted);
-      line-height:1.35;
-    }
-    .pill-paused{
-      border-color: rgba(245,158,11,0.55);
-      background: rgba(245,158,11,0.12);
-      color:#92400e;
-      font-weight:900;
+
+    .vuelo-group.paused {
+      opacity: 0.92;
+      border-color: rgba(245, 158, 11, 0.55);
+      box-shadow: 0 10px 30px rgba(245, 158, 11, 0.10);
     }
 
-@media (max-width:600px){
-      .container{ padding:8px; }
-      .card{ border-radius:16px; }
-      .topbar{ gap:8px; }
+    .vuelo-group .group-meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+      line-height: 1.35;
+    }
+
+    .group-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+      align-items: center;
+    }
+
+    .group-actions .btn {
+      width: auto;
+      margin-top: 0;
+    }
+
+    .chk-row {
+      display: flex;
+      gap: 10px;
+      padding: 8px 2px;
+      border-top: 1px dashed var(--border);
+      align-items: flex-start;
+    }
+
+    .chk-row:first-child {
+      border-top: none;
+    }
+
+    .chk-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      accent-color: var(--accent);
+    }
+
+    .chk-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .chk-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .chk-sub {
+      margin-top: 2px;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .pill-paused {
+      border-color: rgba(245, 158, 11, 0.55);
+      background: rgba(245, 158, 11, 0.12);
+      color: #92400e;
+      font-weight: 900;
+    }
+
+    @media (max-width:600px) {
+      .container {
+        padding: 8px;
+      }
+
+      .card {
+        border-radius: 16px;
+      }
+
+      .topbar {
+        gap: 8px;
+      }
     }
   </style>
 </head>
+
 <body>
   <div class="topbar">
     <div class="topbar-title">
@@ -636,7 +746,8 @@
   <div class="loading-overlay" id="login-loading">
     <div class="loading-box">
       <div id="loading-title">Conectando con el sistema PMR...</div>
-      <div style="font-size:11px;color:#6b7280;margin-top:2px;" id="loading-sub">Validando tus datos y marcando disponibilidad</div>
+      <div style="font-size:11px;color:#6b7280;margin-top:2px;" id="loading-sub">Validando tus datos y marcando
+        disponibilidad</div>
       <div class="loading-bar">
         <div class="loading-bar-inner" id="loading-bar-inner"></div>
       </div>
@@ -655,7 +766,8 @@
       </div>
       <div class="modal-body">
         <div id="descanso-text">
-          Tienes <b>45 minutos</b>. Durante este periodo quedas temporalmente <b>No Disponible</b> para nuevas asignaciones.
+          Tienes <b>45 minutos</b>. Durante este periodo quedas temporalmente <b>No Disponible</b> para nuevas
+          asignaciones.
         </div>
 
         <div class="modal-kpi">
@@ -694,7 +806,8 @@
       </label>
       <div class="hint">
         Tip: puedes escribirlo con o sin puntos; se normaliza automáticamente.<br>
-        Nota: si en tu hoja tienes RUTs de prueba tipo <span class="mono">258752440-10</span>, acá igual te dejará entrar (sin validar DV estricto).
+        Nota: si en tu hoja tienes RUTs de prueba tipo <span class="mono">258752440-10</span>, acá igual te dejará
+        entrar (sin validar DV estricto).
       </div>
 
       <label>Ubicación actual
@@ -706,7 +819,8 @@
       </label>
 
       <button class="btn" id="btn-login-agente">Ingresar y marcar Disponible</button>
-      <button class="btn secondary" id="btn-autologin" style="display:none;margin-top:8px;width:100%;">Reingresar con mi última sesión</button>
+      <button class="btn secondary" id="btn-autologin" style="display:none;margin-top:8px;width:100%;">Reingresar con mi
+        última sesión</button>
 
       <div class="msg" id="msg-login-agente"></div>
     </div>
@@ -806,7 +920,7 @@
       el.className = "msg" + (type ? (" " + type) : "");
     }
 
-    function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
     async function fetchJson(url, { timeoutMs = 20000 } = {}) {
       const ctrl = new AbortController();
@@ -888,6 +1002,7 @@
     let cacheAsignaciones = [];
     let cachePasajeros = [];
     let cacheVuelos = [];
+    let cacheAgentes = [];
     /* =========================
        BULK UI (LOCAL): Selección por vuelo + Pausa UI
        ========================= */
@@ -901,23 +1016,23 @@
         const obj = JSON.parse(raw);
         if (obj && typeof obj === "object") {
           bulkUi.selectedByVuelo = (obj.selectedByVuelo && typeof obj.selectedByVuelo === "object") ? obj.selectedByVuelo : {};
-          bulkUi.pausedVuelos    = (obj.pausedVuelos    && typeof obj.pausedVuelos    === "object") ? obj.pausedVuelos    : {};
+          bulkUi.pausedVuelos = (obj.pausedVuelos && typeof obj.pausedVuelos === "object") ? obj.pausedVuelos : {};
         }
-      } catch (_) {}
+      } catch (_) { }
     }
 
     function saveBulkUi_() {
-      try { localStorage.setItem(LS_KEY_BULK_UI, JSON.stringify(bulkUi)); } catch (_) {}
+      try { localStorage.setItem(LS_KEY_BULK_UI, JSON.stringify(bulkUi)); } catch (_) { }
     }
 
-    function vueloKey_(idVuelo){ return String(idVuelo ?? ""); }
+    function vueloKey_(idVuelo) { return String(idVuelo ?? ""); }
 
-    function isVueloPausadoUI_(idVuelo){
+    function isVueloPausadoUI_(idVuelo) {
       const k = vueloKey_(idVuelo);
       return !!(bulkUi.pausedVuelos && bulkUi.pausedVuelos[k]);
     }
 
-    function toggleVueloPausadoUI_(idVuelo){
+    function toggleVueloPausadoUI_(idVuelo) {
       const k = vueloKey_(idVuelo);
       bulkUi.pausedVuelos = bulkUi.pausedVuelos || {};
       bulkUi.pausedVuelos[k] = !bulkUi.pausedVuelos[k];
@@ -925,7 +1040,7 @@
       renderAsignacionesAgente();
     }
 
-    function ensureVueloSelection_(idVuelo, asignaciones){
+    function ensureVueloSelection_(idVuelo, asignaciones) {
       const k = vueloKey_(idVuelo);
       bulkUi.selectedByVuelo = bulkUi.selectedByVuelo || {};
       const map = (bulkUi.selectedByVuelo[k] && typeof bulkUi.selectedByVuelo[k] === "object") ? bulkUi.selectedByVuelo[k] : {};
@@ -942,7 +1057,7 @@
       return map;
     }
 
-    function setSeleccionAsig_(idVuelo, idAsignacion, checked){
+    function setSeleccionAsig_(idVuelo, idAsignacion, checked) {
       const k = vueloKey_(idVuelo);
       const idA = String(idAsignacion ?? "");
       if (!idA) return;
@@ -954,7 +1069,7 @@
       saveBulkUi_();
     }
 
-    function getSelectedIdsVuelo_(idVuelo, asignaciones){
+    function getSelectedIdsVuelo_(idVuelo, asignaciones) {
       const map = ensureVueloSelection_(idVuelo, asignaciones);
       const out = new Set();
       (asignaciones || []).forEach(a => {
@@ -965,11 +1080,11 @@
       return out;
     }
 
-    function isPendienteAceptar_(estadoN){ return (estadoN === "en asignacion" || estadoN === "en espera"); }
-    function isAceptada_(estadoN){ return (estadoN === "aceptada"); }
-    function isEnTransito_(estadoN){ return (estadoN === "en transito"); }
+    function isPendienteAceptar_(estadoN) { return (estadoN === "en asignacion" || estadoN === "en espera"); }
+    function isAceptada_(estadoN) { return (estadoN === "aceptada"); }
+    function isEnTransito_(estadoN) { return (estadoN === "en transito"); }
 
-    function computeExpiryVuelo_(asigsPendAceptar){
+    function computeExpiryVuelo_(asigsPendAceptar) {
       const list = (asigsPendAceptar || []).slice();
       if (!list.length) return null;
 
@@ -995,11 +1110,11 @@
       return exp;
     }
 
-    function msgOpsVuelo_(idVuelo){
+    function msgOpsVuelo_(idVuelo) {
       return document.getElementById(`msg-ops-vuelo-${vueloKey_(idVuelo)}`);
     }
 
-    function setBusyVuelo_(idVuelo, busy){
+    function setBusyVuelo_(idVuelo, busy) {
       const k = vueloKey_(idVuelo);
       const ids = [
         `btn-accept-vuelo-${k}`,
@@ -1013,13 +1128,13 @@
       });
     }
 
-    function getPendientesVuelo_(idVuelo){
+    function getPendientesVuelo_(idVuelo) {
       const k = vueloKey_(idVuelo);
       const propias = cacheAsignaciones.filter(a => String(a.idAgente) === String(idAgenteLogueado));
       return propias.filter(a => String(a.idVuelo) === k && !esEstadoCerrado_(a.estadoAsignacion));
     }
 
-    async function accionAceptarVueloTodos_(idVuelo){
+    async function accionAceptarVueloTodos_(idVuelo) {
       const k = vueloKey_(idVuelo);
       const el = msgOpsVuelo_(k);
 
@@ -1062,7 +1177,7 @@ Pendientes: ${toAccept.length}`)) return;
       }
     }
 
-    async function accionIniciarVueloSeleccionados_(idVuelo){
+    async function accionIniciarVueloSeleccionados_(idVuelo) {
       const k = vueloKey_(idVuelo);
       const el = msgOpsVuelo_(k);
 
@@ -1111,7 +1226,7 @@ Seleccionados a iniciar: ${toStart.length}`)) return;
       }
     }
 
-    async function accionTerminarVueloSeleccionados_(idVuelo){
+    async function accionTerminarVueloSeleccionados_(idVuelo) {
       const k = vueloKey_(idVuelo);
       const el = msgOpsVuelo_(k);
 
@@ -1205,28 +1320,28 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
     let expireTicker = null;
 
     const estadoApiBadge = document.getElementById("estado-api-agente");
-    const estadoDot      = document.getElementById("estado-dot");
-    const estadoApiText  = document.getElementById("estado-api-text");
+    const estadoDot = document.getElementById("estado-dot");
+    const estadoApiText = document.getElementById("estado-api-text");
 
-    function setEstadoApi(texto, ok=true){
+    function setEstadoApi(texto, ok = true) {
       if (!estadoApiBadge) return;
       estadoApiText.textContent = texto;
       if (estadoDot) {
         if (ok) estadoDot.classList.remove("error");
-        else    estadoDot.classList.add("error");
+        else estadoDot.classList.add("error");
       }
     }
 
     function formatearHora(horaRaw) {
       if (!horaRaw) return "";
       if (horaRaw instanceof Date) {
-        const hh = String(horaRaw.getHours()).padStart(2,"0");
-        const mm = String(horaRaw.getMinutes()).padStart(2,"0");
+        const hh = String(horaRaw.getHours()).padStart(2, "0");
+        const mm = String(horaRaw.getMinutes()).padStart(2, "0");
         return `${hh}:${mm}`;
       }
       const s = String(horaRaw);
       const m = s.match(/(\d{1,2}):(\d{2})/);
-      if (m) return `${m[1].padStart(2,"0")}:${m[2]}`;
+      if (m) return `${m[1].padStart(2, "0")}:${m[2]}`;
       return s;
     }
 
@@ -1237,12 +1352,12 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
       if (s.includes("T")) {
         const only = s.split("T")[0];
         const mIso = only.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if (mIso) return new Date(parseInt(mIso[1],10), parseInt(mIso[2],10)-1, parseInt(mIso[3],10));
+        if (mIso) return new Date(parseInt(mIso[1], 10), parseInt(mIso[2], 10) - 1, parseInt(mIso[3], 10));
       }
       let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-      if (m) return new Date(parseInt(m[3],10), parseInt(m[2],10)-1, parseInt(m[1],10));
+      if (m) return new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
       m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-      if (m) return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
+      if (m) return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
       const d = new Date(s);
       if (!isNaN(d)) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
       return null;
@@ -1303,10 +1418,10 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
           ts: Date.now()
         };
         localStorage.setItem(LS_KEY_SESSION, JSON.stringify(payload));
-      } catch (_) {}
+      } catch (_) { }
     }
     function clearSession() {
-      try { localStorage.removeItem(LS_KEY_SESSION); } catch(_) {}
+      try { localStorage.removeItem(LS_KEY_SESSION); } catch (_) { }
     }
     function getSession() {
       try {
@@ -1322,8 +1437,8 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
     }
     function formatMMSS_(ms) {
       const s = Math.max(0, Math.ceil(ms / 1000));
-      const mm = String(Math.floor(s / 60)).padStart(2,"0");
-      const ss = String(s % 60).padStart(2,"0");
+      const mm = String(Math.floor(s / 60)).padStart(2, "0");
+      const ss = String(s % 60).padStart(2, "0");
       return `${mm}:${ss}`;
     }
 
@@ -1405,7 +1520,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
     function buildUrl(action, params = {}) {
       const usp = new URLSearchParams();
       usp.append("action", action);
-      for (const [k,v] of Object.entries(params || {})) {
+      for (const [k, v] of Object.entries(params || {})) {
         if (v !== undefined && v !== null && String(v) !== "") usp.append(k, v);
       }
       return API_URL + "?" + usp.toString();
@@ -1434,7 +1549,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
       const hs = formatearHora(hora);
       const m = String(hs).match(/^(\d{1,2}):(\d{2})$/);
       if (!m) return null;
-      return new Date(fa.getFullYear(), fa.getMonth(), fa.getDate(), parseInt(m[1],10), parseInt(m[2],10), 0, 0);
+      return new Date(fa.getFullYear(), fa.getMonth(), fa.getDate(), parseInt(m[1], 10), parseInt(m[2], 10), 0, 0);
     }
     function getExpiryDate(asig) {
       if (asig && asig.fechaAsignacion && asig.horaExpiracion) {
@@ -1445,8 +1560,8 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
     }
     function fmtMmSs(ms) {
       const s = Math.max(0, Math.floor(ms / 1000));
-      const mm = String(Math.floor(s / 60)).padStart(2,"0");
-      const ss = String(s % 60).padStart(2,"0");
+      const mm = String(Math.floor(s / 60)).padStart(2, "0");
+      const ss = String(s % 60).padStart(2, "0");
       return `${mm}:${ss}`;
     }
 
@@ -1480,12 +1595,12 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
        LOGIN
        ========================= */
     async function intentarLogin({ silent = false } = {}) {
-      const inputRut  = document.getElementById("login-rut");
-      const selUbic   = document.getElementById("login-ubicacion");
-      const msg       = document.getElementById("msg-login-agente");
+      const inputRut = document.getElementById("login-rut");
+      const selUbic = document.getElementById("login-ubicacion");
+      const msg = document.getElementById("msg-login-agente");
       const cardLogin = document.getElementById("card-login");
-      const cardMain  = document.getElementById("card-main");
-      const titulo    = document.getElementById("titulo-agente");
+      const cardMain = document.getElementById("card-main");
+      const titulo = document.getElementById("titulo-agente");
       const subtitulo = document.getElementById("subtitulo-agente");
 
       if (!inputRut || !selUbic || !cardLogin || !cardMain) return;
@@ -1520,10 +1635,10 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
 
         if (!json.ok) throw new Error((json.error || "Error al iniciar sesión").toString());
 
-        idAgenteLogueado  = json.idAgente;
-        rutAgente         = rut;
-        nombreAgente      = json.nombre || ("Agente " + (json.idAgente || ""));
-        ubicacionAgente   = json.ubicacion || ubic;
+        idAgenteLogueado = json.idAgente;
+        rutAgente = rut;
+        nombreAgente = json.nombre || ("Agente " + (json.idAgente || ""));
+        ubicacionAgente = json.ubicacion || ubic;
         estadoServicioAgente = json.estadoServicio || "Disponible";
 
         // 👇 si backend entrega descansoHasta, lo usamos (mejor)
@@ -1537,10 +1652,10 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         }
 
         const cardLoginEl = document.getElementById("card-login");
-        const cardMainEl  = document.getElementById("card-main");
+        const cardMainEl = document.getElementById("card-main");
         cardLoginEl.style.display = "none";
-        cardMainEl.style.display  = "block";
-        if (titulo)    titulo.textContent    = nombreAgente;
+        cardMainEl.style.display = "block";
+        if (titulo) titulo.textContent = nombreAgente;
         if (subtitulo) subtitulo.textContent = `ID: ${idAgenteLogueado} · RUT: ${rutAgente} · Ubicación: ${ubicacionAgente}`;
 
         updatePillEstado();
@@ -1549,7 +1664,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         else stopDescansoTicker_();
 
         setEstadoApi("Conectado", true);
-        setTopbarInfo({ apiOk: true, lastUpdate: new Date().toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"}) });
+        setTopbarInfo({ apiOk: true, lastUpdate: new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }) });
 
         persistSession();
         iniciarAutoRefresh();
@@ -1585,8 +1700,8 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
 
       if (s.descansoUntilMs) descansoUntilMs = s.descansoUntilMs;
 
-      const inputRut  = document.getElementById("login-rut");
-      const selUbic   = document.getElementById("login-ubicacion");
+      const inputRut = document.getElementById("login-rut");
+      const selUbic = document.getElementById("login-ubicacion");
       if (inputRut) inputRut.value = s.rutAgente;
       if (selUbic) selUbic.value = s.ubicacionAgente;
 
@@ -1744,13 +1859,14 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         }
 
         cacheAsignaciones = data.asignaciones || [];
-        cachePasajeros    = data.pasajeros    || [];
-        cacheVuelos       = data.vuelos       || [];
+        cachePasajeros = data.pasajeros || [];
+        cacheVuelos = data.vuelos || [];
+        cacheAgentes = data.agentes || [];
 
         setEstadoApi("Conectado", true);
         setTopbarInfo({
           apiOk: true,
-          lastUpdate: new Date().toLocaleTimeString("es-CL", {hour:"2-digit", minute:"2-digit"})
+          lastUpdate: new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })
         });
 
         renderAsignacionesAgente();
@@ -1772,12 +1888,12 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
     /* =========================
        RENDER: ASIGNACIONES
        ========================= */
-        /* =========================
-       RENDER: ASIGNACIONES
-       ========================= */
+    /* =========================
+   RENDER: ASIGNACIONES
+   ========================= */
     function renderAsignacionesAgente() {
       const cont = document.getElementById("lista-asignaciones");
-      const msg  = document.getElementById("msg-asignaciones");
+      const msg = document.getElementById("msg-asignaciones");
       if (!cont) return;
       cont.innerHTML = "";
 
@@ -1796,7 +1912,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
       }
 
       // Orden por fecha/hora asignación (desc)
-      pendientes.sort((a,b)=> {
+      pendientes.sort((a, b) => {
         const sa = (a.fechaAsignacion || "") + " " + (a.horaAsignacion || "");
         const sb = (b.fechaAsignacion || "") + " " + (b.horaAsignacion || "");
         return sb.localeCompare(sa);
@@ -1813,270 +1929,202 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
       // Render por grupo
       Array.from(groups.entries()).forEach(([idVuelo, asigs]) => {
         const vuelo = cacheVuelos.find(v => String(v.idVuelo) === String(idVuelo));
-        const vueloNum  = vuelo ? (vuelo.numeroVuelo || "") : "";
-        const fechaVuelo= vuelo ? (vuelo.fecha || "") : "";
-        const terminal  = vuelo ? (vuelo.terminal || "") : "";
-        const puerta    = vuelo ? (vuelo.puerta || "") : "";
-        const espigon   = vuelo ? (vuelo.espigon || "") : "";
-        const tipoServ  = vuelo ? (vuelo.tipoServicio || "") : "";
-        const horaProg  = vuelo ? formatearHora(vuelo.horaProgramada) : "";
+        const vueloNum = vuelo ? (vuelo.numeroVuelo || "") : "";
+        const fechaVuelo = vuelo ? (vuelo.fecha || "") : "";
+        const terminal = vuelo ? (vuelo.terminal || "") : "";
+        const puerta = vuelo ? (vuelo.puerta || "") : "";
+        const espigon = vuelo ? (vuelo.espigon || "") : "";
+        const tipoServ = vuelo ? (vuelo.tipoServicio || "") : "";
+        const horaProg = vuelo ? formatearHora(vuelo.horaProgramada) : "";
 
-        const multiple = (asigs.length >= 2);
+        // Revisamos roles basados en [MAESTRO] o [APOYO] en observaciones
+        const isMaestro = asigs.some(a => (a.observaciones || "").toUpperCase().includes("MAESTRO"));
+        const isSupport = asigs.some(a => (a.observaciones || "").toUpperCase().includes("APOYO"));
 
-        // ✅ 1 asignación: comportamiento original (sin cambios funcionales)
-        if (!multiple) {
-          const a = asigs[0];
+        // ✅ CASO 1: ASIGNACIÓN INDIVIDUAL O APOYO (Interfaz simplificada)
+        if ((asigs.length === 1 && !isMaestro) || isSupport) {
+          asigs.forEach(a => {
+            const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
+            const nombrePmr = pmr ? (pmr.nombre || "") : "";
+            const estadoN = normalizarEstado(a.estadoAsignacion);
 
-          const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
-          const nombrePmr = pmr ? (pmr.nombre || "") : "";
+            let pillClass = "pill-state";
+            if (estadoN === "en asignacion" || estadoN === "en espera") pillClass += " pill-asignacion";
+            else if (estadoN === "aceptada") pillClass += " pill-aceptada";
+            else if (estadoN === "en transito") pillClass += " pill-transito";
 
-          const estadoN   = normalizarEstado(a.estadoAsignacion);
-          const horaLimite= a.horaLimite ? formatearHora(a.horaLimite) : "";
+            let roleBadge = "";
+            if (isSupport) roleBadge = `<span class="pill-state" style="background:#dbeafe;color:#1e40af;border-color:#93c5fd;margin-left:5px;">APOYO</span>`;
 
-          let pillClass = "pill-state";
-          if (estadoN === "en asignacion" || estadoN === "en espera") pillClass += " pill-asignacion";
-          else if (estadoN === "aceptada") pillClass += " pill-aceptada";
-          else if (estadoN === "en transito") pillClass += " pill-transito";
-          else if (estadoN === "terminado") pillClass += " pill-terminado";
-
-          let textoLimite = "";
-          if (horaLimite && horaProg) {
-            const t = normalizarEstado(tipoServ);
-            if (t === "embarque") {
-              textoLimite = `Debes TERMINAR el servicio 60 min antes del vuelo (${horaProg}). Hora límite recomendada: ${horaLimite}.`;
-            } else if (t === "desembarque") {
-              textoLimite = `Debes INICIAR el trayecto 10 min antes del vuelo (${horaProg}). Hora límite para iniciar: ${horaLimite}.`;
-            } else {
-              textoLimite = `Hora límite operativa: ${horaLimite}.`;
-            }
-          }
-
-          let expireHtml = "";
-          const esPendienteAceptar = (estadoN === "en asignacion" || estadoN === "en espera");
-          if (esPendienteAceptar) {
-            const exp = getExpiryDate(a);
-            if (exp) {
-              const hh = String(exp.getHours()).padStart(2,"0");
-              const mm = String(exp.getMinutes()).padStart(2,"0");
-              const expireAt = exp.getTime();
-              expireHtml = `
-                <div class="expire-box" id="expire-box-${a.idAsignacion}">
-                  ⏳ Aceptación vence a <b>${hh}:${mm}</b> · queda <b data-expire-at="${expireAt}" id="expire-left-${a.idAsignacion}">--:--</b>
+            const card = document.createElement("div");
+            card.className = "asignacion-card";
+            card.innerHTML = `
+              <div class="asignacion-header">
+                <div style="display:flex;gap:6px;align-items:center;">
+                   <span><b>#${a.idAsignacion || ""}</b></span>
+                   ${roleBadge}
                 </div>
-              `;
-            } else {
-              expireHtml = `
-                <div class="expire-box">
-                  ⏳ Pendiente de aceptación (vence a los 7 min desde asignación).
+                <span class="${pillClass}">${a.estadoAsignacion || "Sin estado"}</span>
+              </div>
+              <div class="asignacion-body">
+                <div><b>Vuelo:</b> ${vueloNum || idVuelo || "-"} · ${tipoServ || ""}</div>
+                <div style="font-size:11px;color:#6b7280;margin-top:2px;">
+                   Terminal: ${terminal || "-"} · Puerta: ${puerta || "-"}
                 </div>
-              `;
+                <div style="margin-top:5px; font-weight:700;">PMR: ${nombrePmr || "(sin nombre)"}</div>
+                <div class="msg" id="msg-ops-${a.idAsignacion}"></div>
+              </div>
+            `;
+
+            const footer = document.createElement("div");
+            footer.className = "asignacion-footer";
+            if (estadoN === "en asignacion" || estadoN === "en espera") {
+              const btn = document.createElement("button"); btn.className = "btn small"; btn.textContent = "Aceptar";
+              btn.onclick = () => aceptarAsignacion(a.idAsignacion); footer.appendChild(btn);
+            } else if (estadoN === "aceptada") {
+              const btn = document.createElement("button"); btn.className = "btn small"; btn.textContent = "Iniciar Trayecto";
+              btn.onclick = () => iniciarTrayecto(a.idAsignacion); footer.appendChild(btn);
+            } else if (estadoN === "en transito") {
+              const btn = document.createElement("button"); btn.className = "btn small"; btn.textContent = "Terminar Trayecto";
+              btn.onclick = () => terminarTrayecto(a.idAsignacion); footer.appendChild(btn);
             }
-          }
-
-          const card = document.createElement("div");
-          card.className = "asignacion-card";
-          card.innerHTML = `
-            <div class="asignacion-header">
-              <span><b>#${a.idAsignacion || ""}</b></span>
-              <span class="${pillClass}">${a.estadoAsignacion || "Sin estado"}</span>
-            </div>
-            <div class="asignacion-body">
-              <div><b>Vuelo:</b> ${vueloNum || idVuelo || "-"} · ${tipoServ || ""}</div>
-              <div style="font-size:11px;color:#6b7280;margin-top:1px;">
-                Fecha: ${fechaVuelo || "-"} · Hora prog.: ${horaProg || "-"}
-              </div>
-              <div style="font-size:11px;color:#6b7280;margin-top:1px;">
-                Terminal: ${terminal || "-"} · Puerta: ${puerta || "-"} · Espigón: ${espigon || "-"}
-              </div>
-              <div style="margin-top:3px;"><b>PMR:</b> ${nombrePmr || "(sin nombre)"}</div>
-
-              ${expireHtml}
-              ${textoLimite ? `<div class="warning-limit">⚠ ${textoLimite}</div>` : ""}
-
-              <div class="msg" id="msg-ops-${a.idAsignacion}"></div>
-
-              <div class="cancel-panel" id="cancel-panel-${a.idAsignacion}" style="display:none;margin-top:6px;">
-                <label style="font-size:11px;display:block;margin-bottom:4px;">
-                  Motivo de cancelación
-                  <textarea id="cancel-motivo-${a.idAsignacion}" rows="2" placeholder="Ej: Pasajero no se presentó, se fue por sus medios, etc."></textarea>
-                </label>
-                <button class="btn small danger" id="btn-cancel-confirm-${a.idAsignacion}">
-                  Confirmar cancelación
-                </button>
-              </div>
-            </div>
-          `;
-
-          const footer = document.createElement("div");
-          footer.className = "asignacion-footer";
-
-          let permitirCancelar = false;
-
-          if (estadoN === "en asignacion" || estadoN === "en espera") {
-            const btnAceptar = document.createElement("button");
-            btnAceptar.className = "btn small";
-            btnAceptar.textContent = "Aceptar asignación";
-            btnAceptar.onclick = () => aceptarAsignacion(a.idAsignacion);
-            footer.appendChild(btnAceptar);
-          } else if (estadoN === "aceptada") {
-            const btnIniciar = document.createElement("button");
-            btnIniciar.className = "btn small";
-            btnIniciar.textContent = "Iniciar trayecto";
-            btnIniciar.onclick = () => iniciarTrayecto(a.idAsignacion);
-            footer.appendChild(btnIniciar);
-            permitirCancelar = true;
-          } else if (estadoN === "en transito") {
-            const btnTerminar = document.createElement("button");
-            btnTerminar.className = "btn small";
-            btnTerminar.textContent = "Terminar trayecto";
-            btnTerminar.onclick = () => terminarTrayecto(a.idAsignacion);
-            footer.appendChild(btnTerminar);
-            permitirCancelar = true;
-          }
-
-          if (permitirCancelar) {
-            const btnCancelar = document.createElement("button");
-            btnCancelar.className = "btn small danger";
-            btnCancelar.textContent = "Cancelar servicio";
-            btnCancelar.onclick = () => {
-              const panel = document.getElementById(`cancel-panel-${a.idAsignacion}`);
-              if (panel) panel.style.display = panel.style.display === "none" ? "block" : "none";
-            };
-            footer.appendChild(btnCancelar);
-          }
-
-          card.appendChild(footer);
-          cont.appendChild(card);
-
-          if (permitirCancelar) {
-            const btnConfirm = document.getElementById(`btn-cancel-confirm-${a.idAsignacion}`);
-            if (btnConfirm) {
-              btnConfirm.addEventListener("click", async () => {
-                const motivoEl = document.getElementById(`cancel-motivo-${a.idAsignacion}`);
-                const motivo = motivoEl ? motivoEl.value.trim() : "";
-                await cancelarAsignacion(a.idAsignacion, motivo);
-              });
-            }
-          }
-
+            card.appendChild(footer);
+            cont.appendChild(card);
+          });
           return;
         }
 
-        // ✅ 2+ asignaciones del mismo vuelo: modo "bulk" con casillas + cierre masivo
+        // ✅ CASO 2: VISTA AGRUPADA (MAESTRO O BULK)
         const contCard = document.createElement("div");
-        contCard.className = "asignacion-card vuelo-group" + (isVueloPausadoUI_(idVuelo) ? " paused" : "");
+        contCard.className = "asignacion-card vuelo-group";
 
-        const pendientesAceptar = asigs.filter(x => isPendienteAceptar_(normalizarEstado(x.estadoAsignacion)));
-        const exp = computeExpiryVuelo_(pendientesAceptar);
-        const expireHtml = (pendientesAceptar.length && exp)
-          ? (() => {
-              const hh = String(exp.getHours()).padStart(2,"0");
-              const mm = String(exp.getMinutes()).padStart(2,"0");
-              const expireAt = exp.getTime();
-              return `
-                <div class="expire-box">
-                  ⏳ Aceptación (vuelo) vence a <b>${hh}:${mm}</b> · queda <b data-expire-at="${expireAt}" id="expire-left-vuelo-${idVuelo}">--:--</b>
-                </div>
-              `;
-            })()
-          : (pendientesAceptar.length ? `<div class="expire-box">⏳ Pendiente de aceptación (vuelo): vence a los 7 min desde la ÚLTIMA asignación recibida.</div>` : "");
+        const labelMode = isMaestro
+          ? `<span class="pill-state" style="background:#fce7f3;color:#be185d;border-color:#f9a8d4;">MAESTRO DE VUELO</span>`
+          : `<span class="pill-state">Vuelo Grupal</span>`;
 
-        const selected = getSelectedIdsVuelo_(idVuelo, asigs);
-        const selCount = Array.from(selected).length;
-        const pausable = isVueloPausadoUI_(idVuelo);
+        // Monitor de Apoyos (Solo Maestro)
+        let monitorHtml = "";
+        if (isMaestro) {
+          const apoyosVuelo = cacheAsignaciones.filter(o =>
+            String(o.idVuelo) === String(idVuelo) &&
+            (o.observaciones || "").toUpperCase().includes("APOYO") &&
+            !esEstadoCerrado_(o.estadoAsignacion)
+          );
+
+          if (apoyosVuelo.length > 0) {
+            const mapAgentes = new Map();
+            apoyosVuelo.forEach(o => {
+              if (!mapAgentes.has(o.idAgente)) {
+                const ag = cacheAgentes.find(g => String(g.idAgente) === String(o.idAgente));
+                const est = normalizarEstado(o.estadoAsignacion);
+                const reportado = (est === "aceptada" || est === "en transito");
+                mapAgentes.set(o.idAgente, { nombre: ag ? ag.nombre : o.idAgente, reportado });
+              }
+            });
+
+            monitorHtml = `<div class="support-monitor" style="margin:10px 0; padding:8px; background:#f3f4f6; border-radius:6px; border:1px solid #e5e7eb;">
+                 <div style="font-size:9px; font-weight:800; color:#374151; margin-bottom:5px; text-transform:uppercase;">Agentes de Apoyo:</div>
+                 <div style="display:flex; gap:6px; flex-wrap:wrap;">`;
+
+            mapAgentes.forEach(ua => {
+              const color = ua.reportado ? '#059669' : '#9ca3af';
+              const textStatus = ua.reportado ? 'REPORTADO' : 'PENDIENTE';
+              monitorHtml += `<div style="font-size:10px; display:flex; align-items:center; gap:4px; padding:3px 6px; background:white; border-radius:4px; border:1px solid #d1d5db;">
+                   <span style="height:6px; width:6px; background:${color}; border-radius:50%; display:inline-block;"></span>
+                   <b>${ua.nombre}</b> <span style="font-size:8px; color:#6b7280;">(${textStatus})</span>
+                 </div>`;
+            });
+            monitorHtml += `</div></div>`;
+          }
+        }
 
         const headerHtml = `
           <div class="asignacion-header">
             <span><b>Vuelo:</b> ${vueloNum || idVuelo || "-"} · ${tipoServ || ""}</span>
-            <span class="pill-state ${pausable ? "pill-paused" : ""}">${pausable ? "Pausa (UI)" : "Bulk"}</span>
+            ${labelMode}
           </div>
           <div class="group-meta">
-            Fecha: ${fechaVuelo || "-"} · Hora prog.: ${horaProg || "-"}<br>
-            Terminal: ${terminal || "-"} · Puerta: ${puerta || "-"} · Espigón: ${espigon || "-"}<br>
-            Selección: <b>${selCount}/${asigs.length}</b> (los NO seleccionados se consideran “no conectados” en el cierre masivo).
+            ${asigs.length} pasajeros a cargo.<br>
+            Terminal: ${terminal || "-"} · Puerta: ${puerta || "-"}
           </div>
+          ${monitorHtml}
         `;
 
-        // Lista con casillas
         const listWrap = document.createElement("div");
-        listWrap.style.marginTop = "8px";
+        listWrap.style.marginTop = "10px";
 
-        // Asegura default selection (todo marcado) y renderiza filas
-        ensureVueloSelection_(idVuelo, asigs);
+        const selected = getSelectedIdsVuelo_(idVuelo, asigs);
 
         asigs.forEach(a => {
           const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
           const nombrePmr = pmr ? (pmr.nombre || "") : "";
-          const estN = normalizarEstado(a.estadoAsignacion);
+          const asis = pmr ? (pmr.tipoAsistencia || "") : "";
 
-          let pill = "pill-state";
-          if (estN === "en asignacion" || estN === "en espera") pill += " pill-asignacion";
-          else if (estN === "aceptada") pill += " pill-aceptada";
-          else if (estN === "en transito") pill += " pill-transito";
-          else if (estN === "terminado") pill += " pill-terminado";
+          let controlHtml = "";
+          if (isMaestro) {
+            controlHtml = `
+               <div style="display:flex; flex-direction:column; gap:2px;">
+                 <label style="font-size:10px; font-weight:700; color:#059669; display:flex; align-items:center; gap:3px;"><input type="radio" name="r-${a.idAsignacion}" value="SI" checked> REALIZADO</label>
+                 <label style="font-size:10px; font-weight:700; color:#6b7280; display:flex; align-items:center; gap:3px;"><input type="radio" name="r-${a.idAsignacion}" value="NO"> P. CUENTA</label>
+                 <label style="font-size:10px; font-weight:700; color:#f59e0b; display:flex; align-items:center; gap:3px;"><input type="radio" name="r-${a.idAsignacion}" value="NSP"> NSP</label>
+               </div>
+             `;
+          } else {
+            controlHtml = `<input type="checkbox" id="chk-${idVuelo}-${a.idAsignacion}">`;
+          }
 
           const row = document.createElement("div");
           row.className = "chk-row";
+          row.style.alignItems = "flex-start";
           row.innerHTML = `
-            <input type="checkbox" id="chk-${idVuelo}-${a.idAsignacion}">
+            <div style="margin-right:10px; padding-top:2px;">${controlHtml}</div>
             <div class="chk-info">
               <div class="chk-title">
-                <span><b>${nombrePmr || "(sin nombre)"}</b></span>
-                <span class="${pill}">${a.estadoAsignacion || "Sin estado"}</span>
+                <b>${nombrePmr || "(sin nombre)"}</b> <span style="font-size:10px; font-weight:400; color:#6b7280;">(${asis})</span>
               </div>
-              <div class="chk-sub">
-                Asignación: <b>#${a.idAsignacion || "-"}</b>
-                ${a.horaAsignacion ? ` · Asignada: ${formatearHora(a.horaAsignacion)}` : ""}
-                ${a.horaInicio ? ` · Inicio: ${formatearHora(a.horaInicio)}` : ""}
-              </div>
+              <div style="font-size:10px; color:#9ca3af; margin-top:2px;">#${a.idAsignacion} · ${a.estadoAsignacion}</div>
             </div>
           `;
-          const chk = row.querySelector("input[type='checkbox']");
-          if (chk) {
-            chk.checked = selected.has(String(a.idAsignacion));
-            chk.addEventListener("change", () => {
-              setSeleccionAsig_(idVuelo, a.idAsignacion, chk.checked);
-              // Actualiza el contador en el header de la tarjeta (re-render rápido)
-              renderAsignacionesAgente();
-            });
+
+          if (!isMaestro) {
+            const chk = row.querySelector("input[type='checkbox']");
+            if (chk) {
+              chk.checked = selected.has(String(a.idAsignacion));
+              chk.addEventListener("change", () => {
+                setSeleccionAsig_(idVuelo, a.idAsignacion, chk.checked);
+              });
+            }
           }
           listWrap.appendChild(row);
         });
 
-        contCard.innerHTML = headerHtml + expireHtml + `<div class="msg" id="msg-ops-vuelo-${idVuelo}"></div>`;
+        contCard.innerHTML = headerHtml + `<div class="msg" id="msg-ops-vuelo-${idVuelo}"></div>`;
         contCard.appendChild(listWrap);
 
-        // Acciones por vuelo
         const actions = document.createElement("div");
         actions.className = "group-actions";
 
-        const btnAccept = document.createElement("button");
-        btnAccept.className = "btn small";
-        btnAccept.id = `btn-accept-vuelo-${idVuelo}`;
-        btnAccept.textContent = `Aceptar (vuelo)`;
-        btnAccept.onclick = () => accionAceptarVueloTodos_(idVuelo);
-        actions.appendChild(btnAccept);
+        if (isMaestro) {
+          const btnIniciar = document.createElement("button");
+          btnIniciar.id = `btn-start-vuelo-${idVuelo}`;
+          btnIniciar.className = "btn small";
+          btnIniciar.textContent = "Iniciar Vuelo";
+          btnIniciar.onclick = () => accionIniciarMaestro(idVuelo);
+          actions.appendChild(btnIniciar);
 
-        const btnStart = document.createElement("button");
-        btnStart.className = "btn small";
-        btnStart.id = `btn-start-vuelo-${idVuelo}`;
-        btnStart.textContent = `Iniciar (seleccionados)`;
-        btnStart.onclick = () => accionIniciarVueloSeleccionados_(idVuelo);
-        actions.appendChild(btnStart);
-
-        const btnFinish = document.createElement("button");
-        btnFinish.className = "btn small";
-        btnFinish.id = `btn-finish-vuelo-${idVuelo}`;
-        btnFinish.textContent = `Terminar (cierre masivo)`;
-        btnFinish.onclick = () => accionTerminarVueloSeleccionados_(idVuelo);
-        actions.appendChild(btnFinish);
-
-        const btnPause = document.createElement("button");
-        btnPause.className = "btn small secondary";
-        btnPause.id = `btn-pause-vuelo-${idVuelo}`;
-        btnPause.textContent = isVueloPausadoUI_(idVuelo) ? "Reanudar (UI)" : "Pausa (UI)";
-        btnPause.onclick = () => toggleVueloPausadoUI_(idVuelo);
-        actions.appendChild(btnPause);
+          const btnFinalizar = document.createElement("button");
+          btnFinalizar.id = `btn-finish-vuelo-${idVuelo}`;
+          btnFinalizar.className = "btn small";
+          btnFinalizar.style.background = "#be185d";
+          btnFinalizar.style.color = "white";
+          btnFinalizar.textContent = "Finalizar Vuelo";
+          btnFinalizar.onclick = () => accionFinalizarMaestro(idVuelo);
+          actions.appendChild(btnFinalizar);
+        } else {
+          const btnAccept = document.createElement("button"); btnAccept.id = `btn-accept-vuelo-${idVuelo}`; btnAccept.className = "btn small"; btnAccept.textContent = "Aceptar"; btnAccept.onclick = () => accionAceptarVueloTodos_(idVuelo); actions.appendChild(btnAccept);
+          const btnStart = document.createElement("button"); btnStart.id = `btn-start-vuelo-${idVuelo}`; btnStart.className = "btn small"; btnStart.textContent = "Iniciar"; btnStart.onclick = () => accionIniciarVueloSeleccionados_(idVuelo); actions.appendChild(btnStart);
+          const btnFinish = document.createElement("button"); btnFinish.id = `btn-finish-vuelo-${idVuelo}`; btnFinish.className = "btn small"; btnFinish.textContent = "Terminar"; btnFinish.onclick = () => accionTerminarVueloSeleccionados_(idVuelo); actions.appendChild(btnFinish);
+        }
 
         contCard.appendChild(actions);
         cont.appendChild(contCard);
@@ -2085,12 +2133,12 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
       if (msg) showMsg(msg, "", "");
     }
 
-/* =========================
-       RENDER: HISTORIAL
-       ========================= */
+    /* =========================
+           RENDER: HISTORIAL
+           ========================= */
     function renderHistorialAgente() {
       const cont = document.getElementById("lista-historial");
-      const msg  = document.getElementById("msg-historial");
+      const msg = document.getElementById("msg-historial");
       if (!cont) return;
       cont.innerHTML = "";
 
@@ -2110,7 +2158,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         return;
       }
 
-      propias.sort((a,b)=>{
+      propias.sort((a, b) => {
         const sa = (a.fechaAsignacion || "") + " " + (a.horaFin || "");
         const sb = (b.fechaAsignacion || "") + " " + (b.horaFin || "");
         return sb.localeCompare(sa);
@@ -2121,8 +2169,8 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         const vuelo = cacheVuelos.find(v => String(v.idVuelo) === String(a.idVuelo));
 
         const nombrePmr = pmr ? (pmr.nombre || "") : "";
-        const vueloNum  = vuelo ? (vuelo.numeroVuelo || "") : "";
-        const tipoServ  = vuelo ? (vuelo.tipoServicio || "") : "";
+        const vueloNum = vuelo ? (vuelo.numeroVuelo || "") : "";
+        const tipoServ = vuelo ? (vuelo.tipoServicio || "") : "";
 
         const card = document.createElement("div");
         card.className = "hist-card";
@@ -2274,20 +2322,93 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
     }
 
     /* =========================
+       MAESTRO ACTIONS
+       ========================= */
+    async function accionIniciarMaestro(idVuelo) {
+      const k = vueloKey_(idVuelo);
+      const el = msgOpsVuelo_(k);
+      const asigs = getPendientesVuelo_(k);
+
+      const porAceptar = asigs.filter(a => isPendienteAceptar_(normalizarEstado(a.estadoAsignacion)));
+      if (porAceptar.length > 0) {
+        if (!confirm(`Hay ${porAceptar.length} asignaciones sin aceptar. ¿Deseas aceptarlas e iniciar el vuelo para todos ahora?`)) return;
+      }
+
+      setBusyVuelo_(k, true);
+      showMsg(el, "Iniciando vuelo masivamente...", "");
+
+      try {
+        const url = buildUrl("agenteMasivoVuelo", {
+          idVuelo: k,
+          idAgente: idAgenteLogueado,
+          tipoAccion: 'Iniciar'
+        });
+        const json = await fetchJson(url, { timeoutMs: 30000 });
+        if (!json.ok) throw new Error(json.error || "Error");
+
+        showMsg(el, "Vuelo iniciado. Pasajeros en tránsito.", "ok");
+        await cargarDatosAgente(false);
+      } catch (e) {
+        console.error(e);
+        showMsg(el, "Error al iniciar: " + (e.message || e), "err");
+      } finally {
+        setBusyVuelo_(k, false);
+      }
+    }
+
+    async function accionFinalizarMaestro(idVuelo) {
+      const k = vueloKey_(idVuelo);
+      const el = msgOpsVuelo_(k);
+      const asigs = getPendientesVuelo_(k);
+      const datosPax = {};
+
+      asigs.forEach(a => {
+        const radios = document.getElementsByName(`r-${a.idAsignacion}`);
+        let val = 'SI';
+        for (const r of radios) { if (r.checked) val = r.value; }
+        datosPax[a.idPmr] = val;
+      });
+
+      if (!confirm(`¿Confirmas finalizar el vuelo y registrar los resultados de ${asigs.length} pasajeros?`)) return;
+
+      setBusyVuelo_(k, true);
+      showMsg(el, "Enviando cierre masivo...", "");
+
+      try {
+        const url = buildUrl("agenteMasivoVuelo", {
+          idVuelo: k,
+          idAgente: idAgenteLogueado,
+          tipoAccion: 'Finalizar',
+          datosPax: JSON.stringify(datosPax)
+        });
+        const json = await fetchJson(url, { timeoutMs: 30000 });
+        if (!json.ok) throw new Error(json.error || "Error");
+
+        showMsg(el, "Vuelo finalizado correctamente.", "ok");
+        await cargarDatosAgente(false);
+      } catch (e) {
+        console.error(e);
+        showMsg(el, "Error al finalizar: " + (e.message || e), "err");
+      } finally {
+        setBusyVuelo_(k, false);
+      }
+    }
+
+    /* =========================
        EVENTOS
        ========================= */
     document.addEventListener("DOMContentLoaded", () => {
       loadBulkUi_();
       const inputRut = document.getElementById("login-rut");
-      const selUbic  = document.getElementById("login-ubicacion");
+      const selUbic = document.getElementById("login-ubicacion");
       const btnLogin = document.getElementById("btn-login-agente");
-      const btnAuto  = document.getElementById("btn-autologin");
+      const btnAuto = document.getElementById("btn-autologin");
 
       if (inputRut) {
         inputRut.addEventListener("blur", () => { inputRut.value = rutLooseNormalize(inputRut.value); });
-        inputRut.addEventListener("keyup", (ev) => { if (ev.key === "Enter") intentarLogin({ silent:false }); });
+        inputRut.addEventListener("keyup", (ev) => { if (ev.key === "Enter") intentarLogin({ silent: false }); });
       }
-      if (btnLogin) btnLogin.addEventListener("click", () => intentarLogin({ silent:false }));
+      if (btnLogin) btnLogin.addEventListener("click", () => intentarLogin({ silent: false }));
 
       // prefill desde sesión anterior
       const s = getSession();
@@ -2333,4 +2454,5 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
     });
   </script>
 </body>
+
 </html>
