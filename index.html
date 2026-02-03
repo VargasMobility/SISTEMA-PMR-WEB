@@ -981,6 +981,7 @@
           <table>
             <thead>
               <tr>
+                <th style="width:50px;text-align:center;" title="Asignar Maestro y Apoyos">✈️</th>
                 <th>ID Vuelo</th>
                 <th>Fecha</th>
                 <th>Hora</th>
@@ -2206,7 +2207,19 @@
                         </button>`;
         }
 
+        // Airplane Icon for Assignment (visible only if PMRs > 0)
+        const iconoAsignar = (v.cantPmr || 0) > 0
+          ? `<button onclick="iniciarAsignacionVuelo('${v.numeroVuelo}', '${normalizarFechaExcel(v.fecha)}')" 
+                      style="background:none;border:none;font-size:20px;cursor:pointer;padding:4px;transition:transform 0.2s;" 
+                      onmouseover="this.style.transform='scale(1.3)'" 
+                      onmouseout="this.style.transform='scale(1)'"
+                      title="Asignar Maestro y Apoyos a este vuelo">
+                ✈️
+              </button>`
+          : `<span style="opacity:0.2;font-size:18px;padding:4px;">✈️</span>`;
+
         tr.innerHTML = `
+        <td style="text-align:center;">${iconoAsignar}</td>
         <td>${v.idVuelo || ""}</td>
         <td>${normalizarFechaExcel(v.fecha) || (v.fecha || "")}</td>
         <td>${formatearHora(v.horaProgramada)}</td>
@@ -3281,138 +3294,284 @@
       } catch (e) {
         console.error("Error al notificar update:", e);
       }
-      // ******************************************************
-      //  ASIGNACIÓN MAESTRO / VUELO
-      // ******************************************************
+    };
 
-      let currentVueloMaestroData = null; // { vueloNum, fechaVuelo, pmrs: [] }
 
-      async function abrirModalAsignacionMaestro(vueloNum, fechaVuelo, pmrs) {
-        currentVueloMaestroData = { vueloNum, fechaVuelo, pmrs };
 
-        // Create modal if not exists
-        let modal = document.getElementById('modal-asignacion-maestro');
-        if (!modal) {
-          modal = document.createElement('div');
-          modal.id = 'modal-asignacion-maestro';
-          modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:15px;';
-          document.body.appendChild(modal);
-        }
+    // ******************************************************
+    //  ASIGNACIÓN MAESTRO / VUELO
+    // ******************************************************
+    let currentVueloMaestroData = null;
+    let currentPmrsAsignacion = [];
 
-        // Get Agents
-        // We can filter by Terminal if we know it.
-        const terminalComun = pmrs.length > 0 ? (pmrs[0].terminal || '') : '';
-        const agentesDisp = agentesAsignablesEnTerminal(terminalComun); // helper exists? or use cacheAgentes
+    function abrirModalAsignacionMaestro(vueloNum, fechaVuelo, pmrs) {
+      currentVueloMaestroData = { vueloNum, fechaVuelo };
+      currentPmrsAsignacion = pmrs; // guardamos para enviar IDs
 
-        const optionsHtml = agentesDisp.map(a =>
-          `<option value="${a.idAgente}">${a.nombre} (${a.idAgente}) [${a._carga || 0}/7]</option>`
-        ).join('');
+      let existing = document.getElementById("modal-asignacion-maestro");
+      if (existing) existing.remove();
 
-        modal.innerHTML = `
-        <div style="background:#fff;border-radius:20px;padding:24px;width:100%;max-width:500px;max-height:90vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,0.3);font-family:inherit;">
-            <h2 style="margin:0 0 8px 0;color:#1e40af;font-size:18px;">Asignación Vuelo ${vueloNum}</h2>
-            <p style="margin:0 0 16px 0;color:#6b7280;font-size:13px;">
-               ${pmrs.length} pasajeros en espera. <br>
-               Se asignará 1 Maestro (responsable) y N Apoyos.
-            </p>
+      const terminalComun = pmrs.length > 0 ? (pmrs[0].terminal || '') : '';
+      const agentesDisp = agentesAsignablesEnTerminal(terminalComun);
 
-            <div style="margin-bottom:12px;">
-                <label style="display:block;font-weight:700;margin-bottom:4px;font-size:12px;">Agente MAESTRO</label>
-                <select id="sel-maestro" style="width:100%;padding:10px;border-radius:10px;border:1px solid #e5e7eb;font-size:13px;">
-                   <option value="">-- Seleccionar Maestro --</option>
-                   ${optionsHtml}
+      // Crear Datalist global para este modal (si no existe)
+      let datalistId = "datalist-agentes-disponibles";
+      let dl = document.getElementById(datalistId);
+      if (!dl) {
+        dl = document.createElement("datalist");
+        dl.id = datalistId;
+        document.body.appendChild(dl);
+      }
+      dl.innerHTML = agentesDisp.map(a =>
+        `<option value="${a.nombre} - ${a.idAgente}" data-id="${a.idAgente}">Carga: ${a._carga || 0}/7</option>`
+      ).join('');
+
+      const modal = document.createElement("div");
+      modal.id = "modal-asignacion-maestro";
+      modal.style.position = "fixed";
+      modal.style.top = "0";
+      modal.style.left = "0";
+      modal.style.width = "100%";
+      modal.style.height = "100%";
+      modal.style.background = "rgba(0,0,0,0.5)";
+      modal.style.display = "flex";
+      modal.style.justifyContent = "center";
+      modal.style.alignItems = "center";
+      modal.style.zIndex = "9999";
+
+      modal.innerHTML = `
+          <div style="background:#fff;border-radius:20px;padding:24px;width:100%;max-width:550px;max-height:90vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,0.3);font-family:inherit;">
+              <h2 style="margin:0 0 8px 0;color:#1e40af;font-size:18px;">Asignación Vuelo ${vueloNum}</h2>
+              <p style="margin:0 0 16px 0;color:#6b7280;font-size:13px;">
+                  Terminal: <b>${terminalComun || 'N/A'}</b><br>
+                  ${pmrs.length} pasajeros en espera. <br>
+              </p>
+
+              <!-- Sección Maestro -->
+              <div style="margin-bottom:16px;">
+                  <label style="display:block;font-weight:700;margin-bottom:4px;font-size:12px;color:#1e3a8a;">Agente MAESTRO (Obligatorio)</label>
+                  <input type="text" id="input-maestro" list="${datalistId}" placeholder="Escribe para buscar agente..." 
+                         oninput="validarConflictosAgentes()"
+                         style="width:100%;padding:10px;border-radius:10px;border:1px solid #e5e7eb;font-size:13px;background:#eff6ff;font-weight:bold;">
+              </div>
+
+              <!-- Sección Apoyos Dinámicos -->
+              <div style="margin-bottom:16px;">
+                  <label style="display:block;font-weight:700;margin-bottom:8px;font-size:12px;color:#4b5563;">Agentes de APOYO (Opcional)</label>
+                  <div id="container-apoyos" style="display:flex;flex-direction:column;gap:8px;">
+                      <!-- Filas de apoyo se agregan aquí -->
+                  </div>
+                  <button id="btn-add-apoyo" onclick="agregarFilaApoyo('${datalistId}')" 
+                          style="margin-top:10px;background:none;border:1px dashed #9ca3af;color:#4b5563;border-radius:8px;padding:8px;width:100%;cursor:pointer;font-size:12px;font-weight:bold;">
+                    + Añadir Agente de Apoyo
+                  </button>
+              </div>
+
+              <!-- Tipo Traslado -->
+              <div style="margin-bottom:20px;">
+                <label style="display:block;font-weight:700;margin-bottom:4px;font-size:12px;">Tipo de Traslado</label>
+                <select id="sel-traslado-maestro" style="width:100%;padding:10px;border-radius:10px;border:1px solid #e5e7eb;font-size:13px;">
+                  <option value="Tramo Completo">Tramo Completo</option>
+                  <option value="Ultima Milla">Última Milla</option>
                 </select>
-            </div>
+              </div>
+              
+                   </div>
+              </div>
+              
+              <div id="msg-error-asignacion" style="margin-bottom:12px; font-size:12px; font-weight:bold; min-height:16px;"></div>
 
-            <div style="margin-bottom:12px;">
-                <label style="display:block;font-weight:700;margin-bottom:4px;font-size:12px;">Agentes de APOYO (Ctrl + Click)</label>
-                <select id="sel-apoyos" multiple style="width:100%;padding:10px;border-radius:10px;border:1px solid #e5e7eb;font-size:13px;height:120px;">
-                   ${optionsHtml}
-                </select>
-                <div style="font-size:10px;color:#9ca3af;margin-top:2px;">Selecciona varios para apoyo</div>
-            </div>
+              <div style="background:#f3f4f6;padding:10px;border-radius:8px;font-size:11px;color:#374151;margin-bottom:20px;">
+                  <b>Pasajeros a asignar:</b>
+                  <div style="max-height:80px;overflow-y:auto;margin-top:4px;">
+                      <ul style="padding-left:14px;margin:0;">
+                          ${pmrs.map(p => `<li>${p.nombre} (${p.tipoAsistencia})</li>`).join('')}
+                      </ul>
+                  </div>
+              </div>
 
-            <div style="margin-bottom:12px;">
-              <label style="display:block;font-weight:700;margin-bottom:4px;font-size:12px;">Tipo de Traslado</label>
-              <select id="sel-traslado-maestro" style="width:100%;padding:10px;border-radius:10px;border:1px solid #e5e7eb;font-size:13px;">
-                <option value="Tramo Completo">Tramo Completo</option>
-                <option value="Ultima Milla">Última Milla</option>
-              </select>
-            </div>
-            
-            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
-                <button onclick="document.getElementById('modal-asignacion-maestro').remove()" 
-                        style="padding:10px 20px;border-radius:99px;border:1px solid #e5e7eb;background:white;cursor:pointer;">Cancelar</button>
-                <button onclick="confirmarAsignacionMaestro()" 
-                        style="padding:10px 24px;border-radius:99px;border:none;background:#2563eb;color:white;font-weight:bold;cursor:pointer;">Asignar Vuelo</button>
-            </div>
-        </div>
-       `;
+              <div style="display:flex;gap:10px;justify-content:flex-end;">
+                  <button onclick="document.getElementById('modal-asignacion-maestro').remove()" 
+                          style="padding:10px 20px;border-radius:99px;border:1px solid #e5e7eb;background:white;cursor:pointer;">Cancelar</button>
+                  <button onclick="confirmarNewAsignacionMaestro()" 
+                          style="padding:10px 24px;border-radius:99px;border:none;background:#2563eb;color:white;font-weight:bold;cursor:pointer;">Confirmar Asignación</button>
+              </div>
+          </div>
+          `;
+
+      document.body.appendChild(modal);
+      // Foco inicial
+      setTimeout(() => document.getElementById("input-maestro").focus(), 100);
+    }
+    window.abrirModalAsignacionMaestro = abrirModalAsignacionMaestro;
+
+    function agregarFilaApoyo(datalistId) {
+      const container = document.getElementById("container-apoyos");
+      const div = document.createElement("div");
+      div.style.display = "flex";
+      div.style.gap = "6px";
+      div.innerHTML = `
+                <input type="text" class="input-apoyo" list="${datalistId}" placeholder="Buscar apoyo..." 
+                       oninput="validarConflictosAgentes()"
+                       style="flex:1;padding:8px;border-radius:8px;border:1px solid #e5e7eb;font-size:12px;">
+                <button onclick="this.parentElement.remove(); validarConflictosAgentes()" style="border:none;background:#fee2e2;color:#b91c1c;border-radius:8px;padding:0 10px;cursor:pointer;font-weight:bold;">✕</button>
+            `;
+      container.appendChild(div);
+      // Foco al nuevo
+      div.querySelector("input").focus();
+    }
+    window.agregarFilaApoyo = agregarFilaApoyo;
+
+    // Helper para extraer ID del valor del input (Formato: "Nombre - ID")
+    function extraerIdAgenteDeInput(val) {
+      if (!val) return null;
+      // Buscamos patrón " - ID" al final
+      const parts = val.split(" - ");
+      if (parts.length < 2) return null;
+      // Retorna la última parte (ID)
+      return parts[parts.length - 1].trim();
+    }
+
+    function validarConflictosAgentes() {
+      const inputMaestro = document.getElementById('input-maestro').value;
+      const idMaestro = extraerIdAgenteDeInput(inputMaestro);
+
+      const inputsApoyo = document.querySelectorAll('.input-apoyo');
+      const idsApoyos = [];
+      for (let inp of inputsApoyo) {
+        const id = extraerIdAgenteDeInput(inp.value);
+        if (id) idsApoyos.push(id);
       }
 
-      async function confirmarAsignacionMaestro() {
-        const idMaestro = document.getElementById('sel-maestro').value;
-        const selApoyos = document.getElementById('sel-apoyos');
-        const idsApoyos = Array.from(selApoyos.selectedOptions).map(o => o.value);
-        const tipoTraslado = document.getElementById('sel-traslado-maestro').value;
+      const msgError = document.getElementById('msg-error-asignacion');
+      const btnConfirmar = document.querySelector('#modal-asignacion-maestro button[onclick^="confirmarNew"]');
 
-        if (!idMaestro) { alert("Debes seleccionar un Agente Maestro"); return; }
-        if (idsApoyos.includes(idMaestro)) { alert("El Maestro no puede ser también Apoyo."); return; }
+      if (!msgError) return;
 
-        if (!confirm(`¿Asignar vuelo ${currentVueloMaestroData.vueloNum}?\nMaestro: ${idMaestro}\nApoyos: ${idsApoyos.length}`)) return;
-
-        const btn = document.querySelector('#modal-asignacion-maestro button[onclick^="confirmar"]');
-        btn.textContent = "Procesando...";
-        btn.disabled = true;
-
-        try {
-          const params = new URLSearchParams();
-          params.append("action", "asignarVueloMaestro");
-          params.append("idVuelo", currentVueloMaestroData.vueloNum); // Or logic to pass ID
-          params.append("vueloNum", currentVueloMaestroData.vueloNum);
-          params.append("fechaVueloKey", currentVueloMaestroData.fechaVuelo);
-          params.append("idAgenteMaestro", idMaestro);
-          params.append("idsAgentesApoyo", JSON.stringify(idsApoyos));
-          params.append("tipoTraslado", tipoTraslado);
-
-          const res = await fetch(API_URL + "?" + params.toString());
-          const json = await res.json();
-
-          if (!json.ok) throw new Error(json.error || "Error al asignar vuelo");
-
-          alert("Vuelo asignado correctamente. Notificaciones enviadas.");
-          document.getElementById('modal-asignacion-maestro').remove();
-
-          if (window.notificarUpdate) window.notificarUpdate('asignaciones');
-          cargarDatos();
-
-        } catch (e) {
-          console.error(e);
-          alert("Error: " + e.message);
-          btn.textContent = "Reintentar";
-          btn.disabled = false;
+      let error = "";
+      if (idMaestro && idsApoyos.includes(idMaestro)) {
+        error = "⚠ El Agente Maestro no puede ser también de Apoyo.";
+      } else {
+        const unique = new Set(idsApoyos);
+        if (unique.size !== idsApoyos.length) {
+          error = "⚠ Hay agentes de apoyo duplicados.";
         }
       }
 
-      // Helper: Invoked from Vuelos View or PMR View
-      function iniciarAsignacionVuelo(vueloNum, fechaRaw) {
-        // Filter PMRs "En espera" for this flight
-        const fkey = normalizarFechaExcel(fechaRaw);
-
-        const pmrs = cachePasajeros.filter(p => {
-          const v = getVueloDePmr(p);
-          return v && String(v.numeroVuelo) === String(vueloNum)
-            && normalizarFechaExcel(v.fecha) === fkey
-            && normTxt(p.estadoPmr) === "en espera";
-        });
-
-        if (pmrs.length === 0) {
-          alert("No hay pasajeros 'En espera' para asignar en este vuelo.");
-          return;
-        }
-
-        abrirModalAsignacionMaestro(vueloNum, fkey, pmrs);
+      if (error) {
+        msgError.textContent = error;
+        msgError.style.color = "#dc2626";
+        if (btnConfirmar) btnConfirmar.disabled = true;
+      } else {
+        msgError.textContent = "";
+        if (btnConfirmar) btnConfirmar.disabled = false;
       }
+    }
+    window.validarConflictosAgentes = validarConflictosAgentes;
+
+    async function confirmarNewAsignacionMaestro() {
+      const inputMaestro = document.getElementById('input-maestro').value;
+      const idMaestro = extraerIdAgenteDeInput(inputMaestro);
+
+      const msgError = document.getElementById('msg-error-asignacion');
+      if (msgError) msgError.textContent = '';
+
+      // Recolectar apoyos
+      const inputsApoyo = document.querySelectorAll('.input-apoyo');
+      const idsApoyos = [];
+      for (let inp of inputsApoyo) {
+        const id = extraerIdAgenteDeInput(inp.value);
+        if (id) idsApoyos.push(id);
+      }
+
+      const tipoTraslado = document.getElementById('sel-traslado-maestro').value;
+
+      // Validaciones
+      if (!idMaestro) { alert("Debes seleccionar un Agente Maestro válido de la lista."); return; }
+
+      if (idsApoyos.includes(idMaestro)) {
+        const msg = "Error: El Agente Maestro (" + idMaestro + ") no puede ser también Agente de Apoyo.";
+        if (msgError) {
+          msgError.textContent = msg;
+          msgError.style.color = '#dc2626';
+        }
+        alert(msg);
+        return;
+      }
+
+      // Check duplicados en apoyos
+      const uniqueApoyos = new Set(idsApoyos);
+      if (uniqueApoyos.size !== idsApoyos.length) {
+        const msg = "Error: Hay agentes de apoyo duplicados.";
+        if (msgError) {
+          msgError.textContent = msg;
+          msgError.style.color = '#dc2626';
+        }
+        alert(msg);
+        return;
+      }
+
+      // IDs de Pasajeros
+      const pmrIds = currentPmrsAsignacion.map(p => p.idPmr);
+
+      if (!confirm(`¿Confirmar Asignación?\n\nVuelo: ${currentVueloMaestroData.vueloNum}\nMaestro: ${idMaestro}\nApoyos: ${idsApoyos.length}\nPasajeros: ${pmrIds.length}`)) return;
+
+      const btn = document.querySelector('#modal-asignacion-maestro button[onclick^="confirmar"]');
+      btn.textContent = "Procesando...";
+      btn.disabled = true;
+
+      try {
+        const params = new URLSearchParams();
+        // Backend payload must match what Codigo.gs expects
+        params.append("action", "asignarVueloMaestro");
+        // Enviamos datos
+        params.append("idVuelo", currentVueloMaestroData.vueloNum);
+        params.append("vueloNum", currentVueloMaestroData.vueloNum);
+        params.append("fechaVueloKey", currentVueloMaestroData.fechaVuelo);
+        params.append("idAgenteMaestro", idMaestro);
+        params.append("idsAgentesApoyo", JSON.stringify(idsApoyos)); // Array IDs
+        params.append("pmrIds", JSON.stringify(pmrIds));             // Array IDs PMR
+        params.append("tipoTraslado", tipoTraslado);
+
+        const res = await fetch(API_URL + "?" + params.toString()); // Apps Script GET approach
+        const json = await res.json();
+
+        if (!json.ok) throw new Error(json.error || "Error al asignar vuelo");
+
+        alert("Asignación exitosa.\nMaestro: " + idMaestro);
+        document.getElementById('modal-asignacion-maestro').remove();
+
+        if (window.notificarUpdate) window.notificarUpdate('asignaciones');
+        cargarDatos(); // Recargar vista supervisor
+
+      } catch (e) {
+        console.error(e);
+        alert("Error: " + e.message);
+        btn.textContent = "Reintentar";
+        btn.disabled = false;
+      }
+    }
+    window.confirmarNewAsignacionMaestro = confirmarNewAsignacionMaestro;
+
+    // Mantener helper iniciarAsignacionVuelo
+    window.iniciarAsignacionVuelo = function (vueloNum, fechaRaw) {
+      // Filter PMRs "En espera" for this flight 
+      const fkey = normalizarFechaExcel(fechaRaw);
+
+      const pmrs = cachePasajeros.filter(p => {
+        const v = getVueloDePmr(p);
+        return v && String(v.numeroVuelo) === String(vueloNum)
+          && normalizarFechaExcel(v.fecha) === fkey
+          && normTxt(p.estadoPmr) === "en espera";
+      });
+
+      if (pmrs.length === 0) {
+        alert("No hay pasajeros 'En espera' para asignar en este vuelo.");
+        return;
+      }
+
+      abrirModalAsignacionMaestro(vueloNum, fkey, pmrs);
+    };
   </script>
 </body>
 
