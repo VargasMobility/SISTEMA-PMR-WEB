@@ -2084,18 +2084,17 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
           let controlHtml = "";
           if (isMaestro) {
             // Dropdown de quién atendió
-            // Buscamos apoyos QUE HAYAN LLEGADO
-            const apoyosLlegados = cacheAsignaciones.filter(o =>
+            // Buscamos TODOS los apoyos asignados a este vuelo
+            const apoyosAsignados = cacheAsignaciones.filter(o =>
               String(o.idVuelo) === String(idVuelo) &&
-              (o.observaciones || "").includes("APOYO") &&
-              normalizarEstado(o.estadoAsignacion) === "llego"
+              (o.observaciones || "").includes("APOYO")
             ).map(o => {
               const ag = cacheAgentes.find(g => String(g.idAgente) === String(o.idAgente));
               return ag ? ag.nombre : o.idAgente;
             });
 
-            let optionsHtml = `<option value="Maestro">${nombreAgente} (Maestro)</option>`;
-            apoyosLlegados.forEach(nom => {
+            let optionsHtml = `<option value="${nombreAgente}">${nombreAgente} (Maestro)</option>`;
+            apoyosAsignados.forEach(nom => {
               optionsHtml += `<option value="${nom}">${nom}</option>`;
             });
 
@@ -2147,26 +2146,41 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
 
           // Botón Aceptar (Fuera del blur)
           if (isEnAsig) {
+            // Lógica de expiración (5 min)
+            // Asumimos que asigs[0] define el tiempo de la asignación maestra
+            const tAsig = parseDateTimeCL_(asigs[0].fechaAsignacion, asigs[0].horaAsignacion);
+            const now = new Date();
+            const diffMs = now.getTime() - tAsig.getTime();
+            const LIMIT_MS = 5 * 60 * 1000;
+            const remainingMs = LIMIT_MS - diffMs;
+
             const btnAceptAll = document.createElement("button");
             btnAceptAll.className = "btn";
             btnAceptAll.style.marginBottom = "10px";
-            btnAceptAll.textContent = "✔ Aceptar Asignación de Vuelo";
-            btnAceptAll.onclick = async () => {
-              if (!confirm("¿Aceptar este vuelo?")) return;
-              // Aceptamos la primera asig (el backend suele manejar el resto o podemos buclear)
-              // Según handleAsignarVueloMaestro, hay una asig por PMR. 
-              // Para simplificar, aceptamos todas las del grupo.
-              const el = document.getElementById(`msg-ops-vuelo-${idVuelo}`);
-              showMsg(el, "Aceptando...", "");
-              try {
-                for (const a of asigs) {
-                  const url = buildUrl("agenteAceptarAsignacion", { idAsignacion: a.idAsignacion, idAgente: idAgenteLogueado });
-                  await fetchJson(url);
-                }
-                showMsg(el, "Vuelo aceptado.", "ok");
-                await cargarDatosAgente(false);
-              } catch (e) { showMsg(el, "Error al aceptar.", "err"); }
-            };
+
+            if (remainingMs <= 0) {
+              btnAceptAll.textContent = "⌛ Asignación Expirada (5 min)";
+              btnAceptAll.disabled = true;
+              btnAceptAll.className = "btn secondary disabled";
+            } else {
+              const mm = Math.floor(remainingMs / 60000);
+              const ss = Math.floor((remainingMs % 60000) / 1000);
+              const timeStr = `${mm}:${ss < 10 ? '0' : ''}${ss}`;
+              btnAceptAll.textContent = `✔ Aceptar Asignación (${timeStr})`;
+              btnAceptAll.onclick = async () => {
+                if (!confirm("¿Aceptar este vuelo?")) return;
+                const el = document.getElementById(`msg-ops-vuelo-${idVuelo}`);
+                showMsg(el, "Aceptando...", "");
+                try {
+                  for (const a of asigs) {
+                    const url = buildUrl("agenteAceptarAsignacion", { idAsignacion: a.idAsignacion, idAgente: idAgenteLogueado });
+                    await fetchJson(url);
+                  }
+                  showMsg(el, "Vuelo aceptado.", "ok");
+                  await cargarDatosAgente(false);
+                } catch (e) { showMsg(el, "Error al aceptar.", "err"); }
+              };
+            }
             contCard.appendChild(btnAceptAll);
           }
 
@@ -2578,6 +2592,19 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
 
       setEstadoApi("Desconectado", false);
       setTopbarInfo({ apiOk: false });
+
+      // Ticker para actualizar contadores de aceptación (cada 1s)
+      setInterval(() => {
+        // Solo si hay asignaciones "en asignacion" que sean maestras
+        const hasPendingMaestro = cacheAsignaciones.some(a =>
+          String(a.idAgente) === String(idAgenteLogueado) &&
+          (a.observaciones || "").toUpperCase().includes("MAESTRO") &&
+          (normalizarEstado(a.estadoAsignacion) === "en asignacion" || normalizarEstado(a.estadoAsignacion) === "en espera")
+        );
+        if (hasPendingMaestro) {
+          renderAsignacionesAgente();
+        }
+      }, 1000);
     });
   </script>
 </body>
