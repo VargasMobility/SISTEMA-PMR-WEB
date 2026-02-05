@@ -2026,12 +2026,14 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
                  <div style="font-size:9px; font-weight:800; color:#374151; margin-bottom:5px; text-transform:uppercase;">Agentes de Apoyo:</div>
                  <div style="display:flex; gap:6px; flex-wrap:wrap;">`;
 
-            mapAgentes.forEach(ua => {
+            mapAgentes.forEach((ua, idAp) => {
               const color = ua.reportado ? '#059669' : '#9ca3af';
-              const textStatus = ua.reportado ? 'REPORTADO' : 'PENDIENTE';
-              monitorHtml += `<div style="font-size:10px; display:flex; align-items:center; gap:4px; padding:3px 6px; background:white; border-radius:4px; border:1px solid #d1d5db;">
-                   <span style="height:6px; width:6px; background:${color}; border-radius:50%; display:inline-block;"></span>
-                   <b>${ua.nombre}</b> <span style="font-size:8px; color:#6b7280;">(${textStatus})</span>
+              const textStatus = ua.reportado ? 'LLEGÓ' : 'REPORTAR LLEGADA';
+              const chkId = `chk-apoyo-${idVuelo}-${idAp}`;
+
+              monitorHtml += `<div style="font-size:10px; display:flex; align-items:center; gap:6px; padding:3px 8px; background:white; border-radius:4px; border:1px solid #d1d5db;">
+                   <input type="checkbox" id="${chkId}" ${ua.reportado ? 'checked' : ''} onchange="toggleLlegadaApoyo('${idVuelo}', '${idAp}', this.checked)">
+                   <b>${ua.nombre}</b>
                  </div>`;
             });
             monitorHtml += `</div></div>`;
@@ -2062,11 +2064,32 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
 
           let controlHtml = "";
           if (isMaestro) {
+            // Dropdown de quién atendió
+            // Buscamos apoyos QUE HAYAN LLEGADO
+            const apoyosLlegados = cacheAsignaciones.filter(o =>
+              String(o.idVuelo) === String(idVuelo) &&
+              (o.observaciones || "").includes("APOYO") &&
+              normalizarEstado(o.estadoAsignacion) === "llego"
+            ).map(o => {
+              const ag = cacheAgentes.find(g => String(g.idAgente) === String(o.idAgente));
+              return ag ? ag.nombre : o.idAgente;
+            });
+
+            let optionsHtml = `<option value="Maestro">${nombreAgente} (Maestro)</option>`;
+            apoyosLlegados.forEach(nom => {
+              optionsHtml += `<option value="${nom}">${nom}</option>`;
+            });
+
             controlHtml = `
-               <div style="display:flex; flex-direction:column; gap:2px;">
-                 <label style="font-size:10px; font-weight:700; color:#059669; display:flex; align-items:center; gap:3px;"><input type="radio" name="r-${a.idAsignacion}" value="SI" checked> REALIZADO</label>
-                 <label style="font-size:10px; font-weight:700; color:#6b7280; display:flex; align-items:center; gap:3px;"><input type="radio" name="r-${a.idAsignacion}" value="NO"> P. CUENTA</label>
-                 <label style="font-size:10px; font-weight:700; color:#f59e0b; display:flex; align-items:center; gap:3px;"><input type="radio" name="r-${a.idAsignacion}" value="NSP"> NSP</label>
+               <div style="display:flex; flex-direction:column; gap:4px; min-width:120px;">
+                 <div style="display:flex; gap:10px;">
+                   <label style="font-size:10px; font-weight:700; color:#059669; display:flex; align-items:center; gap:3px;"><input type="radio" name="r-${a.idAsignacion}" value="SI" checked> SÍ</label>
+                   <label style="font-size:10px; font-weight:700; color:#6b7280; display:flex; align-items:center; gap:3px;"><input type="radio" name="r-${a.idAsignacion}" value="NO"> Cta</label>
+                   <label style="font-size:10px; font-weight:700; color:#f59e0b; display:flex; align-items:center; gap:3px;"><input type="radio" name="r-${a.idAsignacion}" value="NSP"> NSP</label>
+                 </div>
+                 <select id="sel-agente-${a.idAsignacion}" style="font-size:10px; padding:2px; height:22px; width:100%;">
+                    ${optionsHtml}
+                 </select>
                </div>
              `;
           } else {
@@ -2364,9 +2387,14 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
 
       asigs.forEach(a => {
         const radios = document.getElementsByName(`r-${a.idAsignacion}`);
+        const sel = document.getElementById(`sel-agente-${a.idAsignacion}`);
         let val = 'SI';
         for (const r of radios) { if (r.checked) val = r.value; }
-        datosPax[a.idPmr] = val;
+
+        datosPax[a.idPmr] = {
+          status: val,
+          agente: sel ? sel.value : 'Maestro'
+        };
       });
 
       if (!confirm(`¿Confirmas finalizar el vuelo y registrar los resultados de ${asigs.length} pasajeros?`)) return;
@@ -2393,6 +2421,29 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         setBusyVuelo_(k, false);
       }
     }
+
+    async function toggleLlegadaApoyo(idVuelo, idAgenteApoyo, llego) {
+      const el = msgOpsVuelo_(idVuelo);
+      const chk = document.getElementById(`chk-apoyo-${idVuelo}-${idAgenteApoyo}`);
+
+      try {
+        if (chk) chk.disabled = true;
+        const url = buildUrl("agenteLlegadaApoyo", { idVuelo, idAgenteApoyo, llego: !!llego });
+        const json = await fetchJson(url, { timeoutMs: 15000 });
+        if (!json.ok) throw new Error(json.error || "Error al reportar llegada");
+
+        showMsg(el, `Estado de apoyo actualizado: ${json.estado || (llego ? "Llegó" : "En asignación")}`, "ok");
+        // Recargamos localmente para refrescar los dropdowns de agentes prestadores
+        await cargarDatosAgente(false);
+      } catch (e) {
+        console.error(e);
+        showMsg(el, "Error: " + (e.message || e), "err");
+        if (chk) chk.checked = !llego; // Revertir
+      } finally {
+        if (chk) chk.disabled = false;
+      }
+    }
+
 
     /* =========================
        EVENTOS
