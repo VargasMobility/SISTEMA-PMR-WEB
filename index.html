@@ -3514,11 +3514,18 @@
       // IDs de Pasajeros
       const pmrIds = currentPmrsAsignacion.map(p => p.idPmr);
 
-      if (!confirm(`¿Confirmar Asignación?\n\nVuelo: ${currentVueloMaestroData.vueloNum}\nMaestro: ${idMaestro}\nApoyos: ${idsApoyos.length}\nPasajeros: ${pmrIds.length}`)) return;
-
       const btn = document.querySelector('#modal-asignacion-maestro button[onclick^="confirmar"]');
-      btn.textContent = "Procesando...";
-      btn.disabled = true;
+      if (btn) btn.disabled = true;
+
+      if (!confirm(`¿Confirmar Asignación?\n\nVuelo: ${currentVueloMaestroData.vueloNum}\nMaestro: ${idMaestro}\nApoyos: ${idsApoyos.length}\nPasajeros: ${pmrIds.length}`)) {
+        if (btn) btn.disabled = false;
+        return;
+      }
+
+      if (btn) {
+        btn.textContent = "Procesando...";
+        btn.disabled = true;
+      }
 
       try {
         const params = new URLSearchParams();
