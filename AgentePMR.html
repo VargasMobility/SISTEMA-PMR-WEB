@@ -2460,7 +2460,12 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         const radios = document.getElementsByName(`r-${a.idAsignacion}`);
         const sel = document.getElementById(`sel-agente-${a.idAsignacion}`);
         let val = 'SI';
-        for (const r of radios) { if (r.checked) val = r.value; }
+        for (const r of radios) {
+          if (r.checked) {
+            val = String(r.value).trim();
+            break;
+          }
+        }
 
         datosPax[a.idPmr] = {
           status: val,
