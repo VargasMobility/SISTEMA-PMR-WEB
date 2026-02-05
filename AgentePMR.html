@@ -295,6 +295,25 @@
       color: #92400e;
     }
 
+    /* Blur & Lock States */
+    .is-blurred {
+      filter: blur(6px);
+      pointer-events: none;
+      user-select: none;
+      opacity: 0.7;
+      transition: filter 0.3s ease, opacity 0.3s ease;
+    }
+
+    .is-locked {
+      pointer-events: none;
+      opacity: 0.85;
+      filter: grayscale(0.2);
+    }
+
+    .unlocked-container {
+      transition: all 0.3s ease;
+    }
+
     /* Tabs */
     .tabs {
       display: flex;
@@ -2121,17 +2140,60 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
           listWrap.appendChild(row);
         });
 
-        contCard.innerHTML = headerHtml + `<div class="msg" id="msg-ops-vuelo-${idVuelo}"></div>`;
-        contCard.appendChild(listWrap);
-
-        const actions = document.createElement("div");
-        actions.className = "group-actions";
-
         if (isMaestro) {
+          const mainEstado = asigs.length > 0 ? normalizarEstado(asigs[0].estadoAsignacion) : "";
+          const isEnAsig = (mainEstado === "en asignacion" || mainEstado === "en espera");
+          const isAceptada = (mainEstado === "aceptada");
+
+          // Botón Aceptar (Fuera del blur)
+          if (isEnAsig) {
+            const btnAceptAll = document.createElement("button");
+            btnAceptAll.className = "btn";
+            btnAceptAll.style.marginBottom = "10px";
+            btnAceptAll.textContent = "✔ Aceptar Asignación de Vuelo";
+            btnAceptAll.onclick = async () => {
+              if (!confirm("¿Aceptar este vuelo?")) return;
+              // Aceptamos la primera asig (el backend suele manejar el resto o podemos buclear)
+              // Según handleAsignarVueloMaestro, hay una asig por PMR. 
+              // Para simplificar, aceptamos todas las del grupo.
+              const el = document.getElementById(`msg-ops-vuelo-${idVuelo}`);
+              showMsg(el, "Aceptando...", "");
+              try {
+                for (const a of asigs) {
+                  const url = buildUrl("agenteAceptarAsignacion", { idAsignacion: a.idAsignacion, idAgente: idAgenteLogueado });
+                  await fetchJson(url);
+                }
+                showMsg(el, "Vuelo aceptado.", "ok");
+                await cargarDatosAgente(false);
+              } catch (e) { showMsg(el, "Error al aceptar.", "err"); }
+            };
+            contCard.appendChild(btnAceptAll);
+          }
+
+          // Contenedor que se puede blurrear
+          const blurWrap = document.createElement("div");
+          blurWrap.className = isEnAsig ? "is-blurred" : "";
+
+          blurWrap.innerHTML = headerHtml + `<div class="msg" id="msg-ops-vuelo-${idVuelo}"></div>`;
+
+          // Contenedor que se puede bloquear (Inputs)
+          const lockWrap = document.createElement("div");
+          lockWrap.className = isAceptada ? "is-locked" : "";
+          lockWrap.appendChild(listWrap);
+
+          blurWrap.appendChild(lockWrap);
+          contCard.appendChild(blurWrap);
+
+          const actions = document.createElement("div");
+          actions.className = "group-actions";
+
           const btnIniciar = document.createElement("button");
           btnIniciar.id = `btn-start-vuelo-${idVuelo}`;
           btnIniciar.className = "btn small";
           btnIniciar.textContent = "Iniciar Vuelo";
+          btnIniciar.style.display = (mainEstado === "aceptada") ? "inline-flex" : (mainEstado === "en transito" ? "none" : "none");
+          // Si está en asignación, no se muestra el botón iniciar aún (o está dentro del blur)
+
           btnIniciar.onclick = () => accionIniciarMaestro(idVuelo);
           actions.appendChild(btnIniciar);
 
@@ -2141,15 +2203,24 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
           btnFinalizar.style.background = "#be185d";
           btnFinalizar.style.color = "white";
           btnFinalizar.textContent = "Finalizar Vuelo";
+          btnFinalizar.style.display = (mainEstado === "en transito") ? "inline-flex" : "none";
           btnFinalizar.onclick = () => accionFinalizarMaestro(idVuelo);
           actions.appendChild(btnFinalizar);
+
+          contCard.appendChild(actions);
+
         } else {
-          const btnAccept = document.createElement("button"); btnAccept.id = `btn-accept-vuelo-${idVuelo}`; btnAccept.className = "btn small"; btnAccept.textContent = "Aceptar"; btnAccept.onclick = () => accionAceptarVueloTodos_(idVuelo); actions.appendChild(btnAccept);
-          const btnStart = document.createElement("button"); btnStart.id = `btn-start-vuelo-${idVuelo}`; btnStart.className = "btn small"; btnStart.textContent = "Iniciar"; btnStart.onclick = () => accionIniciarVueloSeleccionados_(idVuelo); actions.appendChild(btnStart);
-          const btnFinish = document.createElement("button"); btnFinish.id = `btn-finish-vuelo-${idVuelo}`; btnFinish.className = "btn small"; btnFinish.textContent = "Terminar"; btnFinish.onclick = () => accionTerminarVueloSeleccionados_(idVuelo); actions.appendChild(btnFinish);
+          // Vuelo Grupal normal (no Maestro)
+          contCard.innerHTML = headerHtml + `<div class="msg" id="msg-ops-vuelo-${idVuelo}"></div>`;
+          contCard.appendChild(listWrap);
+          const actionsG = document.createElement("div");
+          actionsG.className = "group-actions";
+          const btnAccept = document.createElement("button"); btnAccept.id = `btn-accept-vuelo-${idVuelo}`; btnAccept.className = "btn small"; btnAccept.textContent = "Aceptar"; btnAccept.onclick = () => accionAceptarVueloTodos_(idVuelo); actionsG.appendChild(btnAccept);
+          const btnStart = document.createElement("button"); btnStart.id = `btn-start-vuelo-${idVuelo}`; btnStart.className = "btn small"; btnStart.textContent = "Iniciar"; btnStart.onclick = () => accionIniciarVueloSeleccionados_(idVuelo); actionsG.appendChild(btnStart);
+          const btnFinish = document.createElement("button"); btnFinish.id = `btn-finish-vuelo-${idVuelo}`; btnFinish.className = "btn small"; btnFinish.textContent = "Terminar"; btnFinish.onclick = () => accionTerminarVueloSeleccionados_(idVuelo); actionsG.appendChild(btnFinish);
+          contCard.appendChild(actionsG);
         }
 
-        contCard.appendChild(actions);
         cont.appendChild(contCard);
       });
 
