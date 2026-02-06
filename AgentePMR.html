@@ -659,6 +659,30 @@
       box-shadow: 0 10px 30px rgba(245, 158, 11, 0.10);
     }
 
+    .vuelo-group.busy {
+      opacity: 0.55;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      cursor: wait;
+      position: relative;
+    }
+
+    .vuelo-group.busy::after {
+      content: "Procesando...";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.8);
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #111827;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 10;
+    }
+
     .vuelo-group .group-meta {
       font-size: 11px;
       color: var(--muted);
@@ -941,20 +965,36 @@
 
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-    async function fetchJson(url, { timeoutMs = 20000 } = {}) {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort("timeout"), timeoutMs);
-      try {
-        const res = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
-        const ct = res.headers.get("content-type") || "";
-        if (!ct.toLowerCase().includes("application/json")) {
-          const txt = await res.text();
-          throw new Error("Respuesta no-JSON del servidor. Revisa permisos del WebApp o URL. Detalle: " + txt.slice(0, 140));
+    async function fetchJson(url, { timeoutMs = 25000, retries = 3 } = {}) {
+      let lastErr = null;
+      for (let attempt = 0; attempt < retries; attempt++) {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort("timeout"), timeoutMs);
+        try {
+          const res = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
+          const ct = res.headers.get("content-type") || "";
+          if (!ct.toLowerCase().includes("application/json")) {
+            const txt = await res.text();
+            throw new Error("Respuesta no-JSON del servidor. Revisa permisos del WebApp o URL. Detalle: " + txt.slice(0, 140));
+          }
+          return await res.json();
+        } catch (err) {
+          lastErr = err;
+          const isTimeout = (err === "timeout" || (err && err.name === "AbortError"));
+          const isNetwork = (err && err.message && /fetch|network|failed/i.test(err.message));
+
+          if (attempt < retries - 1 && (isTimeout || isNetwork)) {
+            const backoff = Math.pow(2, attempt) * 1000;
+            console.warn(`Fetch falló (intento ${attempt + 1}/${retries}). Reintentando en ${backoff}ms...`, err);
+            await sleep(backoff);
+            continue;
+          }
+          throw err;
+        } finally {
+          clearTimeout(t);
         }
-        return await res.json();
-      } finally {
-        clearTimeout(t);
       }
+      throw lastErr;
     }
 
     function normalizarEstado(s) {
@@ -1135,6 +1175,8 @@
 
     function setBusyVuelo_(idVuelo, busy) {
       const k = vueloKey_(idVuelo);
+
+      // Bloqueo de botones
       const ids = [
         `btn-accept-vuelo-${k}`,
         `btn-start-vuelo-${k}`,
@@ -1145,6 +1187,13 @@
         const b = document.getElementById(id);
         if (b) b.disabled = !!busy;
       });
+
+      // Bloqueo visual de la tarjeta
+      const card = document.getElementById(`msg-ops-vuelo-${k}`)?.closest(".vuelo-group");
+      if (card) {
+        if (busy) card.classList.add("busy");
+        else card.classList.remove("busy");
+      }
     }
 
     function getPendientesVuelo_(idVuelo) {
@@ -1907,9 +1956,11 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
     /* =========================
        RENDER: ASIGNACIONES
        ========================= */
+    /* (Maestro actions consolidated below in MAESTRO ACTIONS section) */
+
     /* =========================
-   RENDER: ASIGNACIONES
-   ========================= */
+    RENDER: ASIGNACIONES
+    ========================= */
     function renderAsignacionesAgente() {
       const cont = document.getElementById("lista-asignaciones");
       const msg = document.getElementById("msg-asignaciones");
@@ -1949,10 +2000,8 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
       Array.from(groups.entries()).forEach(([idVuelo, asigs]) => {
         const vuelo = cacheVuelos.find(v => String(v.idVuelo) === String(idVuelo));
         const vueloNum = vuelo ? (vuelo.numeroVuelo || "") : "";
-        const fechaVuelo = vuelo ? (vuelo.fecha || "") : "";
         const terminal = vuelo ? (vuelo.terminal || "") : "";
         const puerta = vuelo ? (vuelo.puerta || "") : "";
-        const espigon = vuelo ? (vuelo.espigon || "") : "";
         const tipoServ = vuelo ? (vuelo.tipoServicio || "") : "";
         const horaProg = vuelo ? formatearHora(vuelo.horaProgramada) : "";
 
@@ -1960,70 +2009,36 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         const isMaestro = asigs.some(a => (a.observaciones || "").toUpperCase().includes("MAESTRO"));
         const isSupport = asigs.some(a => (a.observaciones || "").toUpperCase().includes("APOYO"));
 
-        // ✅ CASO 1: ASIGNACIÓN INDIVIDUAL O APOYO (Interfaz simplificada)
-        if ((asigs.length === 1 && !isMaestro) || isSupport) {
-          asigs.forEach(a => {
-            const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
-            const nombrePmr = pmr ? (pmr.nombre || "") : "";
-            const estadoN = normalizarEstado(a.estadoAsignacion);
+        // ✅ LÓGICA DE PRIORIDAD DE VISTAS
 
-            let pillClass = "pill-state";
-            if (estadoN === "en asignacion" || estadoN === "en espera") pillClass += " pill-asignacion";
-            else if (estadoN === "aceptada") pillClass += " pill-aceptada";
-            else if (estadoN === "en transito") pillClass += " pill-transito";
-
-            let roleBadge = "";
-            if (isSupport) roleBadge = `<span class="pill-state" style="background:#dbeafe;color:#1e40af;border-color:#93c5fd;margin-left:5px;">APOYO</span>`;
-
-            const card = document.createElement("div");
-            card.className = "asignacion-card";
-            card.innerHTML = `
-              <div class="asignacion-header">
-                <div style="display:flex;gap:6px;align-items:center;">
-                   <span><b>#${a.idAsignacion || ""}</b></span>
-                   ${roleBadge}
-                </div>
-                <span class="${pillClass}">${a.estadoAsignacion || "Sin estado"}</span>
-              </div>
-              <div class="asignacion-body">
-                <div><b>Vuelo:</b> ${vueloNum || idVuelo || "-"} · ${tipoServ || ""}</div>
-                <div style="font-size:11px;color:#6b7280;margin-top:2px;">
-                   Terminal: ${terminal || "-"} · Puerta: ${puerta || "-"}
-                </div>
-                <div style="margin-top:5px; font-weight:700;">PMR: ${nombrePmr || "(sin nombre)"}</div>
-                <div class="msg" id="msg-ops-${a.idAsignacion}"></div>
-              </div>
-            `;
-
-            const footer = document.createElement("div");
-            footer.className = "asignacion-footer";
-            if (estadoN === "en asignacion" || estadoN === "en espera") {
-              const btn = document.createElement("button"); btn.className = "btn small"; btn.textContent = "Aceptar";
-              btn.onclick = () => aceptarAsignacion(a.idAsignacion); footer.appendChild(btn);
-            } else if (estadoN === "aceptada") {
-              const btn = document.createElement("button"); btn.className = "btn small"; btn.textContent = "Iniciar Trayecto";
-              btn.onclick = () => iniciarTrayecto(a.idAsignacion); footer.appendChild(btn);
-            } else if (estadoN === "en transito") {
-              const btn = document.createElement("button"); btn.className = "btn small"; btn.textContent = "Terminar Trayecto";
-              btn.onclick = () => terminarTrayecto(a.idAsignacion); footer.appendChild(btn);
-            }
-            card.appendChild(footer);
-            cont.appendChild(card);
-          });
-          return;
-        }
-
-        // ✅ CASO 2: VISTA AGRUPADA (MAESTRO O BULK)
-        const contCard = document.createElement("div");
-        contCard.className = "asignacion-card vuelo-group";
-
-        const labelMode = isMaestro
-          ? `<span class="pill-state" style="background:#fce7f3;color:#be185d;border-color:#f9a8d4;">MAESTRO DE VUELO</span>`
-          : `<span class="pill-state">Vuelo Grupal</span>`;
-
-        // Monitor de Apoyos (Solo Maestro)
-        let monitorHtml = "";
+        // 1. SI ES MAESTRO -> VISTA "BIG BOX" (Unificada)
         if (isMaestro) {
+          const contCard = document.createElement("div");
+          contCard.className = "asignacion-card vuelo-group";
+
+          const mainEstado = asigs.length > 0 ? normalizarEstado(asigs[0].estadoAsignacion) : "";
+
+          // ESTADOS: A (Pendiente) | B (Aceptada) | C (En curso)
+          const isPendiente = (mainEstado === "en asignacion" || mainEstado === "en espera");
+          const isAceptada = (mainEstado === "aceptada");
+          const isEnCurso = (mainEstado === "en transito");
+
+          // UI STATES
+          const labelMode = `<span class="pill-state" style="background:#fce7f3;color:#be185d;border-color:#f9a8d4;">MAESTRO DE VUELO</span>`;
+
+          const headerOnlyHtml = `
+               <div class="asignacion-header">
+                 <span><b>Vuelo:</b> ${vueloNum || idVuelo || "-"} · ${tipoServ || ""}</span>
+                 ${labelMode}
+               </div>
+               <div class="group-meta">
+                 ${asigs.length} pasajeros a cargo.<br>
+                 Terminal: ${terminal || "-"} · Puerta: ${puerta || "-"}
+               </div>
+             `;
+
+          // Monitor Apoyos
+          let monitorHtml = "";
           const apoyosVuelo = cacheAsignaciones.filter(o =>
             String(o.idVuelo) === String(idVuelo) &&
             (o.observaciones || "").toUpperCase().includes("APOYO") &&
@@ -2041,201 +2056,233 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
               }
             });
 
-            monitorHtml = `<div class="support-monitor" style="margin:10px 0; padding:8px; background:#f3f4f6; border-radius:6px; border:1px solid #e5e7eb;">
-                 <div style="font-size:9px; font-weight:800; color:#374151; margin-bottom:5px; text-transform:uppercase;">Agentes de Apoyo:</div>
-                 <div style="display:flex; gap:6px; flex-wrap:wrap;">`;
+            if (mapAgentes.size > 0) {
+              monitorHtml = `<div class="support-monitor" style="margin:10px 0; padding:8px; background:#f3f4f6; border-radius:6px; border:1px solid #e5e7eb;">
+                        <div style="font-size:9px; font-weight:800; color:#374151; margin-bottom:5px; text-transform:uppercase;">Agentes de Apoyo (Monitor):</div>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">`;
 
-            mapAgentes.forEach((ua, idAp) => {
-              const color = ua.reportado ? '#059669' : '#9ca3af';
-              const textStatus = ua.reportado ? 'LLEGÓ' : 'REPORTAR LLEGADA';
-              const chkId = `chk-apoyo-${idVuelo}-${idAp}`;
-
-              monitorHtml += `<div style="font-size:10px; display:flex; align-items:center; gap:6px; padding:3px 8px; background:white; border-radius:4px; border:1px solid #d1d5db;">
-                   <input type="checkbox" id="${chkId}" ${ua.reportado ? 'checked' : ''} onchange="toggleLlegadaApoyo('${idVuelo}', '${idAp}', this.checked)">
-                   <b>${ua.nombre}</b>
-                 </div>`;
-            });
-            monitorHtml += `</div></div>`;
-          }
-        }
-
-        const headerHtml = `
-          <div class="asignacion-header">
-            <span><b>Vuelo:</b> ${vueloNum || idVuelo || "-"} · ${tipoServ || ""}</span>
-            ${labelMode}
-          </div>
-          <div class="group-meta">
-            ${asigs.length} pasajeros a cargo.<br>
-            Terminal: ${terminal || "-"} · Puerta: ${puerta || "-"}
-          </div>
-          ${monitorHtml}
-        `;
-
-        const listWrap = document.createElement("div");
-        listWrap.style.marginTop = "10px";
-
-        const selected = getSelectedIdsVuelo_(idVuelo, asigs);
-
-        asigs.forEach(a => {
-          const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
-          const nombrePmr = pmr ? (pmr.nombre || "") : "";
-          const asis = pmr ? (pmr.tipoAsistencia || "") : "";
-
-          let controlHtml = "";
-          if (isMaestro) {
-            // Dropdown de quién atendió
-            // Buscamos TODOS los apoyos asignados a este vuelo
-            const apoyosAsignados = cacheAsignaciones.filter(o =>
-              String(o.idVuelo) === String(idVuelo) &&
-              (o.observaciones || "").includes("APOYO")
-            ).map(o => {
-              const ag = cacheAgentes.find(g => String(g.idAgente) === String(o.idAgente));
-              return ag ? ag.nombre : o.idAgente;
-            });
-
-            let optionsHtml = `<option value="${nombreAgente}">${nombreAgente} (Maestro)</option>`;
-            apoyosAsignados.forEach(nom => {
-              optionsHtml += `<option value="${nom}">${nom}</option>`;
-            });
-
-            controlHtml = `
-               <div style="display:flex; flex-direction:column; gap:4px; min-width:120px;">
-                 <div style="display:flex; gap:10px;">
-                   <label style="font-size:10px; font-weight:700; color:#059669; display:flex; align-items:center; gap:3px;"><input type="radio" name="r-${a.idAsignacion}" value="SI" checked> SÍ</label>
-                   <label style="font-size:10px; font-weight:700; color:#6b7280; display:flex; align-items:center; gap:3px;"><input type="radio" name="r-${a.idAsignacion}" value="NO"> Cta</label>
-                   <label style="font-size:10px; font-weight:700; color:#f59e0b; display:flex; align-items:center; gap:3px;"><input type="radio" name="r-${a.idAsignacion}" value="NSP"> NSP</label>
-                 </div>
-                 <select id="sel-agente-${a.idAsignacion}" style="font-size:10px; padding:2px; height:22px; width:100%;">
-                    ${optionsHtml}
-                 </select>
-               </div>
-             `;
-          } else {
-            controlHtml = `<input type="checkbox" id="chk-${idVuelo}-${a.idAsignacion}">`;
-          }
-
-          const row = document.createElement("div");
-          row.className = "chk-row";
-          row.style.alignItems = "flex-start";
-          row.innerHTML = `
-            <div style="margin-right:10px; padding-top:2px;">${controlHtml}</div>
-            <div class="chk-info">
-              <div class="chk-title">
-                <b>${nombrePmr || "(sin nombre)"}</b> <span style="font-size:10px; font-weight:400; color:#6b7280;">(${asis})</span>
-              </div>
-              <div style="font-size:10px; color:#9ca3af; margin-top:2px;">#${a.idAsignacion} · ${a.estadoAsignacion}</div>
-            </div>
-          `;
-
-          if (!isMaestro) {
-            const chk = row.querySelector("input[type='checkbox']");
-            if (chk) {
-              chk.checked = selected.has(String(a.idAsignacion));
-              chk.addEventListener("change", () => {
-                setSeleccionAsig_(idVuelo, a.idAsignacion, chk.checked);
+              mapAgentes.forEach((ua, idAp) => {
+                monitorHtml += `<div style="font-size:10px; display:flex; align-items:center; gap:6px; padding:3px 8px; background:white; border-radius:4px; border:1px solid #d1d5db;">
+                          <input type="checkbox" ${ua.reportado ? 'checked' : ''} disabled>
+                          <b>${ua.nombre}</b>
+                        </div>`;
               });
+              monitorHtml += `</div></div>`;
             }
           }
-          listWrap.appendChild(row);
-        });
 
-        if (isMaestro) {
-          const mainEstado = asigs.length > 0 ? normalizarEstado(asigs[0].estadoAsignacion) : "";
-          const isEnAsig = (mainEstado === "en asignacion" || mainEstado === "en espera");
-          const isAceptada = (mainEstado === "aceptada");
+          // State Logic
+          let wrapperClass = "";
+          let inputsDisabled = false;
 
-          // Botón Aceptar (Fuera del blur)
-          if (isEnAsig) {
-            // Lógica de expiración (5 min)
-            // Asumimos que asigs[0] define el tiempo de la asignación maestra
-            const tAsig = parseDateTimeCL_(asigs[0].fechaAsignacion, asigs[0].horaAsignacion);
-            const now = new Date();
-            const diffMs = now.getTime() - tAsig.getTime();
-            const LIMIT_MS = 5 * 60 * 1000;
-            const remainingMs = LIMIT_MS - diffMs;
-
-            const btnAceptAll = document.createElement("button");
-            btnAceptAll.className = "btn";
-            btnAceptAll.style.marginBottom = "10px";
-
-            if (remainingMs <= 0) {
-              btnAceptAll.textContent = "⌛ Asignación Expirada (5 min)";
-              btnAceptAll.disabled = true;
-              btnAceptAll.className = "btn secondary disabled";
-            } else {
-              const mm = Math.floor(remainingMs / 60000);
-              const ss = Math.floor((remainingMs % 60000) / 1000);
-              const timeStr = `${mm}:${ss < 10 ? '0' : ''}${ss}`;
-              btnAceptAll.textContent = `✔ Aceptar Asignación (${timeStr})`;
-              btnAceptAll.onclick = async () => {
-                if (!confirm("¿Aceptar este vuelo?")) return;
-                const el = document.getElementById(`msg-ops-vuelo-${idVuelo}`);
-                showMsg(el, "Aceptando...", "");
-                try {
-                  for (const a of asigs) {
-                    const url = buildUrl("agenteAceptarAsignacion", { idAsignacion: a.idAsignacion, idAgente: idAgenteLogueado });
-                    await fetchJson(url);
-                  }
-                  showMsg(el, "Vuelo aceptado.", "ok");
-                  await cargarDatosAgente(false);
-                } catch (e) { showMsg(el, "Error al aceptar.", "err"); }
-              };
-            }
-            contCard.appendChild(btnAceptAll);
+          if (isPendiente) {
+            wrapperClass = "is-blurred";
+            inputsDisabled = true;
+          } else if (isAceptada) {
+            wrapperClass = "is-locked";
+            inputsDisabled = true;
+          } else if (isEnCurso) {
+            wrapperClass = "unlocked-container active";
+            inputsDisabled = false;
           }
 
-          // Contenedor que se puede blurrear
-          const blurWrap = document.createElement("div");
-          blurWrap.className = isEnAsig ? "is-blurred" : "";
+          const headerDiv = document.createElement("div");
+          headerDiv.innerHTML = headerOnlyHtml + `<div class="msg" id="msg-ops-vuelo-${idVuelo}"></div>` + monitorHtml;
+          contCard.appendChild(headerDiv);
 
-          blurWrap.innerHTML = headerHtml + `<div class="msg" id="msg-ops-vuelo-${idVuelo}"></div>`;
+          const contentWrapper = document.createElement("div");
+          contentWrapper.className = wrapperClass;
+          contentWrapper.style.marginTop = "10px";
 
-          // Contenedor que se puede bloquear (Inputs)
-          const lockWrap = document.createElement("div");
-          lockWrap.className = isAceptada ? "is-locked" : "";
-          lockWrap.appendChild(listWrap);
+          // Prepare Options
+          const agentesOptions = [];
+          agentesOptions.push({ val: String(nombreAgente), label: `${nombreAgente} (Yo)` });
 
-          blurWrap.appendChild(lockWrap);
-          contCard.appendChild(blurWrap);
+          const mapApoyos = new Map();
+          apoyosVuelo.forEach(o => {
+            if (!mapApoyos.has(o.idAgente)) {
+              const ag = cacheAgentes.find(g => String(g.idAgente) === String(o.idAgente));
+              mapApoyos.set(o.idAgente, ag ? ag.nombre : o.idAgente);
+            }
+          });
+          mapApoyos.forEach((nom, id) => agentesOptions.push({ val: nom, label: nom }));
 
-          const actions = document.createElement("div");
-          actions.className = "group-actions";
+          // Render Rows
+          asigs.forEach(a => {
+            const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
+            const nombrePmr = pmr ? (pmr.nombre || "") : "";
+            const asis = pmr ? (pmr.tipoAsistencia || "") : "";
 
-          const btnIniciar = document.createElement("button");
-          btnIniciar.id = `btn-start-vuelo-${idVuelo}`;
-          btnIniciar.className = "btn small";
-          btnIniciar.textContent = "Iniciar Vuelo";
-          btnIniciar.style.display = (mainEstado === "aceptada") ? "inline-flex" : (mainEstado === "en transito" ? "none" : "none");
-          // Si está en asignación, no se muestra el botón iniciar aún (o está dentro del blur)
+            let optionsHtml = `<option value="">-- Asignar Agente --</option>`;
+            agentesOptions.forEach(opt => {
+              optionsHtml += `<option value="${opt.val}">${opt.label}</option>`;
+            });
 
-          btnIniciar.onclick = () => accionIniciarMaestro(idVuelo);
-          actions.appendChild(btnIniciar);
+            const statusOptions = `
+                 <option value="" selected disabled>-- Estado --</option>
+                 <option value="Si">Si</option>
+                 <option value="No">No</option>
+                 <option value="Se fue por su cuenta">Se fue por su cuenta</option>
+               `;
 
-          const btnFinalizar = document.createElement("button");
-          btnFinalizar.id = `btn-finish-vuelo-${idVuelo}`;
-          btnFinalizar.className = "btn small";
-          btnFinalizar.style.background = "#be185d";
-          btnFinalizar.style.color = "white";
-          btnFinalizar.textContent = "Finalizar Vuelo";
-          btnFinalizar.style.display = (mainEstado === "en transito") ? "inline-flex" : "none";
-          btnFinalizar.onclick = () => accionFinalizarMaestro(idVuelo);
-          actions.appendChild(btnFinalizar);
+            const disabledAttr = inputsDisabled ? "disabled" : "";
+            const row = document.createElement("div");
+            row.className = "chk-row";
+            row.style.alignItems = "center";
 
-          contCard.appendChild(actions);
+            // PREFILL: Si ya tiene estado, pre-seleccionarlo
+            // (Podríamos leer a.estadoAsignacion o a.observaciones, pero por simplicidad asumimos flujo lineal por ahora)
+
+            row.innerHTML = `
+                 <div class="chk-info">
+                   <div class="chk-title">
+                     <b>${nombrePmr || "(sin nombre)"}</b> <span style="font-size:10px; font-weight:400; color:#6b7280;">(${asis})</span>
+                   </div>
+                   <div style="font-size:10px; color:#9ca3af; margin-top:2px;">ID: ${a.idAsignacion}</div>
+                 </div>
+                 <div style="display:flex; flex-direction:column; gap:6px; min-width:140px;">
+                   <select id="sel-agente-${a.idAsignacion}" style="font-size:11px; padding:4px;" ${disabledAttr}>
+                     ${optionsHtml}
+                   </select>
+                   <select id="sel-estado-${a.idAsignacion}" style="font-size:11px; padding:4px;" ${disabledAttr}>
+                      ${statusOptions}
+                   </select>
+                 </div>
+               `;
+            contentWrapper.appendChild(row);
+          });
+
+          contCard.appendChild(contentWrapper);
+
+          // ACTIONS Buttons
+          const actionsDiv = document.createElement("div");
+          actionsDiv.className = "group-actions";
+          actionsDiv.style.justifyContent = "flex-end";
+          actionsDiv.style.marginTop = "12px";
+          actionsDiv.style.borderTop = "1px solid var(--border)";
+          actionsDiv.style.paddingTop = "8px";
+
+          if (isPendiente) {
+            const btnAceptar = document.createElement("button");
+            btnAceptar.className = "btn";
+            btnAceptar.id = `btn-accept-vuelo-${idVuelo}`;
+            btnAceptar.textContent = "Aceptar Asignación";
+            btnAceptar.onclick = () => accionAceptarMaestro(idVuelo);
+            actionsDiv.appendChild(btnAceptar);
+          } else if (isAceptada) {
+            const btnIniciar = document.createElement("button");
+            btnIniciar.className = "btn";
+            btnIniciar.id = `btn-start-vuelo-${idVuelo}`;
+            btnIniciar.textContent = "Iniciar Vuelo";
+            btnIniciar.onclick = () => accionIniciarMaestro(idVuelo);
+            actionsDiv.appendChild(btnIniciar);
+          } else if (isEnCurso) {
+            const btnFinalizar = document.createElement("button");
+            btnFinalizar.className = "btn danger";
+            btnFinalizar.id = `btn-finish-vuelo-${idVuelo}`;
+            btnFinalizar.textContent = "Finalizar Vuelo";
+            btnFinalizar.onclick = () => accionFinalizarMaestro(idVuelo);
+            actionsDiv.appendChild(btnFinalizar);
+          }
+          contCard.appendChild(actionsDiv);
+
+          cont.appendChild(contCard);
+
+        } else if ((asigs.length === 1) || isSupport) {
+          // ✅ CASO 2: ASIGNACIÓN INDIVIDUAL O APOYO (Tarjetas Separadas)
+          asigs.forEach(a => {
+            const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
+            const nombrePmr = pmr ? (pmr.nombre || "") : "";
+            const estadoN = normalizarEstado(a.estadoAsignacion);
+
+            let pillClass = "pill-state";
+            if (estadoN === "en asignacion" || estadoN === "en espera") pillClass += " pill-asignacion";
+            else if (estadoN === "aceptada") pillClass += " pill-aceptada";
+            else if (estadoN === "en transito") pillClass += " pill-transito";
+
+            let roleBadge = "";
+            if (isSupport) roleBadge = `<span class="pill-state" style="background:#dbeafe;color:#1e40af;border-color:#93c5fd;margin-left:5px;">APOYO</span>`;
+
+            const card = document.createElement("div");
+            card.className = "asignacion-card";
+            card.innerHTML = `
+                 <div class="asignacion-header">
+                   <div style="display:flex;gap:6px;align-items:center;">
+                      <span><b>#${a.idAsignacion || ""}</b></span>
+                      ${roleBadge}
+                   </div>
+                   <span class="${pillClass}">${a.estadoAsignacion || "Sin estado"}</span>
+                 </div>
+                 <div class="asignacion-body">
+                   <div><b>Vuelo:</b> ${vueloNum || idVuelo || "-"} · ${tipoServ || ""}</div>
+                   <div style="font-size:11px;color:#6b7280;margin-top:2px;">
+                      Terminal: ${terminal || "-"} · Puerta: ${puerta || "-"}
+                   </div>
+                   <div style="margin-top:5px; font-weight:700;">PMR: ${nombrePmr || "(sin nombre)"}</div>
+                   <div class="msg" id="msg-ops-${a.idAsignacion}"></div>
+                 </div>
+               `;
+
+            const footer = document.createElement("div");
+            footer.className = "asignacion-footer";
+            if (estadoN === "en asignacion" || estadoN === "en espera") {
+              const btn = document.createElement("button"); btn.className = "btn small"; btn.textContent = "Aceptar";
+              btn.onclick = () => aceptarAsignacion(a.idAsignacion); footer.appendChild(btn);
+            } else if (estadoN === "aceptada") {
+              const btn = document.createElement("button"); btn.className = "btn small"; btn.textContent = "Iniciar Trayecto";
+              btn.onclick = () => iniciarTrayecto(a.idAsignacion); footer.appendChild(btn);
+            } else if (estadoN === "en transito") {
+              const btn = document.createElement("button"); btn.className = "btn small"; btn.textContent = "Terminar Trayecto";
+              btn.onclick = () => terminarTrayecto(a.idAsignacion); footer.appendChild(btn);
+            }
+            card.appendChild(footer);
+            cont.appendChild(card);
+          });
 
         } else {
-          // Vuelo Grupal normal (no Maestro)
-          contCard.innerHTML = headerHtml + `<div class="msg" id="msg-ops-vuelo-${idVuelo}"></div>`;
-          contCard.appendChild(listWrap);
-          const actionsG = document.createElement("div");
-          actionsG.className = "group-actions";
-          const btnAccept = document.createElement("button"); btnAccept.id = `btn-accept-vuelo-${idVuelo}`; btnAccept.className = "btn small"; btnAccept.textContent = "Aceptar"; btnAccept.onclick = () => accionAceptarVueloTodos_(idVuelo); actionsG.appendChild(btnAccept);
-          const btnStart = document.createElement("button"); btnStart.id = `btn-start-vuelo-${idVuelo}`; btnStart.className = "btn small"; btnStart.textContent = "Iniciar"; btnStart.onclick = () => accionIniciarVueloSeleccionados_(idVuelo); actionsG.appendChild(btnStart);
-          const btnFinish = document.createElement("button"); btnFinish.id = `btn-finish-vuelo-${idVuelo}`; btnFinish.className = "btn small"; btnFinish.textContent = "Terminar"; btnFinish.onclick = () => accionTerminarVueloSeleccionados_(idVuelo); actionsG.appendChild(btnFinish);
-          contCard.appendChild(actionsG);
-        }
+          // ✅ CASO 3: VUELO GRUPAL GENÉRICO (Fallback)
+          const contCard = document.createElement("div");
+          contCard.className = "asignacion-card vuelo-group";
+          const labelMode = `<span class="pill-state">Vuelo Grupal</span>`;
+          const headerHtml = `
+            <div class="asignacion-header">
+              <span><b>Vuelo:</b> ${vueloNum || idVuelo || "-"} · ${tipoServ || ""}</span>
+              ${labelMode}
+            </div>
+            <div class="group-meta">
+              ${asigs.length} pasajeros.<br>
+              Terminal: ${terminal || "-"} · Puerta: ${puerta || "-"}
+            </div>
+            <div class="msg" id="msg-ops-vuelo-${idVuelo}"></div>
+          `;
+          contCard.innerHTML = headerHtml;
 
-        cont.appendChild(contCard);
+          asigs.forEach(a => {
+            const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
+            const row = document.createElement("div");
+            row.className = "chk-row";
+            const isSelected = getSelectedIdsVuelo_(idVuelo, asigs).has(String(a.idAsignacion));
+            row.innerHTML = `
+               <input type="checkbox" ${isSelected ? "checked" : ""} onchange="setSeleccionAsig_('${idVuelo}', '${a.idAsignacion}', this.checked)">
+               <div class="chk-info">
+                 <b>${pmr ? pmr.nombre : ""}</b><br>
+                 <span style="font-size:10px;color:#6b7280;">${a.estadoAsignacion}</span>
+               </div>
+            `;
+            contCard.appendChild(row);
+          });
+
+          const agActions = document.createElement("div");
+          agActions.className = "group-actions";
+          agActions.innerHTML = `
+            <button class="btn small" onclick="accionAceptarVueloTodos_('${idVuelo}')">Aceptar</button>
+            <button class="btn small" onclick="accionIniciarVueloSeleccionados_('${idVuelo}')">Iniciar</button>
+            <button class="btn small" onclick="accionTerminarVueloSeleccionados_('${idVuelo}')">Terminar</button>
+          `;
+          contCard.appendChild(agActions);
+
+          cont.appendChild(contCard);
+        }
       });
 
       if (msg) showMsg(msg, "", "");
@@ -2361,7 +2408,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
       showMsg(el, "Enviando...", "");
       try {
         const url = buildUrl("agenteAceptarAsignacion", { idAsignacion, idAgente: idAgenteLogueado });
-        const json = await fetchJson(url, { timeoutMs: 20000 });
+        const json = await fetchJson(url);
         if (!json.ok) throw new Error(json.error || "Error al aceptar asignación");
         showMsg(el, "Asignación aceptada.", "ok");
         await cargarDatosAgente(false);
@@ -2377,7 +2424,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
       showMsg(el, "Enviando...", "");
       try {
         const url = buildUrl("agenteIniciarTrayecto", { idAsignacion, idAgente: idAgenteLogueado });
-        const json = await fetchJson(url, { timeoutMs: 20000 });
+        const json = await fetchJson(url);
         if (!json.ok) throw new Error(json.error || "Error al iniciar trayecto");
         showMsg(el, "Trayecto iniciado.", "ok");
         await cargarDatosAgente(false);
@@ -2393,7 +2440,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
       showMsg(el, "Enviando...", "");
       try {
         const url = buildUrl("agenteTerminarTrayecto", { idAsignacion, idAgente: idAgenteLogueado });
-        const json = await fetchJson(url, { timeoutMs: 20000 });
+        const json = await fetchJson(url);
         if (!json.ok) throw new Error(json.error || "Error al terminar trayecto");
         showMsg(el, "Trayecto terminado.", "ok");
         await cargarDatosAgente(false);
@@ -2429,36 +2476,61 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
       }
     }
 
-    /* =========================
-       MAESTRO ACTIONS
-       ========================= */
-    async function accionIniciarMaestro(idVuelo) {
+    async function accionAceptarMaestro(idVuelo) {
       const k = vueloKey_(idVuelo);
       const el = msgOpsVuelo_(k);
-      const asigs = getPendientesVuelo_(k);
 
-      const porAceptar = asigs.filter(a => isPendienteAceptar_(normalizarEstado(a.estadoAsignacion)));
-      if (porAceptar.length > 0) {
-        if (!confirm(`Hay ${porAceptar.length} asignaciones sin aceptar. ¿Deseas aceptarlas e iniciar el vuelo para todos ahora?`)) return;
-      }
+      if (!confirm("¿Aceptar asignación de vuelo completo?")) return;
 
       setBusyVuelo_(k, true);
-      showMsg(el, "Iniciando vuelo masivamente...", "");
+      showMsg(el, "Enviando aceptación...", "");
 
       try {
         const url = buildUrl("agenteMasivoVuelo", {
-          idVuelo: k,
+          idVuelo: idVuelo,
           idAgente: idAgenteLogueado,
-          tipoAccion: 'Iniciar'
+          tipoAccion: 'Aceptar'
         });
-        const json = await fetchJson(url, { timeoutMs: 30000 });
-        if (!json.ok) throw new Error(json.error || "Error");
+        const json = await fetchJson(url);
+        if (!json.ok) throw new Error(json.error || "Error al aceptar vuelo.");
 
-        showMsg(el, "Vuelo iniciado. Pasajeros en tránsito.", "ok");
+        showMsg(el, "Vuelo aceptado correctamente.", "ok");
         await cargarDatosAgente(false);
       } catch (e) {
         console.error(e);
-        showMsg(el, "Error al iniciar: " + (e.message || e), "err");
+        const msgErr = e.message || String(e);
+        showMsg(el, "Error: " + msgErr, "err");
+        alert("Error al aceptar vuelo: " + msgErr);
+      } finally {
+        setBusyVuelo_(k, false);
+      }
+    }
+
+    async function accionIniciarMaestro(idVuelo) {
+      const k = vueloKey_(idVuelo);
+      const el = msgOpsVuelo_(k);
+
+      if (!confirm("¿Iniciar servicio del vuelo? (Se bloquearán cambios hasta finalizar)")) return;
+
+      setBusyVuelo_(k, true);
+      showMsg(el, "Enviando inicio...", "");
+
+      try {
+        const url = buildUrl("agenteMasivoVuelo", {
+          idVuelo: idVuelo,
+          idAgente: idAgenteLogueado,
+          tipoAccion: 'Iniciar'
+        });
+        const json = await fetchJson(url);
+        if (!json.ok) throw new Error(json.error || "Error al iniciar vuelo.");
+
+        showMsg(el, "Vuelo iniciado. Buen servicio.", "ok");
+        await cargarDatosAgente(false);
+      } catch (e) {
+        console.error(e);
+        const msgErr = e.message || String(e);
+        showMsg(el, "Error: " + msgErr, "err");
+        alert("Error al iniciar vuelo: " + msgErr);
       } finally {
         setBusyVuelo_(k, false);
       }
@@ -2470,22 +2542,44 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
       const asigs = getPendientesVuelo_(k);
       const datosPax = {};
 
-      asigs.forEach(a => {
-        const radios = document.getElementsByName(`r-${a.idAsignacion}`);
-        const sel = document.getElementById(`sel-agente-${a.idAsignacion}`);
-        let val = 'SI';
-        for (const r of radios) {
-          if (r.checked) {
-            val = String(r.value).trim();
-            break;
-          }
+      let valid = true;
+      let errPax = "";
+
+      for (const a of asigs) {
+        const selStatus = document.getElementById(`sel-estado-${a.idAsignacion}`);
+        const selAgente = document.getElementById(`sel-agente-${a.idAsignacion}`);
+
+        const st = selStatus ? selStatus.value : "";
+        const ag = selAgente ? selAgente.value : "";
+
+        if (!st) {
+          if (selStatus) selStatus.style.borderColor = "red";
+          valid = false;
+          errPax = `Faltan seleccionar estados (Si/No/...) en algunos pasajeros.`;
+          break;
+        } else {
+          if (selStatus) selStatus.style.borderColor = "#d1d5db";
+        }
+
+        if (st === "Si" && !ag) {
+          if (selAgente) selAgente.style.borderColor = "red";
+          valid = false;
+          errPax = `Si el servicio se realizó (Si), debes indicar el agente.`;
+          break;
+        } else {
+          if (selAgente) selAgente.style.borderColor = "#d1d5db";
         }
 
         datosPax[a.idPmr] = {
-          status: val,
-          agente: sel ? sel.value : 'Maestro'
+          status: st,
+          agente: ag || nombreAgente
         };
-      });
+      }
+
+      if (!valid) {
+        alert("Atención: " + errPax);
+        return;
+      }
 
       if (!confirm(`¿Confirmas finalizar el vuelo y registrar los resultados de ${asigs.length} pasajeros?`)) return;
 
@@ -2494,19 +2588,21 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
 
       try {
         const url = buildUrl("agenteMasivoVuelo", {
-          idVuelo: k,
+          idVuelo: idVuelo,
           idAgente: idAgenteLogueado,
           tipoAccion: 'Finalizar',
           datosPax: JSON.stringify(datosPax)
         });
-        const json = await fetchJson(url, { timeoutMs: 30000 });
-        if (!json.ok) throw new Error(json.error || "Error");
+        const json = await fetchJson(url, { timeoutMs: 35000 });
+        if (!json.ok) throw new Error(json.error || "Error al finalizar");
 
         showMsg(el, "Vuelo finalizado correctamente.", "ok");
         await cargarDatosAgente(false);
       } catch (e) {
         console.error(e);
-        showMsg(el, "Error al finalizar: " + (e.message || e), "err");
+        const msgErr = e.message || String(e);
+        showMsg(el, "Error al finalizar: " + msgErr, "err");
+        alert("Error al finalizar vuelo: " + msgErr);
       } finally {
         setBusyVuelo_(k, false);
       }
