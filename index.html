@@ -2200,7 +2200,7 @@
         // Master Assign Button (only if PMRs > 0)
         let cellPmr = `${v.cantPmr || 0}`;
         if ((v.cantPmr || 0) > 0) {
-          cellPmr += ` <button onclick="iniciarAsignacionVuelo('${v.numeroVuelo}', '${normalizarFechaExcel(v.fecha)}')" 
+          cellPmr += ` <button onclick="iniciarAsignacionVuelo('${v.idVuelo}', '${v.numeroVuelo}', '${normalizarFechaExcel(v.fecha)}')" 
                         style="margin-left:6px;padding:2px 6px;border-radius:4px;border:none;background:#2563eb;color:white;font-size:10px;cursor:pointer;vertical-align:middle;" 
                         title="Asignar Maestro y Apoyos">
                         Asignar
@@ -2209,7 +2209,7 @@
 
         // Airplane Icon for Assignment (visible only if PMRs > 0)
         const iconoAsignar = (v.cantPmr || 0) > 0
-          ? `<button onclick="iniciarAsignacionVuelo('${v.numeroVuelo}', '${normalizarFechaExcel(v.fecha)}')" 
+          ? `<button onclick="iniciarAsignacionVuelo('${v.idVuelo}', '${v.numeroVuelo}', '${normalizarFechaExcel(v.fecha)}')" 
                       style="background:none;border:none;font-size:20px;cursor:pointer;padding:4px;transition:transform 0.2s;" 
                       onmouseover="this.style.transform='scale(1.3)'" 
                       onmouseout="this.style.transform='scale(1)'"
@@ -3304,8 +3304,8 @@
     let currentVueloMaestroData = null;
     let currentPmrsAsignacion = [];
 
-    function abrirModalAsignacionMaestro(vueloNum, fechaVuelo, pmrs) {
-      currentVueloMaestroData = { vueloNum, fechaVuelo };
+    function abrirModalAsignacionMaestro(vueloNum, fechaVuelo, pmrs, idVuelo) {
+      currentVueloMaestroData = { vueloNum, fechaVuelo, idVuelo };
       currentPmrsAsignacion = pmrs; // guardamos para enviar IDs
 
       let existing = document.getElementById("modal-asignacion-maestro");
@@ -3343,7 +3343,7 @@
           <div style="background:#fff;border-radius:20px;padding:24px;width:100%;max-width:550px;max-height:90vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,0.3);font-family:inherit;">
               <h2 style="margin:0 0 8px 0;color:#1e40af;font-size:18px;">Asignación Vuelo ${vueloNum}</h2>
               <p style="margin:0 0 16px 0;color:#6b7280;font-size:13px;">
-                  Terminal: <b>${terminalComun || 'N/A'}</b><br>
+                  ID Vuelo: <b>${currentVueloMaestroData.idVuelo}</b> | Terminal: <b>${terminalComun || 'N/A'}</b><br>
                   ${pmrs.length} pasajeros en espera. <br>
               </p>
 
@@ -3517,7 +3517,7 @@
       const btn = document.querySelector('#modal-asignacion-maestro button[onclick^="confirmar"]');
       if (btn) btn.disabled = true;
 
-      if (!confirm(`¿Confirmar Asignación?\n\nVuelo: ${currentVueloMaestroData.vueloNum}\nMaestro: ${idMaestro}\nApoyos: ${idsApoyos.length}\nPasajeros: ${pmrIds.length}`)) {
+      if (!confirm(`¿Confirmar Asignación?\n\nVuelo: ${currentVueloMaestroData.vueloNum}\nID Vuelo: ${currentVueloMaestroData.idVuelo}\nMaestro: ${idMaestro}\nApoyos: ${idsApoyos.length}\nPasajeros: ${pmrIds.length}`)) {
         if (btn) btn.disabled = false;
         return;
       }
@@ -3532,7 +3532,7 @@
         // Backend payload must match what Codigo.gs expects
         params.append("action", "asignarVueloMaestro");
         // Enviamos datos
-        params.append("idVuelo", currentVueloMaestroData.vueloNum);
+        params.append("idVuelo", currentVueloMaestroData.idVuelo);
         params.append("vueloNum", currentVueloMaestroData.vueloNum);
         params.append("fechaVueloKey", currentVueloMaestroData.fechaVuelo);
         params.append("idAgenteMaestro", idMaestro);
@@ -3561,13 +3561,13 @@
     window.confirmarNewAsignacionMaestro = confirmarNewAsignacionMaestro;
 
     // Mantener helper iniciarAsignacionVuelo
-    window.iniciarAsignacionVuelo = function (vueloNum, fechaRaw) {
+    window.iniciarAsignacionVuelo = function (idVuelo, vueloNum, fechaRaw) {
       // Filter PMRs "En espera" for this flight 
       const fkey = normalizarFechaExcel(fechaRaw);
 
       const pmrs = cachePasajeros.filter(p => {
         const v = getVueloDePmr(p);
-        return v && String(v.numeroVuelo) === String(vueloNum)
+        return v && String(v.idVuelo) === String(idVuelo)
           && normalizarFechaExcel(v.fecha) === fkey
           && normTxt(p.estadoPmr) === "en espera";
       });
@@ -3577,7 +3577,7 @@
         return;
       }
 
-      abrirModalAsignacionMaestro(vueloNum, fkey, pmrs);
+      abrirModalAsignacionMaestro(vueloNum, fkey, pmrs, idVuelo);
     };
   </script>
 </body>
