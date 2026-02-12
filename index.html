@@ -1402,7 +1402,7 @@
       agentesDisp.forEach(a => {
         const opt = document.createElement('option');
         opt.value = a.idAgente;
-        opt.textContent = `${a.nombre} (${a.idAgente}) · ${a._carga}/7 ocupados`;
+        opt.textContent = `${a.nombre} (${a.idAgente}) · ${a._carga} activos`;
         opt.setAttribute('data-carga', a._carga);
         selAgente.appendChild(opt);
       });
@@ -1423,12 +1423,12 @@
         const disponible = MAX - carga;
         const seleccionados = selectedPmrIds.size;
 
-        if (seleccionados > disponible) {
+        if (false) { // Deshabilitado validacion visual
           divCap.innerHTML = `<span style="color:#dc2626;font-weight:900;">⚠ El agente solo tiene ${disponible} cupos libres (intentas asignar ${seleccionados})</span>`;
           document.getElementById('modal-btn-asignar').disabled = true;
           document.getElementById('modal-btn-asignar').style.opacity = '0.5';
         } else {
-          divCap.innerHTML = `<span style="color:#16a34a;font-weight:700;">✓ Capacidad suficiente: ${disponible} cupos libres</span>`;
+          divCap.innerHTML = `<span style="color:#16a34a;font-weight:700;">✓ Asignación permitida (sin límite)</span>`;
           document.getElementById('modal-btn-asignar').disabled = false;
           document.getElementById('modal-btn-asignar').style.opacity = '1';
         }
@@ -1887,7 +1887,7 @@
       return best || candidates[0] || null;
     }
 
-    const MAX_ASIG_POR_AGENTE = 7;
+    // const MAX_ASIG_POR_AGENTE = 7; // Eliminado por solicitud
 
     function estadoAsignacionEsActiva_(estado) {
       const s = normTxt(estado);
@@ -1946,7 +1946,7 @@
           }
           const est = normTxt(a.estadoServicio || a.estado || "");
           if (est && !estadosPermitidos.includes(est)) return false;
-          return a._carga < MAX_ASIG_POR_AGENTE;
+          return true; // Sin límite
         })
         .sort((a, b) => (a._carga - b._carga) || String(a.nombre || "").localeCompare(String(b.nombre || "")));
     }
@@ -2721,17 +2721,17 @@
       const disponibles = agentesAsignablesEnTerminal(terminal);
 
       if (!disponibles.length) {
-        selAg.innerHTML = `<option value="">No hay agentes asignables (carga &lt; ${MAX_ASIG_POR_AGENTE}) en ${terminal || "la terminal"}</option>`;
+        selAg.innerHTML = `<option value="">No hay agentes disponibles en ${terminal || "la terminal"}</option>`;
       } else {
         const placeholder = document.createElement("option");
         placeholder.value = "";
-        placeholder.textContent = `— Agentes asignables en ${terminal || "terminal"} (máx. ${MAX_ASIG_POR_AGENTE} activos) —`;
+        placeholder.textContent = `— Agentes asignables en ${terminal || "terminal"} —`;
         selAg.appendChild(placeholder);
 
         disponibles.forEach(a => {
           const opt = document.createElement("option");
           opt.value = a.idAgente;
-          opt.textContent = `${a.idAgente} · ${a.nombre} · ${prettyEstadoAgente_(a)} · ${a._carga}/${MAX_ASIG_POR_AGENTE}`;
+          opt.textContent = `${a.idAgente} · ${a.nombre} · ${prettyEstadoAgente_(a)} · ${a._carga} activos`;
           selAg.appendChild(opt);
         });
       }
@@ -3048,13 +3048,14 @@
       const obs = document.getElementById("asig-obs").value.trim();
 
 
-      // ✅ Nuevo: limitar a MAX_ASIG_POR_AGENTE asignaciones activas por agente
+      /* Eliminado validacion de carga maxima
       const cargaActual = contarAsignacionesActivasAgente_(idAgente);
       if (cargaActual >= MAX_ASIG_POR_AGENTE) {
         msg.textContent = `Agente sobrcargado (${MAX_ASIG_POR_AGENTE}/${MAX_ASIG_POR_AGENTE}). Selecciona otro agente.`;
         msg.className = "msg err";
         return;
       }
+      */
       if (!idPmr) { msg.textContent = "Selecciona un pasajero PMR."; msg.className = "msg err"; return; }
       if (!idAgente) { msg.textContent = "Selecciona un agente disponible."; msg.className = "msg err"; return; }
       if (!tipoT) { msg.textContent = "Selecciona un tipo de traslado."; msg.className = "msg err"; return; }
@@ -3066,7 +3067,7 @@
       params.append("tipoTraslado", tipoT);
       params.append("observaciones", obs);
 
-      params.append("maxAsignaciones", String(MAX_ASIG_POR_AGENTE));
+      params.append("maxAsignaciones", "999");
       params.append("resetAceptacion", "1");
       try {
         const res = await fetch(API_URL + "?" + params.toString());
@@ -3323,7 +3324,7 @@
         document.body.appendChild(dl);
       }
       dl.innerHTML = agentesDisp.map(a =>
-        `<option value="${a.nombre} - ${a.idAgente}" data-id="${a.idAgente}">Carga: ${a._carga || 0}/7</option>`
+        `<option value="${a.nombre} - ${a.idAgente}" data-id="${a.idAgente}">Carga: ${a._carga || 0}</option>`
       ).join('');
 
       const modal = document.createElement("div");
