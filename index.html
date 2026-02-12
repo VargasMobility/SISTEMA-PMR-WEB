@@ -1133,6 +1133,12 @@
         </section>
 
         <section id="view-agentes" class="view-section">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:11px;margin-bottom:6px;">
+            <div style="min-width:200px;">
+              <label>Filtrar por nombre <input type="text" id="filtro-agente-nombre"
+                  placeholder="Ej: Juan Pérez" /></label>
+            </div>
+          </div>
           <table>
             <thead>
               <tr>
@@ -2544,12 +2550,52 @@
     function renderVistaAgentes() {
       const tbody = document.getElementById("tbody-agentes");
       const empty = document.getElementById("empty-agentes");
+      const filterInput = document.getElementById("filtro-agente-nombre");
+      const filterName = (filterInput?.value || "").trim().toLowerCase();
+
       tbody.innerHTML = "";
 
       if (!cacheAgentes.length) { empty.style.display = "block"; return; }
       empty.style.display = "none";
 
-      cacheAgentes.forEach(a => {
+      // 1. Clonar para no mutar el cache directamente (aunque cacheAgentes se sobrescribe con cargarDatos)
+      let filtrados = [...cacheAgentes];
+
+      // 2. Filtrar por nombre
+      if (filterName) {
+        filtrados = filtrados.filter(a =>
+          String(a.nombre || "").toLowerCase().includes(filterName)
+        );
+      }
+
+      // 3. Ordenar por prioridad de estado
+      // Verde (Disponible) > Amarillo (En servicio/transito/asignacion) > Resto
+      filtrados.sort((a, b) => {
+        const estA = normTxt(a.estadoServicio || a.estado || "");
+        const estB = normTxt(b.estadoServicio || b.estado || "");
+
+        const priority = (s) => {
+          if (s === "disponible") return 1;
+          if (["en servicio", "en asignacion", "en asignación", "asignado"].includes(s)) return 2;
+          return 3;
+        };
+
+        const pA = priority(estA);
+        const pB = priority(estB);
+
+        if (pA !== pB) return pA - pB;
+        return String(a.nombre || "").localeCompare(String(b.nombre || ""));
+      });
+
+      if (!filtrados.length) {
+        empty.style.display = "block";
+        empty.textContent = "No se encontraron agentes con ese nombre.";
+      } else {
+        empty.style.display = "none";
+        empty.textContent = "No hay agentes configurados."; // Reset default text
+      }
+
+      filtrados.forEach(a => {
         const estServRaw = String(a.estadoServicio || "").trim();
         const estServ = estServRaw.toLowerCase();
 
@@ -3185,6 +3231,8 @@
       document.getElementById("filtro-asig-fecha").addEventListener("change", renderVistaAsignaciones);
       document.getElementById("filtro-asig-tipo").addEventListener("change", renderVistaAsignaciones);
       document.getElementById("filtro-asig-estado").addEventListener("change", renderVistaAsignaciones);
+
+      document.getElementById("filtro-agente-nombre").addEventListener("input", renderVistaAgentes);
 
       // ✅ Eventos Selección Masiva
       const checkAll = document.getElementById("checkbox-select-all-pmr");
