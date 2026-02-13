@@ -622,6 +622,17 @@
       box-shadow: inset 4px 0 0 0 var(--warn-border);
     }
 
+    .row-overdue td {
+      background: #fee2e2 !important;
+      /* Rojo pastel */
+      color: #991b1b !important;
+      /* Rojo oscuro */
+    }
+
+    .row-overdue td:first-child {
+      box-shadow: inset 4px 0 0 0 #ef4444;
+    }
+
     /* =========================
        ✅ Agentes: colores por estado servicio
        ========================= */
@@ -1718,7 +1729,9 @@
       const dt = obtenerDateTimeVuelo(v);
       if (!dt) return false;
       const ahora = new Date();
-      return dt.getTime() >= ahora.getTime();
+      // Permitir visualización hasta 30 minutos después de la hora programada
+      const limite = dt.getTime() + (30 * 60 * 1000);
+      return limite >= ahora.getTime();
     }
 
     function minutosHastaIdeal(v) {
@@ -1737,17 +1750,22 @@
     function clasesFilaVuelo(v) {
       const ts = String(v?.tipoServicio || "").toLowerCase().trim();
       const minsIdeal = minutosHastaIdeal(v);
+      const dt = obtenerDateTimeVuelo(v);
+      const ahora = new Date();
 
       let cls = "";
       if (ts === "embarque") cls += " row-embarque";
       if (ts === "desembarque") cls += " row-desembarque";
 
-      if (minsIdeal !== null) {
+      if (dt && ahora.getTime() > dt.getTime()) {
+        cls += " row-overdue";
+      } else if (minsIdeal !== null) {
         if (ts === "embarque" && minsIdeal <= 30) cls += " row-warning";
         if (ts === "desembarque" && minsIdeal <= 20) cls += " row-warning";
       }
       return cls.trim();
     }
+
 
     function badgeClassIdeal(v) {
       const ts = String(v?.tipoServicio || "").toLowerCase().trim();
@@ -2352,9 +2370,16 @@
         }
 
         const ts = String(vuelo?.tipoServicio || "").toLowerCase().trim();
+        const dtV = vuelo ? obtenerDateTimeVuelo(vuelo) : null;
+        const ahora = new Date();
+
         let cls = (groupIndex % 2 === 0) ? "pmr-group-even" : "pmr-group-odd";
         if (ts === "embarque") cls += " row-embarque";
         else if (ts === "desembarque") cls += " row-desembarque";
+
+        if (dtV && ahora.getTime() > dtV.getTime()) {
+          cls += " row-overdue";
+        }
 
         const tr = document.createElement("tr");
         tr.className = cls;
