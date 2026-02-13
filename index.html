@@ -3424,6 +3424,13 @@
                   <option value="Ultima Milla">Última Milla</option>
                 </select>
               </div>
+
+              <!-- Observaciones (Solo Correo) -->
+              <div style="margin-bottom:16px;">
+                  <label style="display:block;font-weight:700;margin-bottom:4px;font-size:12px;color:#1e3a8a;">Observaciones (Solo se enviarán por correo al maestro)</label>
+                  <textarea id="input-obs-maestro" placeholder="Ej: Puerta 15, Espigón C..." 
+                            style="width:100%;padding:10px;border-radius:10px;border:1px solid #e5e7eb;font-size:13px;min-height:60px;resize:vertical;"></textarea>
+              </div>
               
                    </div>
               </div>
@@ -3560,10 +3567,11 @@
         return;
       }
 
-      // IDs de Pasajeros
       const pmrIds = currentPmrsAsignacion.map(p => p.idPmr);
+      const observacionesMaestro = document.getElementById('input-obs-maestro').value.trim();
 
       const btn = document.querySelector('#modal-asignacion-maestro button[onclick^="confirmar"]');
+
       if (btn) btn.disabled = true;
 
       if (!confirm(`¿Confirmar Asignación?\n\nVuelo: ${currentVueloMaestroData.vueloNum}\nID Vuelo: ${currentVueloMaestroData.idVuelo}\nMaestro: ${idMaestro}\nApoyos: ${idsApoyos.length}\nPasajeros: ${pmrIds.length}`)) {
@@ -3588,6 +3596,9 @@
         params.append("idsAgentesApoyo", JSON.stringify(idsApoyos)); // Array IDs
         params.append("pmrIds", JSON.stringify(pmrIds));             // Array IDs PMR
         params.append("tipoTraslado", tipoTraslado);
+        if (observacionesMaestro) {
+          params.append("observaciones", observacionesMaestro);
+        }
 
         const res = await fetch(API_URL + "?" + params.toString()); // Apps Script GET approach
         const json = await res.json();
