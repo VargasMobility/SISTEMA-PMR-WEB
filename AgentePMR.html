@@ -1239,6 +1239,7 @@ Pendientes: ${toAccept.length}`)) return;
           }
         }
         showMsg(el, `Aceptación finalizada. OK: ${okCount} · Error: ${failCount}`, failCount ? "warn" : "ok");
+        if (window.notificarUpdate) window.notificarUpdate("asignaciones");
         await cargarDatosAgente(false);
       } finally {
         setBusyVuelo_(k, false);
@@ -1287,7 +1288,8 @@ Seleccionados a iniciar: ${toStart.length}`)) return;
             failCount++;
           }
         }
-        showMsg(el, `Inicio finalizado. OK: ${okCount} · Error: ${failCount}`, failCount ? "warn" : "ok");
+        showMsg(el, `Inicio finalizada. OK: ${okCount} · Error: ${failCount}`, failCount ? "warn" : "ok");
+        if (window.notificarUpdate) window.notificarUpdate("asignaciones");
         await cargarDatosAgente(false);
       } finally {
         setBusyVuelo_(k, false);
@@ -1376,6 +1378,7 @@ Además, se cancelarán automáticamente los NO seleccionados (no conectados): $
 Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
 
         showMsg(el, tail, (failFinish || failCancel) ? "warn" : "ok");
+        if (window.notificarUpdate) window.notificarUpdate("asignaciones");
         await cargarDatosAgente(false);
       } finally {
         setBusyVuelo_(k, false);
@@ -2411,6 +2414,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         const json = await fetchJson(url);
         if (!json.ok) throw new Error(json.error || "Error al aceptar asignación");
         showMsg(el, "Asignación aceptada.", "ok");
+        if (window.notificarUpdate) window.notificarUpdate("asignaciones");
         await cargarDatosAgente(false);
       } catch (err) {
         console.error(err);
@@ -2427,6 +2431,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         const json = await fetchJson(url);
         if (!json.ok) throw new Error(json.error || "Error al iniciar trayecto");
         showMsg(el, "Trayecto iniciado.", "ok");
+        if (window.notificarUpdate) window.notificarUpdate("asignaciones");
         await cargarDatosAgente(false);
       } catch (err) {
         console.error(err);
@@ -2443,6 +2448,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         const json = await fetchJson(url);
         if (!json.ok) throw new Error(json.error || "Error al terminar trayecto");
         showMsg(el, "Trayecto terminado.", "ok");
+        if (window.notificarUpdate) window.notificarUpdate("asignaciones");
         await cargarDatosAgente(false);
       } catch (err) {
         console.error(err);
@@ -2467,6 +2473,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         const json = await fetchJson(url, { timeoutMs: 20000 });
         if (!json.ok) throw new Error(json.error || "Error al cancelar servicio");
         showMsg(el, "Servicio cancelado correctamente.", "ok");
+        if (window.notificarUpdate) window.notificarUpdate("asignaciones");
         await cargarDatosAgente(false);
       } catch (err) {
         console.error(err);
@@ -2495,6 +2502,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         if (!json.ok) throw new Error(json.error || "Error al aceptar vuelo.");
 
         showMsg(el, "Vuelo aceptado correctamente.", "ok");
+        if (window.notificarUpdate) window.notificarUpdate("asignaciones");
         await cargarDatosAgente(false);
       } catch (e) {
         console.error(e);
@@ -2525,6 +2533,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         if (!json.ok) throw new Error(json.error || "Error al iniciar vuelo.");
 
         showMsg(el, "Vuelo iniciado. Buen servicio.", "ok");
+        if (window.notificarUpdate) window.notificarUpdate("asignaciones");
         await cargarDatosAgente(false);
       } catch (e) {
         console.error(e);
@@ -2597,6 +2606,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         if (!json.ok) throw new Error(json.error || "Error al finalizar");
 
         showMsg(el, "Vuelo finalizado correctamente.", "ok");
+        if (window.notificarUpdate) window.notificarUpdate("asignaciones");
         await cargarDatosAgente(false);
       } catch (e) {
         console.error(e);
@@ -2702,6 +2712,45 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         }
       }, 1000);
     });
+  </script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+    import { getFirestore, doc, onSnapshot, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDG0Klm9UF8CGVWvUJfBijbVRL9BVTJ7ag",
+      authDomain: "sistemapmraerolinea.firebaseapp.com",
+      projectId: "sistemapmraerolinea",
+      storageBucket: "sistemapmraerolinea.firebasestorage.app",
+      messagingSenderId: "788258832323",
+      appId: "1:788258832323:web:3f74325486d26a5ec74776",
+      measurementId: "G-CX4EJHG81D"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const updatesDocRef = doc(db, "meta", "updates");
+
+    onSnapshot(updatesDocRef, (docSnap) => {
+      if (docSnap.metadata.hasPendingWrites) return;
+      const data = docSnap.data();
+      if (data && typeof window.cargarDatosAgente === 'function' && idAgenteLogueado) {
+        window.cargarDatosAgente(false).catch(console.error);
+      }
+    });
+
+    window.notificarUpdate = async (type = "general") => {
+      try {
+        await setDoc(updatesDocRef, {
+          lastType: type,
+          lastBy: "agent_client_" + (idAgenteLogueado || "unknown"),
+          ts: serverTimestamp(),
+          nonce: Math.random()
+        });
+      } catch (e) {
+        console.error("Error notifying update:", e);
+      }
+    };
   </script>
 </body>
 
