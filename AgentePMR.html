@@ -1232,12 +1232,19 @@ Pendientes: ${toAccept.length}`)) return;
             const url = buildUrl("agenteAceptarAsignacion", { idAsignacion: a.idAsignacion, idAgente: idAgenteLogueado });
             const json = await fetchJson(url, { timeoutMs: 20000 });
             if (!json.ok) throw new Error(json.error || "Error");
+
+            // Optimistic update
+            a.estadoAsignacion = 'Aceptada';
+            const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
+            if (pmr) pmr.estado = 'Asignado';
+
             okCount++;
           } catch (e) {
             console.error(e);
             failCount++;
           }
         }
+        renderAsignacionesAgente();
         showMsg(el, `Aceptación finalizada. OK: ${okCount} · Error: ${failCount}`, failCount ? "warn" : "ok");
         if (window.notificarUpdate) window.notificarUpdate("asignaciones");
         await cargarDatosAgente(false);
@@ -1282,12 +1289,17 @@ Seleccionados a iniciar: ${toStart.length}`)) return;
             const url = buildUrl("agenteIniciarTrayecto", { idAsignacion: a.idAsignacion, idAgente: idAgenteLogueado });
             const json = await fetchJson(url, { timeoutMs: 20000 });
             if (!json.ok) throw new Error(json.error || "Error");
+
+            // Optimistic update
+            a.estadoAsignacion = 'En tránsito';
+
             okCount++;
           } catch (e) {
             console.error(e);
             failCount++;
           }
         }
+        renderAsignacionesAgente();
         showMsg(el, `Inicio finalizada. OK: ${okCount} · Error: ${failCount}`, failCount ? "warn" : "ok");
         if (window.notificarUpdate) window.notificarUpdate("asignaciones");
         await cargarDatosAgente(false);
@@ -1349,6 +1361,12 @@ Además, se cancelarán automáticamente los NO seleccionados (no conectados): $
             const url = buildUrl("agenteTerminarTrayecto", { idAsignacion: a.idAsignacion, idAgente: idAgenteLogueado });
             const json = await fetchJson(url, { timeoutMs: 20000 });
             if (!json.ok) throw new Error(json.error || "Error");
+
+            // Optimistic update
+            a.estadoAsignacion = 'Terminado';
+            const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
+            if (pmr) pmr.estado = 'Terminado';
+
             okFinish++;
           } catch (e) {
             console.error(e);
@@ -1364,6 +1382,12 @@ Además, se cancelarán automáticamente los NO seleccionados (no conectados): $
               const url = buildUrl("agenteCancelarAsignacion", { idAsignacion: a.idAsignacion, idAgente: idAgenteLogueado, motivo });
               const json = await fetchJson(url, { timeoutMs: 20000 });
               if (!json.ok) throw new Error(json.error || "Error");
+
+              // Optimistic update
+              a.estadoAsignacion = 'Cancelada';
+              const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
+              if (pmr) pmr.estado = 'En espera';
+
               okCancel++;
             } catch (e) {
               console.error(e);
@@ -1371,6 +1395,8 @@ Además, se cancelarán automáticamente los NO seleccionados (no conectados): $
             }
           }
         }
+        renderAsignacionesAgente();
+        renderHistorialAgente();
 
         const tail =
           `Término OK: ${okFinish} · Error: ${failFinish}` +
@@ -2413,6 +2439,14 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         const url = buildUrl("agenteAceptarAsignacion", { idAsignacion, idAgente: idAgenteLogueado });
         const json = await fetchJson(url);
         if (!json.ok) throw new Error(json.error || "Error al aceptar asignación");
+
+        // Optimistic update
+        const asig = cacheAsignaciones.find(a => String(a.idAsignacion) === String(idAsignacion));
+        if (asig) asig.estadoAsignacion = 'Aceptada';
+        const pmr = cachePasajeros.find(p => asig && String(p.idPmr) === String(asig.idPmr));
+        if (pmr) pmr.estado = 'Asignado';
+        renderAsignacionesAgente();
+
         showMsg(el, "Asignación aceptada.", "ok");
         if (window.notificarUpdate) window.notificarUpdate("asignaciones");
         await cargarDatosAgente(false);
@@ -2430,6 +2464,12 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         const url = buildUrl("agenteIniciarTrayecto", { idAsignacion, idAgente: idAgenteLogueado });
         const json = await fetchJson(url);
         if (!json.ok) throw new Error(json.error || "Error al iniciar trayecto");
+
+        // Optimistic update
+        const asig = cacheAsignaciones.find(a => String(a.idAsignacion) === String(idAsignacion));
+        if (asig) asig.estadoAsignacion = 'En tránsito';
+        renderAsignacionesAgente();
+
         showMsg(el, "Trayecto iniciado.", "ok");
         if (window.notificarUpdate) window.notificarUpdate("asignaciones");
         await cargarDatosAgente(false);
@@ -2447,6 +2487,15 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         const url = buildUrl("agenteTerminarTrayecto", { idAsignacion, idAgente: idAgenteLogueado });
         const json = await fetchJson(url);
         if (!json.ok) throw new Error(json.error || "Error al terminar trayecto");
+
+        // Optimistic update
+        const asig = cacheAsignaciones.find(a => String(a.idAsignacion) === String(idAsignacion));
+        if (asig) asig.estadoAsignacion = 'Terminado';
+        const pmr = cachePasajeros.find(p => asig && String(p.idPmr) === String(asig.idPmr));
+        if (pmr) pmr.estado = 'Terminado';
+        renderAsignacionesAgente();
+        renderHistorialAgente();
+
         showMsg(el, "Trayecto terminado.", "ok");
         if (window.notificarUpdate) window.notificarUpdate("asignaciones");
         await cargarDatosAgente(false);
@@ -2472,6 +2521,14 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         const url = buildUrl("agenteCancelarAsignacion", { idAsignacion, idAgente: idAgenteLogueado, motivo });
         const json = await fetchJson(url, { timeoutMs: 20000 });
         if (!json.ok) throw new Error(json.error || "Error al cancelar servicio");
+
+        // Optimistic update
+        const asig = cacheAsignaciones.find(a => String(a.idAsignacion) === String(idAsignacion));
+        if (asig) asig.estadoAsignacion = 'Cancelada';
+        const pmr = cachePasajeros.find(p => asig && String(p.idPmr) === String(asig.idPmr));
+        if (pmr) pmr.estado = 'En espera';
+        renderAsignacionesAgente();
+
         showMsg(el, "Servicio cancelado correctamente.", "ok");
         if (window.notificarUpdate) window.notificarUpdate("asignaciones");
         await cargarDatosAgente(false);
@@ -2500,6 +2557,15 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         });
         const json = await fetchJson(url);
         if (!json.ok) throw new Error(json.error || "Error al aceptar vuelo.");
+
+        // Optimistic update
+        const asigs = getPendientesVuelo_(idVuelo);
+        asigs.forEach(a => {
+          a.estadoAsignacion = 'Aceptada';
+          const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
+          if (pmr) pmr.estado = 'Asignado';
+        });
+        renderAsignacionesAgente();
 
         showMsg(el, "Vuelo aceptado correctamente.", "ok");
         if (window.notificarUpdate) window.notificarUpdate("asignaciones");
@@ -2531,6 +2597,13 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         });
         const json = await fetchJson(url);
         if (!json.ok) throw new Error(json.error || "Error al iniciar vuelo.");
+
+        // Optimistic update
+        const asigs = getPendientesVuelo_(idVuelo);
+        asigs.forEach(a => {
+          a.estadoAsignacion = 'En tránsito';
+        });
+        renderAsignacionesAgente();
 
         showMsg(el, "Vuelo iniciado. Buen servicio.", "ok");
         if (window.notificarUpdate) window.notificarUpdate("asignaciones");
@@ -2604,6 +2677,15 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         });
         const json = await fetchJson(url, { timeoutMs: 35000 });
         if (!json.ok) throw new Error(json.error || "Error al finalizar");
+
+        // Optimistic update
+        asigs.forEach(a => {
+          a.estadoAsignacion = 'Terminado';
+          const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
+          if (pmr) pmr.estado = (datosPax[a.idPmr].status === 'Si') ? 'Terminado' : 'No realizado';
+        });
+        renderAsignacionesAgente();
+        renderHistorialAgente();
 
         showMsg(el, "Vuelo finalizado correctamente.", "ok");
         if (window.notificarUpdate) window.notificarUpdate("asignaciones");
