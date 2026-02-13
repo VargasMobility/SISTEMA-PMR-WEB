@@ -2028,7 +2028,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
 
           const headerOnlyHtml = `
                <div class="asignacion-header">
-                 <span><b>Vuelo:</b> ${vueloNum || idVuelo || "-"} · ${tipoServ || ""}</span>
+                 <span><b>Vuelo:</b> ${vueloNum || idVuelo || "-"} · ${tipoServ || ""} · <b>Hora:</b> ${horaProg || "-"}</span>
                  ${labelMode}
                </div>
                <div class="group-meta">
@@ -2041,9 +2041,9 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
           let monitorHtml = "";
           const apoyosVuelo = cacheAsignaciones.filter(o =>
             String(o.idVuelo) === String(idVuelo) &&
-            (o.observaciones || "").toUpperCase().includes("APOYO") &&
-            !esEstadoCerrado_(o.estadoAsignacion)
+            (o.observaciones || "").toUpperCase().includes("APOYO")
           );
+
 
           if (apoyosVuelo.length > 0) {
             const mapAgentes = new Map();
@@ -2214,7 +2214,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
                    <span class="${pillClass}">${a.estadoAsignacion || "Sin estado"}</span>
                  </div>
                  <div class="asignacion-body">
-                   <div><b>Vuelo:</b> ${vueloNum || idVuelo || "-"} · ${tipoServ || ""}</div>
+                   <div><b>Vuelo:</b> ${vueloNum || idVuelo || "-"} · ${tipoServ || ""} · <b>Hora:</b> ${horaProg || "-"}</div>
                    <div style="font-size:11px;color:#6b7280;margin-top:2px;">
                       Terminal: ${terminal || "-"} · Puerta: ${puerta || "-"}
                    </div>
@@ -2246,7 +2246,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
           const labelMode = `<span class="pill-state">Vuelo Grupal</span>`;
           const headerHtml = `
             <div class="asignacion-header">
-              <span><b>Vuelo:</b> ${vueloNum || idVuelo || "-"} · ${tipoServ || ""}</span>
+              <span><b>Vuelo:</b> ${vueloNum || idVuelo || "-"} · ${tipoServ || ""} · <b>Hora:</b> ${horaProg || "-"}</span>
               ${labelMode}
             </div>
             <div class="group-meta">
