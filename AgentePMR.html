@@ -1011,7 +1011,8 @@
         est.startsWith("termin") ||
         est.startsWith("rechaz") ||
         est.includes("cancel") ||
-        est.includes("inactiv")
+        est.includes("inactiv") ||
+        est === "baja"
       );
     }
 
@@ -2139,6 +2140,9 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
           // Render Rows
           asigs.forEach(a => {
             const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
+            // ✅ Omitir pasajeros en estado "Baja" (duplicados de actualización)
+            if (pmr && (pmr.estadoPmr === "Baja" || pmr.estado === "Baja")) return;
+
             const nombrePmr = pmr ? (pmr.nombre || "") : "";
             const asis = pmr ? (pmr.tipoAsistencia || "") : "";
 
