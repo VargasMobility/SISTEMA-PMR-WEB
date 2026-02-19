@@ -2158,8 +2158,8 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
             // ✅ Omitir pasajeros en estado "Baja" (duplicados de actualización)
             if (pmr && (pmr.estadoPmr === "Baja" || pmr.estado === "Baja")) return;
 
-            const nombrePmr = pmr ? (pmr.nombre || "") : "";
-            const asis = pmr ? (pmr.tipoAsistencia || "") : "";
+            const nombrePmr = pmr ? (pmr.nombre || "") : `PAX-${a.idPmr}`;
+            const asis = pmr ? (pmr.tipoAsistencia || "") : "???";
 
             let optionsHtml = `<option value="">-- Asignar Agente --</option>`;
             agentesOptions.forEach(opt => {
@@ -2240,7 +2240,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
           // ✅ CASO 2: ASIGNACIÓN INDIVIDUAL O APOYO (Tarjetas Separadas)
           asigs.forEach(a => {
             const pmr = cachePasajeros.find(p => String(p.idPmr) === String(a.idPmr));
-            const nombrePmr = pmr ? (pmr.nombre || "") : "";
+            const nombrePmr = pmr ? (pmr.nombre || "") : `PAX-${a.idPmr}`;
             const estadoN = normalizarEstado(a.estadoAsignacion);
 
             let pillClass = "pill-state";
