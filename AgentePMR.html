@@ -1948,7 +1948,8 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
       if (mostrarMensajes && msgAsig) showMsg(msgAsig, "Cargando asignaciones...", "");
 
       try {
-        const data = await fetchJson(buildUrl("listAll"), { timeoutMs: 25000 });
+        const url = buildUrl("listAll") + `&idAgente=${idAgenteLogueado}`;
+        const data = await fetchJson(url, { timeoutMs: 25000 });
         if (!data.ok) {
           setEstadoApi("Error", false);
           setTopbarInfo({ apiOk: false });
