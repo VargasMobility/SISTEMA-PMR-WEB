@@ -1726,10 +1726,7 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         if (!silent) mostrarLoadingLogin(true, "Conectando con el sistema PMR...", "Validando tus datos y marcando disponibilidad");
 
         const url = buildUrl(LOGIN_ACTION, { rut, ubicacion: ubic });
-        const [json] = await Promise.all([
-          fetchJson(url, { timeoutMs: 20000 }),
-          silent ? Promise.resolve() : sleep(900)
-        ]);
+        const json = await fetchJson(url, { timeoutMs: 20000 });
 
         if (!json.ok) throw new Error((json.error || "Error al iniciar sesión").toString());
 
@@ -1766,8 +1763,25 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
 
         persistSession();
         iniciarAutoRefresh();
-        await cargarDatosAgente(true);
-        startExpireTicker();
+
+        // ✅ CARGA RÁPIDA: Usar el snapshot si viene en el login
+        if (json.snapshot) {
+          console.log("Cargando datos desde snapshot de login (ahorro 1 request)");
+          cacheAsignaciones = json.snapshot.asignaciones || [];
+          cachePasajeros = json.snapshot.pasajeros || [];
+          cacheVuelos = json.snapshot.vuelos || [];
+          cacheAgentes = json.snapshot.agentes || [];
+
+          renderAsignacionesAgente();
+          renderHistorialAgente();
+          renderRangoAgente();
+          renderConfigInfo();
+          startExpireTicker();
+        } else {
+          // Fallback por si acaso
+          await cargarDatosAgente(true);
+          startExpireTicker();
+        }
       } catch (err) {
         console.error(err);
         setEstadoApi("Error conexión", false);
