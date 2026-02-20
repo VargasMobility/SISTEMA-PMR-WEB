@@ -932,6 +932,7 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbwFBHpIx-gQrVAvj5Vv-I-l1X3NR9MYbyTV9CtxgKCw7oPeuxIE5qrYx3eZdDoIroTE/exec";
     const LOGIN_ACTION = "agenteLoginPorRut";
     const LS_KEY_SESSION = "pmr_agente_session_v2";
+    const LS_KEY_DATA = "pmr_agente_data_v1";
 
     const DESCANSO_MINUTES = 45;
     const DESCANSO_MS = DESCANSO_MINUTES * 60 * 1000;
@@ -1519,7 +1520,10 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
       } catch (_) { }
     }
     function clearSession() {
-      try { localStorage.removeItem(LS_KEY_SESSION); } catch (_) { }
+      try {
+        localStorage.removeItem(LS_KEY_SESSION);
+        localStorage.removeItem(LS_KEY_DATA);
+      } catch (_) { }
     }
     function getSession() {
       try {
@@ -1528,6 +1532,36 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
       } catch (_) {
         return null;
       }
+    }
+
+    /* ✅ PERSISTENCIA DE DATOS (Vuelos/Asignaciones) */
+    function saveLocalData() {
+      try {
+        const payload = {
+          asignaciones: cacheAsignaciones,
+          pasajeros: cachePasajeros,
+          vuelos: cacheVuelos,
+          agentes: cacheAgentes,
+          ts: Date.now()
+        };
+        localStorage.setItem(LS_KEY_DATA, JSON.stringify(payload));
+      } catch (_) { }
+    }
+    function loadLocalData() {
+      try {
+        const raw = localStorage.getItem(LS_KEY_DATA);
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        // Expiramos si tiene más de 12 horas para asegurar frescura razonable
+        if (data && data.ts && (Date.now() - data.ts < 12 * 3600 * 1000)) {
+          cacheAsignaciones = data.asignaciones || [];
+          cachePasajeros = data.pasajeros || [];
+          cacheVuelos = data.vuelos || [];
+          cacheAgentes = data.agentes || [];
+          return true;
+        }
+      } catch (_) { }
+      return false;
     }
 
     function getDescansoRemainingMs_() {
@@ -1944,7 +1978,20 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
       if (!idAgenteLogueado) return;
 
       const msgAsig = document.getElementById("msg-asignaciones");
-      if (mostrarMensajes && msgAsig) showMsg(msgAsig, "Cargando asignaciones...", "");
+
+      // 1. Carga optimista desde localStorage
+      const hadLocal = loadLocalData();
+      if (hadLocal) {
+        renderAsignacionesAgente();
+        renderHistorialAgente();
+        renderRangoAgente();
+        renderConfigInfo();
+      }
+
+      if (mostrarMensajes && msgAsig) {
+        if (!hadLocal) showMsg(msgAsig, "Cargando asignaciones...", "");
+        else showMsg(msgAsig, "Sincronizando con el servidor...", "");
+      }
 
       try {
         const url = buildUrl("listAll") + `&idAgente=${idAgenteLogueado}`;
@@ -1960,6 +2007,9 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         cachePasajeros = data.pasajeros || [];
         cacheVuelos = data.vuelos || [];
         cacheAgentes = data.agentes || [];
+
+        // 2. Guardar para la próxima vez
+        saveLocalData();
 
         setEstadoApi("Conectado", true);
         setTopbarInfo({
@@ -1979,7 +2029,10 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         console.error(err);
         setEstadoApi("Error conexión", false);
         setTopbarInfo({ apiOk: false });
-        if (msgAsig && mostrarMensajes) showMsg(msgAsig, "Error de conexión con la API.", "err");
+        // Si ya cargamos localmente, no alarmamos tanto
+        if (msgAsig && mostrarMensajes && !hadLocal) {
+          showMsg(msgAsig, "Error de conexión con la API.", "err");
+        }
       }
     }
 
