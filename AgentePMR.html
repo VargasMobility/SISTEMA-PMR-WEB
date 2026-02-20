@@ -1761,27 +1761,12 @@ Auto-cancel OK: ${okCancel} · Error: ${failCancel}` : "");
         setEstadoApi("Conectado", true);
         setTopbarInfo({ apiOk: true, lastUpdate: new Date().toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }) });
 
-        persistSession();
         iniciarAutoRefresh();
 
-        // ✅ CARGA RÁPIDA: Usar el snapshot si viene en el login
-        if (json.snapshot) {
-          console.log("Cargando datos desde snapshot de login (ahorro 1 request)");
-          cacheAsignaciones = json.snapshot.asignaciones || [];
-          cachePasajeros = json.snapshot.pasajeros || [];
-          cacheVuelos = json.snapshot.vuelos || [];
-          cacheAgentes = json.snapshot.agentes || [];
-
-          renderAsignacionesAgente();
-          renderHistorialAgente();
-          renderRangoAgente();
-          renderConfigInfo();
-          startExpireTicker();
-        } else {
-          // Fallback por si acaso
-          await cargarDatosAgente(true);
-          startExpireTicker();
-        }
+        // Restaurar flujo Feb 13: Carga de datos estándar tras login
+        await sleep(900); // Re-añadir delay para "vibe" estable de la sesión anterior
+        await cargarDatosAgente(true);
+        startExpireTicker();
       } catch (err) {
         console.error(err);
         setEstadoApi("Error conexión", false);
