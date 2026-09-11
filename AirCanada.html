@@ -352,6 +352,21 @@
     .msg.ok{color:var(--ok);font-weight:900;}
     .msg.err{color:var(--danger);font-weight:900;}
     .msg.warn{color:var(--warn);font-weight:900;}
+    .progress-container{
+      width:100%;
+      height:8px;
+      background:#e5e7eb;
+      border-radius:999px;
+      margin-top:10px;
+      overflow:hidden;
+      display:none;
+    }
+    .progress-bar{
+      height:100%;
+      width:0%;
+      background:linear-gradient(90deg,var(--primary),var(--primary-2));
+      transition:width .3s ease;
+    }
 
     /* =========================
        MODAL
@@ -736,9 +751,12 @@
       </div>
       <div class="btn-row">
         <button class="btn-pill secondary" id="btn-clear-modal" type="button">Limpiar formulario</button>
-        <button class="btn-pill" id="btn-submit-all" type="button">Guardar todo</button>
+        <button class="btn-pill" id="btn-submit-all" type="button">Enviar información</button>
       </div>
       <div class="msg" id="modal-msg" style="flex-basis:100%;"></div>
+        <div class="progress-container" id="modal-progress-container" style="flex-basis:100%; margin-bottom:10px;">
+          <div class="progress-bar" id="modal-progress-bar"></div>
+        </div>
     </div>
   </div>
 </div>
@@ -752,6 +770,94 @@
   /* Mantener valor simple para la base */
   const PORTAL_AIRLINE = "AIR CANADA";
   const PORTAL_AIRLINE_KEY = "air canada";   // para filtrar robusto (incluye)
+
+  // ============================================================
+  // PORTAL EXTERNO -> APPS SCRIPT (POST JSON)
+  // Todas las llamadas a la API viajan como JSON en el body.
+  // text/plain mantiene la solicitud simple y evita preflight CORS.
+  // ============================================================
+  const PORTAL_SOURCE = "AIRCANADA_GITHUB";
+  let submissionInProgress = false;
+
+  function newPortalRequestKey_(prefix = "AIRCANADA") {
+    const stamp = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
+    let rnd = "";
+    try {
+      rnd = (typeof crypto !== "undefined" && crypto.randomUUID)
+        ? crypto.randomUUID().replace(/-/g, "").slice(0, 12)
+        : "";
+    } catch (_) {}
+    if (!rnd) rnd = Math.random().toString(36).slice(2, 14).toUpperCase();
+    return `${prefix}-${stamp}-${rnd}`;
+  }
+
+  async function apiPostJson_(action, payload = {}, options = {}) {
+    const timeoutMs = Number(options.timeoutMs || 120000);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    const body = Object.assign({}, payload || {}, {
+      action,
+      portalSource: PORTAL_SOURCE,
+      portalSentAt: new Date().toISOString()
+    });
+
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=UTF-8" },
+        body: JSON.stringify(body),
+        cache: "no-store",
+        redirect: "follow",
+        credentials: "omit",
+        signal: controller.signal
+      });
+
+      const raw = await res.text();
+      let json;
+      try {
+        json = JSON.parse(raw);
+      } catch (_) {
+        throw new Error("La API respondió en un formato no válido. No vuelvas a enviar inmediatamente; primero actualiza la vista para comprobar si la información alcanzó a procesarse.");
+      }
+
+      if (!res.ok || !json || json.ok === false) {
+        throw new Error((json && json.error) ? json.error : `Error HTTP ${res.status}`);
+      }
+      return json;
+    } catch (err) {
+      if (err && err.name === "AbortError") {
+        throw new Error("La solicitud tardó demasiado en responder. El servidor podría seguir procesándola. No la reenvíes inmediatamente: actualiza los datos y verifica primero.");
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function setSubmissionUiBusy_(busy, text = "") {
+    submissionInProgress = !!busy;
+
+    const modal = document.getElementById("modal-backdrop");
+    if (modal) {
+      modal.querySelectorAll("input, select, textarea, button").forEach(el => {
+        if (busy) {
+          if (!el.hasAttribute("data-prev-disabled")) {
+            el.setAttribute("data-prev-disabled", el.disabled ? "1" : "0");
+          }
+          el.disabled = true;
+        } else if (el.hasAttribute("data-prev-disabled")) {
+          el.disabled = el.getAttribute("data-prev-disabled") === "1";
+          el.removeAttribute("data-prev-disabled");
+        }
+      });
+    }
+
+    const btn = document.getElementById("btn-submit-all");
+    if (btn && busy) btn.textContent = "Procesando...";
+    if (text) setModalMsg(text, "warn");
+  }
+
 
   /***************************************************************
    * STATE
@@ -905,11 +1011,9 @@
     apiStatus.textContent = "Conectando con API...";
 
     try{
-      const res = await fetch(API_URL + "?action=listAll");
-      const text = await res.text();
-      let json = null;
-      try{ json = JSON.parse(text); } catch(e){ throw new Error("Respuesta no es JSON. Revisa permisos/deploy del WebApp."); }
-      if (!json.ok) throw new Error(json.error || "Error en listAll");
+      const json = await apiPostJson_("listAll", {
+        requestKey: newPortalRequestKey_("AIRCANADA-LIST")
+      }, { timeoutMs: 120000 });
 
       cacheVuelos = json.vuelos || [];
       cachePasajeros = json.pasajeros || [];
@@ -1148,18 +1252,32 @@
   }
 
   function closeModal(){
+    if (submissionInProgress) {
+      setModalMsg("La información está en proceso. Espera a que el sistema termine antes de cerrar esta ventana.", "warn");
+      return;
+    }
     const backdrop = document.getElementById("modal-backdrop");
     backdrop.classList.remove("show");
     backdrop.setAttribute("aria-hidden","true");
     document.body.style.overflow = "";
     document.getElementById("modal-msg").textContent = "";
     document.getElementById("modal-msg").className = "msg";
+    updateProgressBar(0, false);
   }
 
   function clearModal(){
+    if (submissionInProgress) {
+      setModalMsg("La información está en proceso. Espera a que el sistema termine antes de limpiar el formulario.", "warn");
+      return;
+    }
     state.flightBlocks = [];
     const body = document.getElementById("modal-body");
     body.innerHTML = "";
+    const submitBtn = document.getElementById("btn-submit-all");
+    if (submitBtn) {
+      submitBtn.textContent = "Enviar información";
+      submitBtn.disabled = false;
+    }
     addFlightBlock();
     setModalMsg("", "");
   }
@@ -1168,6 +1286,15 @@
     const el = document.getElementById("modal-msg");
     el.textContent = text || "";
     el.className = "msg" + (type ? (" " + type) : "");
+  }
+
+  function updateProgressBar(percent, show=true){
+    const container = document.getElementById("modal-progress-container");
+    const bar = document.getElementById("modal-progress-bar");
+    if (container && bar) {
+      container.style.display = show ? "block" : "none";
+      bar.style.width = Math.max(0, Math.min(100, Number(percent) || 0)) + "%";
+    }
   }
 
   function addFlightBlock(prefill={}){
@@ -1413,60 +1540,53 @@
     return errs;
   }
 
-  async function apiCreateVuelo(b){
-    const params = new URLSearchParams();
-    params.append("action", "createVuelo");
-    params.append("fecha", b.fecha);
-    params.append("horaProgramada", b.hora);
-    params.append("aerolinea", b.aerolinea);
-    params.append("numeroVuelo", b.numeroVuelo);
-    params.append("terminal", b.terminal);
+  async function apiCreateVuelo(b, requestKey){
+    const requestTag = requestKey ? `[PORTAL_REQ:${requestKey}]` : "";
+    const obsFinal = [b.obs, "[AIRLINE_PORTAL]", requestTag].filter(Boolean).join(" | ");
 
-    if (b.puerta) params.append("puerta", b.puerta);
-    if (b.espigon) params.append("espigon", b.espigon);
-    if (b.tipoServicio) params.append("tipoServicio", b.tipoServicio);
-
-    params.append("cantPmr", String((b.pasajeros || []).length));
-
-    const obsFinal = (b.obs ? (b.obs + " | ") : "") + "[AIRLINE_PORTAL]";
-    params.append("observaciones", obsFinal);
-
-    const res = await fetch(API_URL + "?" + params.toString());
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error || "Error al crear vuelo");
-    return json;
+    return apiPostJson_("createVuelo", {
+      requestKey,
+      fecha: b.fecha,
+      horaProgramada: b.hora,
+      aerolinea: b.aerolinea,
+      numeroVuelo: b.numeroVuelo,
+      terminal: b.terminal,
+      puerta: b.puerta || "",
+      espigon: b.espigon || "",
+      tipoServicio: b.tipoServicio || "",
+      cantPmr: String((b.pasajeros || []).length),
+      observaciones: obsFinal
+    });
   }
 
-  async function apiCreatePasajero(b, idVuelo, p){
-    const params = new URLSearchParams();
-    params.append("action", "crearPasajero");
-
-    params.append("vuelo", b.numeroVuelo);
-    params.append("idVuelo", idVuelo);
-    params.append("fechaVuelo", b.fecha);
-
-    params.append("nombre", p.nombre);
-    params.append("tipoAsistencia", p.tipoAsistencia);
-
-    if (p.edad) params.append("edad", p.edad);
-    if (p.id) params.append("rut", p.id);
-
+  async function apiCreatePasajero(b, idVuelo, p, requestKey){
     const obs = [];
     if (p.id) obs.push(`ID:${p.id}`);
     if (p.obsP) obs.push(p.obsP);
-    const obsFinal = obs.length ? (obs.join(" | ") + " | [AIRLINE_PORTAL]") : "[AIRLINE_PORTAL]";
-    params.append("observaciones", obsFinal);
+    obs.push("[AIRLINE_PORTAL]");
+    if (requestKey) obs.push(`[PORTAL_REQ:${requestKey}]`);
 
-    const res = await fetch(API_URL + "?" + params.toString());
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error || "Error al crear pasajero");
-    return json;
+    return apiPostJson_("crearPasajero", {
+      requestKey,
+      vuelo: b.numeroVuelo,
+      idVuelo,
+      fechaVuelo: b.fecha,
+      nombre: p.nombre,
+      tipoAsistencia: p.tipoAsistencia,
+      edad: p.edad || "",
+      rut: p.id || "",
+      observaciones: obs.filter(Boolean).join(" | ")
+    });
   }
 
   async function submitAll(){
+    if (submissionInProgress) return;
+
     const btn = document.getElementById("btn-submit-all");
-    btn.disabled = true;
-    setModalMsg("Validando formulario...", "warn");
+    const requestKeyBase = newPortalRequestKey_("AIRCANADA-CREATE");
+
+    setSubmissionUiBusy_(true, "Validando formulario...");
+    updateProgressBar(10);
 
     try{
       const cards = Array.from(document.querySelectorAll(".flight-card"));
@@ -1478,39 +1598,58 @@
         if (e.length) errors.push(`Vuelo #${idx+1}: faltan ${e.join(", ")}`);
       });
       if (errors.length){
+        setSubmissionUiBusy_(false);
         setModalMsg(errors.join(" · "), "err");
-        btn.disabled = false;
+        if (btn) btn.textContent = "Enviar información";
+        updateProgressBar(0, false);
         return;
       }
+
+      setModalMsg("Enviando información en formato JSON...", "warn");
 
       let totalVuelosOk = 0;
       let totalPaxOk = 0;
 
       for (let i=0; i<bloques.length; i++){
         const b = bloques[i];
-        setModalMsg(`Guardando Vuelo #${i+1} (${b.numeroVuelo} ${b.fecha})...`, "warn");
+        const requestKey = `${requestKeyBase}-V${i+1}`;
+        const stepBase = (i / bloques.length) * 80 + 10;
 
-        const vueloResp = await apiCreateVuelo(b);
+        updateProgressBar(stepBase);
+        setModalMsg(`Enviando Vuelo #${i+1} (${b.numeroVuelo})...`, "warn");
+
+        const vueloResp = await apiCreateVuelo(b, requestKey);
         const idVuelo = vueloResp.idVuelo || vueloResp.id_vuelo || vueloResp.vueloId || "";
         if (!idVuelo) throw new Error(`No se recibió idVuelo al crear el Vuelo #${i+1}.`);
 
         totalVuelosOk++;
+        setModalMsg("Información enviada. Su solicitud entró en proceso. Espere unos momentos mientras se genera la información.", "warn");
 
         for (let j=0; j<b.pasajeros.length; j++){
-          setModalMsg(`Guardando Vuelo #${i+1}: pasajero ${j+1}/${b.pasajeros.length}...`, "warn");
-          await apiCreatePasajero(b, idVuelo, b.pasajeros[j]);
+          const paxRequestKey = `${requestKey}-P${j+1}`;
+          const paxProgress = stepBase + ((j + 1) / Math.max(1, b.pasajeros.length)) * (70 / Math.max(1, bloques.length));
+          updateProgressBar(Math.min(95, paxProgress));
+          await apiCreatePasajero(b, idVuelo, b.pasajeros[j], paxRequestKey);
           totalPaxOk++;
         }
       }
 
-      setModalMsg(`Guardado completado: Vuelos OK=${totalVuelosOk}, Pasajeros OK=${totalPaxOk}.`, "ok");
+      updateProgressBar(100);
+      setSubmissionUiBusy_(false);
+      if (btn) btn.textContent = "Enviar información";
+      setModalMsg(`Proceso finalizado correctamente: ${totalVuelosOk} vuelo(s) y ${totalPaxOk} pasajero(s) procesados.`, "ok");
+
       await cargarDatos(true);
-      setTimeout(()=> closeModal(), 700);
+      setTimeout(() => {
+        if (!submissionInProgress) closeModal();
+      }, 2200);
 
     }catch(err){
       console.error(err);
-      setModalMsg("Error al guardar: " + (err.message || err), "err");
-      btn.disabled = false;
+      setSubmissionUiBusy_(false);
+      if (btn) btn.textContent = "Enviar información";
+      setModalMsg("No fue posible confirmar el proceso: " + (err.message || err) + " Verifica la información antes de volver a enviar.", "err");
+      updateProgressBar(0, false);
     }
   }
 
