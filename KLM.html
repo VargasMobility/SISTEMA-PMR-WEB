@@ -1170,6 +1170,61 @@
       }
     }
 
+
+    // ============================================================
+    // PORTAL AEROLÍNEA -> MISMO MOTOR SEGURO DE CARGAMASIVA
+    // Una sola tarea JSON contiene vuelo(s) + pasajero(s).
+    // El backend aplica: idempotencia, deduplicación, auditoría,
+    // edición por snapshot y conteo solo de PMR activos En espera.
+    // ============================================================
+    function portalAirlineName_() {
+      if (typeof PORTAL_AIRLINE !== "undefined" && PORTAL_AIRLINE) return String(PORTAL_AIRLINE).trim();
+      if (typeof AIRLINE_LOCK !== "undefined" && AIRLINE_LOCK) return String(AIRLINE_LOCK).trim();
+      return "";
+    }
+
+    function portalSleep_(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+    async function portalEnqueueGuardarTodo_(payload) {
+      return apiPostJson_("portalAerolineaEnqueueGuardarTodo", Object.assign({}, payload || {}, {
+        portalAirline: portalAirlineName_(),
+        portalSource: PORTAL_SOURCE
+      }), { timeoutMs: 30000 });
+    }
+
+    async function portalQueueStatus_(idTarea) {
+      return apiPostJson_("portalAerolineaQueueStatus", { ids: [String(idTarea || "")] }, { timeoutMs: 20000 });
+    }
+
+    async function portalEsperarProceso_(idTarea, maxMs = 25000) {
+      const id = String(idTarea || "").trim();
+      if (!id) return { done: true, reason: "sin-id" };
+      const started = Date.now();
+      await portalSleep_(1400);
+      while ((Date.now() - started) < maxMs) {
+        let st;
+        try { st = await portalQueueStatus_(id); }
+        catch (_) { return { done: false, pending: true, statusUnknown: true }; }
+        const tareas = Array.isArray(st?.tareas) ? st.tareas : [];
+        const t = tareas.find(x => String(x?.idTarea || "") === id);
+        // DONE/CANCELLED se purgan del Internal Queue. Si ya no está, terminó.
+        if (!t) return { done: true, reason: "done-or-purged" };
+        const estado = String(t.estado || "").trim().toUpperCase();
+        if (estado === "ERROR") throw new Error(t.ultimoError || t.error || "La carga quedó en ERROR en la cola interna.");
+        if (estado === "CANCELLED") throw new Error("La carga fue cancelada antes de completarse.");
+        await portalSleep_(3500);
+      }
+      return { done: false, pending: true };
+    }
+
+    function portalOriginalPmrIdsFromCard_(card) {
+      try {
+        const x = JSON.parse(card?.dataset?.originalPmrIds || "[]");
+        return Array.isArray(x) ? x.map(String).filter(Boolean) : [];
+      } catch (_) { return []; }
+    }
+
+
     function setSubmissionUiBusy_(busy, text = "") {
       submissionInProgress = !!busy;
 
@@ -1427,7 +1482,7 @@
         }, { timeoutMs: 120000 });
 
         cacheVuelos = json.vuelos || [];
-        cachePasajeros = json.pasajeros || [];
+        cachePasajeros = (json.pasajeros || []).filter(p => String(p?.estadoPmr || p?.estado || "").trim().toLowerCase() !== "baja");
 
         apiStatus.textContent = "Conectado a la API";
         const ahora = new Date();
@@ -2087,11 +2142,16 @@
         return String(pVueloId) === String(vueloId) || (pVueloNum === vuelo.numeroVuelo && pFecha === normalizarFechaExcel(vuelo.fecha));
       }).filter(p => (p.estadoPmr || p.estado) !== 'Baja');
 
+      const originalPmrIds = pasajeros
+        .map(p => String(p?.idPmr || "").trim())
+        .filter(Boolean);
+
       clearModal();
       document.getElementById('modal-title').textContent = `Editando Vuelo: ${vuelo.numeroVuelo} - ${normalizarFechaExcel(vuelo.fecha)}`;
 
       const card = document.querySelector('.flight-card');
       if (card) {
+        card.dataset.originalPmrIds = JSON.stringify(originalPmrIds);
         card.querySelector('.flight-numero').value = vuelo.numeroVuelo || '';
         card.querySelector('.flight-origen').value = vuelo.origen || '';
         card.querySelector('.flight-destino').value = vuelo.destino || '';
@@ -2132,152 +2192,102 @@
         openModal();
       }
     }
-
     async function actualizarVueloExistente(vueloId) {
       if (submissionInProgress) return;
-
       const btn = document.getElementById("btn-submit-all");
       const requestKey = newPortalRequestKey_("KLM-UPDATE");
+      setSubmissionUiBusy_(true, "Validando información...");
+      updateProgressBar(10);
 
+      try {
+        const card = document.querySelector(".flight-card");
+        if (!card) throw new Error("No se encontró el formulario del vuelo.");
+        const b = getFlightBlockData(card);
+        const errs = validarBloque(b);
+        if (errs.length) throw new Error(errs.join(" · "));
+
+        const originalPmrIds = portalOriginalPmrIdsFromCard_(card);
+        setModalMsg(`Enviando actualización de ${b.numeroVuelo} y ${b.pasajeros.length} pasajero(s) en una sola solicitud JSON segura...`, "warn");
+        updateProgressBar(25);
+
+        const resp = await portalEnqueueGuardarTodo_({
+          requestKey,
+          idVuelo: vueloId,
+          resetPax: "1",
+          resetPmrIds: originalPmrIds,
+          bloques: [Object.assign({}, b, { idVuelo: vueloId, resetPax: "1", resetPmrIds: originalPmrIds })]
+        });
+
+        updateProgressBar(55);
+        setModalMsg("Información recibida. Su actualización entró en proceso. Espere unos minutos mientras se genera la información.", "warn");
+
+        const wait = await portalEsperarProceso_(resp.idTarea, 25000);
+        if (wait.done) {
+          updateProgressBar(100);
+          setModalMsg("Actualización finalizada correctamente. El lote anterior quedó histórico y el lote activo no se duplicó.", "ok");
+          await cargarDatos(true);
+          setTimeout(() => closeModal(), 1800);
+        } else {
+          updateProgressBar(75);
+          setModalMsg("Actualización enviada y todavía en proceso. Espere unos minutos y use ‘Actualizar datos’. No vuelva a enviarla.", "ok");
+          setTimeout(() => closeModal(), 2600);
+        }
+      } catch (err) {
+        console.error(err);
+        setModalMsg("Error: " + (err?.message || err), "err");
+        updateProgressBar(0, false);
+      } finally {
+        setSubmissionUiBusy_(false);
+        if (btn) btn.disabled = false;
+      }
+    }
+    async function submitAll() {
+      if (submissionInProgress) return;
+      const btn = document.getElementById("btn-submit-all");
+      const requestKey = newPortalRequestKey_("KLM-CREATE");
       setSubmissionUiBusy_(true, "Validando información...");
       updateProgressBar(10);
 
       try {
         const cards = Array.from(document.querySelectorAll(".flight-card"));
-        const b = getFlightBlockData(cards[0]);
-        const errs = validarBloque(b);
-
-        if (errs.length) {
-          setSubmissionUiBusy_(false);
-          setModalMsg(errs.join(" · "), "err");
-          if (btn) btn.textContent = "Actualizar vuelo y pasajeros";
-          updateProgressBar(0, false);
-          return;
-        }
-
-        updateProgressBar(25);
-        setModalMsg("Enviando información en formato JSON...", "warn");
-
-        const odTag = (b.origen && b.destino) ? `OD:${b.origen}-${b.destino}` : "";
-        const requestTag = `[PORTAL_REQ:${requestKey}]`;
-        const obsFinal = [b.obs, odTag, "[KLM_PORTAL]", requestTag].filter(Boolean).join(" | ");
-
-        await apiPostJson_("updateVuelo", {
-          requestKey,
-          idVuelo: vueloId,
-          fecha: b.fecha,
-          horaProgramada: b.hora,
-          aerolinea: b.aerolinea,
-          numeroVuelo: b.numeroVuelo,
-          origen: b.origen,
-          destino: b.destino,
-          terminal: b.terminal,
-          puerta: b.puerta || "",
-          espigon: b.espigon || "",
-          tipoServicio: b.tipoServicio || "",
-          cantPmr: String(b.pasajeros.length),
-          observaciones: obsFinal,
-          resetPax: "1"
-        });
-
-        updateProgressBar(55);
-        setModalMsg("Información enviada. Su solicitud entró en proceso. Espere unos momentos mientras se genera la información.", "warn");
-
-        await apiCreatePasajerosBatch(b, vueloId, requestKey);
-
-        updateProgressBar(100);
-        setSubmissionUiBusy_(false);
-        if (btn) btn.textContent = "Actualizar vuelo y pasajeros";
-        setModalMsg(`Proceso finalizado correctamente. Vuelo ${b.numeroVuelo} actualizado con ${b.pasajeros.length} pasajero(s).`, "ok");
-
-        await cargarDatos(true);
-        setTimeout(() => {
-          if (!submissionInProgress) closeModal();
-        }, 2200);
-      } catch (err) {
-        console.error(err);
-        setSubmissionUiBusy_(false);
-        if (btn) btn.textContent = "Actualizar vuelo y pasajeros";
-        setModalMsg("No fue posible confirmar el proceso: " + (err.message || err) + " Verifica los datos antes de volver a enviar.", "err");
-        updateProgressBar(0, false);
-      }
-    }
-
-    async function submitAll() {
-      if (submissionInProgress) return;
-
-      const btn = document.getElementById("btn-submit-all");
-      const requestKeyBase = newPortalRequestKey_("KLM-CREATE");
-
-      setSubmissionUiBusy_(true, "Validando formulario...");
-      updateProgressBar(10);
-
-      try {
-        const cards = Array.from(document.querySelectorAll(".flight-card"));
         const bloques = cards.map(getFlightBlockData);
-
         const errors = [];
         bloques.forEach((b, idx) => {
           const e = validarBloque(b);
           if (e.length) errors.push(`Vuelo #${idx + 1}: faltan ${e.join(", ")}`);
         });
+        if (errors.length) throw new Error(errors.join(" · "));
 
-        if (errors.length) {
-          setSubmissionUiBusy_(false);
-          setModalMsg(errors.join(" · "), "err");
-          if (btn) btn.textContent = "Enviar información";
-          updateProgressBar(0, false);
-          return;
+        const totalPax = bloques.reduce((a,b) => a + ((b.pasajeros || []).length), 0);
+        setModalMsg(`Enviando ${bloques.length} vuelo(s) y ${totalPax} pasajero(s) en una sola solicitud JSON segura...`, "warn");
+        updateProgressBar(25);
+
+        const resp = await portalEnqueueGuardarTodo_({
+          requestKey,
+          bloques
+        });
+
+        updateProgressBar(55);
+        setModalMsg("Información recibida. Su información entró en proceso. Espere unos minutos mientras se genera la información.", "warn");
+
+        const wait = await portalEsperarProceso_(resp.idTarea, 25000);
+        if (wait.done) {
+          updateProgressBar(100);
+          setModalMsg("Proceso finalizado correctamente. La información fue generada sin duplicar pasajeros activos.", "ok");
+          await cargarDatos(true);
+          setTimeout(() => closeModal(), 1800);
+        } else {
+          updateProgressBar(75);
+          setModalMsg("Información enviada correctamente y todavía en proceso. Espere unos minutos y use ‘Actualizar datos’ para verla reflejada. No vuelva a enviarla.", "ok");
+          setTimeout(() => closeModal(), 2600);
         }
-
-        setModalMsg("Enviando información en formato JSON...", "warn");
-
-        let totalVuelosOk = 0;
-        let totalPaxOk = 0;
-
-        for (let i = 0; i < bloques.length; i++) {
-          const b = bloques[i];
-          const requestKey = `${requestKeyBase}-V${i + 1}`;
-          const stepBase = (i / bloques.length) * 80 + 10;
-
-          updateProgressBar(stepBase);
-          setModalMsg(`Enviando Vuelo #${i + 1} (${b.numeroVuelo})...`, "warn");
-
-          const vueloResp = await apiCreateVuelo(b, requestKey);
-          const idVuelo = vueloResp.idVuelo || vueloResp.id_vuelo || vueloResp.vueloId || "";
-          if (!idVuelo) throw new Error(`No se recibió idVuelo al crear el Vuelo #${i + 1}.`);
-
-          totalVuelosOk++;
-
-          updateProgressBar(stepBase + (10 / bloques.length));
-          setModalMsg("Información enviada. Su solicitud entró en proceso. Espere unos momentos mientras se genera la información.", "warn");
-
-          await apiCreatePasajerosBatch(b, idVuelo, requestKey);
-          totalPaxOk += b.pasajeros.length;
-        }
-
-        updateProgressBar(100);
-        setSubmissionUiBusy_(false);
-        if (btn) btn.textContent = "Enviar información";
-        setModalMsg(`Proceso finalizado correctamente: ${totalVuelosOk} vuelo(s) y ${totalPaxOk} pasajero(s) procesados.`, "ok");
-
-        await cargarDatos(true);
-        setTimeout(() => {
-          if (!submissionInProgress) closeModal();
-        }, 2200);
-
       } catch (err) {
         console.error(err);
-        setSubmissionUiBusy_(false);
-
-        let msg = err.message || err;
-        if (String(msg).includes("Ya existe un vuelo")) {
-          msg = "El vuelo ya existe para esta fecha. Cambia el número de vuelo o edita el existente.";
-        }
-
-        setModalMsg("No fue posible confirmar el proceso: " + msg + " Verifica la información antes de volver a enviar.", "err");
-        if (btn) btn.textContent = "Enviar información";
+        setModalMsg("Error: " + (err?.message || err), "err");
         updateProgressBar(0, false);
+      } finally {
+        setSubmissionUiBusy_(false);
+        if (btn) btn.disabled = false;
       }
     }
 
