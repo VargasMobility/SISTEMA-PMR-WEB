@@ -835,6 +835,61 @@
     }
   }
 
+
+    // ============================================================
+    // PORTAL AEROLÍNEA -> MISMO MOTOR SEGURO DE CARGAMASIVA
+    // Una sola tarea JSON contiene vuelo(s) + pasajero(s).
+    // El backend aplica: idempotencia, deduplicación, auditoría,
+    // edición por snapshot y conteo solo de PMR activos En espera.
+    // ============================================================
+    function portalAirlineName_() {
+      if (typeof PORTAL_AIRLINE !== "undefined" && PORTAL_AIRLINE) return String(PORTAL_AIRLINE).trim();
+      if (typeof AIRLINE_LOCK !== "undefined" && AIRLINE_LOCK) return String(AIRLINE_LOCK).trim();
+      return "";
+    }
+
+    function portalSleep_(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+    async function portalEnqueueGuardarTodo_(payload) {
+      return apiPostJson_("portalAerolineaEnqueueGuardarTodo", Object.assign({}, payload || {}, {
+        portalAirline: portalAirlineName_(),
+        portalSource: PORTAL_SOURCE
+      }), { timeoutMs: 30000 });
+    }
+
+    async function portalQueueStatus_(idTarea) {
+      return apiPostJson_("portalAerolineaQueueStatus", { ids: [String(idTarea || "")] }, { timeoutMs: 20000 });
+    }
+
+    async function portalEsperarProceso_(idTarea, maxMs = 25000) {
+      const id = String(idTarea || "").trim();
+      if (!id) return { done: true, reason: "sin-id" };
+      const started = Date.now();
+      await portalSleep_(1400);
+      while ((Date.now() - started) < maxMs) {
+        let st;
+        try { st = await portalQueueStatus_(id); }
+        catch (_) { return { done: false, pending: true, statusUnknown: true }; }
+        const tareas = Array.isArray(st?.tareas) ? st.tareas : [];
+        const t = tareas.find(x => String(x?.idTarea || "") === id);
+        // DONE/CANCELLED se purgan del Internal Queue. Si ya no está, terminó.
+        if (!t) return { done: true, reason: "done-or-purged" };
+        const estado = String(t.estado || "").trim().toUpperCase();
+        if (estado === "ERROR") throw new Error(t.ultimoError || t.error || "La carga quedó en ERROR en la cola interna.");
+        if (estado === "CANCELLED") throw new Error("La carga fue cancelada antes de completarse.");
+        await portalSleep_(3500);
+      }
+      return { done: false, pending: true };
+    }
+
+    function portalOriginalPmrIdsFromCard_(card) {
+      try {
+        const x = JSON.parse(card?.dataset?.originalPmrIds || "[]");
+        return Array.isArray(x) ? x.map(String).filter(Boolean) : [];
+      } catch (_) { return []; }
+    }
+
+
   function setSubmissionUiBusy_(busy, text = "") {
     submissionInProgress = !!busy;
 
@@ -1016,7 +1071,7 @@
       }, { timeoutMs: 120000 });
 
       cacheVuelos = json.vuelos || [];
-      cachePasajeros = json.pasajeros || [];
+      cachePasajeros = (json.pasajeros || []).filter(p => String(p?.estadoPmr || p?.estado || "").trim().toLowerCase() !== "baja");
 
       apiStatus.textContent = "Conectado a la API";
       const ahora = new Date();
@@ -1578,80 +1633,55 @@
       observaciones: obs.filter(Boolean).join(" | ")
     });
   }
+    async function submitAll() {
+      if (submissionInProgress) return;
+      const btn = document.getElementById("btn-submit-all");
+      const requestKey = newPortalRequestKey_("AIRCANADA-CREATE");
+      setSubmissionUiBusy_(true, "Validando información...");
+      updateProgressBar(10);
 
-  async function submitAll(){
-    if (submissionInProgress) return;
+      try {
+        const cards = Array.from(document.querySelectorAll(".flight-card"));
+        const bloques = cards.map(getFlightBlockData);
+        const errors = [];
+        bloques.forEach((b, idx) => {
+          const e = validarBloque(b);
+          if (e.length) errors.push(`Vuelo #${idx + 1}: faltan ${e.join(", ")}`);
+        });
+        if (errors.length) throw new Error(errors.join(" · "));
 
-    const btn = document.getElementById("btn-submit-all");
-    const requestKeyBase = newPortalRequestKey_("AIRCANADA-CREATE");
+        const totalPax = bloques.reduce((a,b) => a + ((b.pasajeros || []).length), 0);
+        setModalMsg(`Enviando ${bloques.length} vuelo(s) y ${totalPax} pasajero(s) en una sola solicitud JSON segura...`, "warn");
+        updateProgressBar(25);
 
-    setSubmissionUiBusy_(true, "Validando formulario...");
-    updateProgressBar(10);
+        const resp = await portalEnqueueGuardarTodo_({
+          requestKey,
+          bloques
+        });
 
-    try{
-      const cards = Array.from(document.querySelectorAll(".flight-card"));
-      const bloques = cards.map(getFlightBlockData);
+        updateProgressBar(55);
+        setModalMsg("Información recibida. Su información entró en proceso. Espere unos minutos mientras se genera la información.", "warn");
 
-      const errors = [];
-      bloques.forEach((b, idx)=>{
-        const e = validarBloque(b);
-        if (e.length) errors.push(`Vuelo #${idx+1}: faltan ${e.join(", ")}`);
-      });
-      if (errors.length){
-        setSubmissionUiBusy_(false);
-        setModalMsg(errors.join(" · "), "err");
-        if (btn) btn.textContent = "Enviar información";
-        updateProgressBar(0, false);
-        return;
-      }
-
-      setModalMsg("Enviando información en formato JSON...", "warn");
-
-      let totalVuelosOk = 0;
-      let totalPaxOk = 0;
-
-      for (let i=0; i<bloques.length; i++){
-        const b = bloques[i];
-        const requestKey = `${requestKeyBase}-V${i+1}`;
-        const stepBase = (i / bloques.length) * 80 + 10;
-
-        updateProgressBar(stepBase);
-        setModalMsg(`Enviando Vuelo #${i+1} (${b.numeroVuelo})...`, "warn");
-
-        const vueloResp = await apiCreateVuelo(b, requestKey);
-        const idVuelo = vueloResp.idVuelo || vueloResp.id_vuelo || vueloResp.vueloId || "";
-        if (!idVuelo) throw new Error(`No se recibió idVuelo al crear el Vuelo #${i+1}.`);
-
-        totalVuelosOk++;
-        setModalMsg("Información enviada. Su solicitud entró en proceso. Espere unos momentos mientras se genera la información.", "warn");
-
-        for (let j=0; j<b.pasajeros.length; j++){
-          const paxRequestKey = `${requestKey}-P${j+1}`;
-          const paxProgress = stepBase + ((j + 1) / Math.max(1, b.pasajeros.length)) * (70 / Math.max(1, bloques.length));
-          updateProgressBar(Math.min(95, paxProgress));
-          await apiCreatePasajero(b, idVuelo, b.pasajeros[j], paxRequestKey);
-          totalPaxOk++;
+        const wait = await portalEsperarProceso_(resp.idTarea, 25000);
+        if (wait.done) {
+          updateProgressBar(100);
+          setModalMsg("Proceso finalizado correctamente. La información fue generada sin duplicar pasajeros activos.", "ok");
+          await cargarDatos(true);
+          setTimeout(() => closeModal(), 1800);
+        } else {
+          updateProgressBar(75);
+          setModalMsg("Información enviada correctamente y todavía en proceso. Espere unos minutos y use ‘Actualizar datos’ para verla reflejada. No vuelva a enviarla.", "ok");
+          setTimeout(() => closeModal(), 2600);
         }
+      } catch (err) {
+        console.error(err);
+        setModalMsg("Error: " + (err?.message || err), "err");
+        updateProgressBar(0, false);
+      } finally {
+        setSubmissionUiBusy_(false);
+        if (btn) btn.disabled = false;
       }
-
-      updateProgressBar(100);
-      setSubmissionUiBusy_(false);
-      if (btn) btn.textContent = "Enviar información";
-      setModalMsg(`Proceso finalizado correctamente: ${totalVuelosOk} vuelo(s) y ${totalPaxOk} pasajero(s) procesados.`, "ok");
-
-      await cargarDatos(true);
-      setTimeout(() => {
-        if (!submissionInProgress) closeModal();
-      }, 2200);
-
-    }catch(err){
-      console.error(err);
-      setSubmissionUiBusy_(false);
-      if (btn) btn.textContent = "Enviar información";
-      setModalMsg("No fue posible confirmar el proceso: " + (err.message || err) + " Verifica la información antes de volver a enviar.", "err");
-      updateProgressBar(0, false);
     }
-  }
 
   /***************************************************************
    * UI / NAV
