@@ -1130,7 +1130,11 @@
         try {
           json = JSON.parse(raw);
         } catch (_) {
-          throw new Error("La API respondió en un formato no válido. No vuelvas a enviar inmediatamente; primero actualiza la vista para comprobar si la información alcanzó a procesarse.");
+          const uncertain = new Error("La respuesta del servidor no pudo interpretarse, pero la solicitud puede haberse recibido correctamente.");
+          uncertain.portalUncertain = true;
+          uncertain.portalCode = "NON_JSON_RESPONSE";
+          uncertain.httpStatus = res.status;
+          throw uncertain;
         }
 
         if (!res.ok || !json || json.ok === false) {
@@ -1139,7 +1143,17 @@
         return json;
       } catch (err) {
         if (err && err.name === "AbortError") {
-          throw new Error("La solicitud tardó demasiado en responder. El servidor podría seguir procesándola. No la reenvíes inmediatamente: actualiza los datos y verifica primero.");
+          const uncertain = new Error("La solicitud tardó demasiado en responder, pero el servidor podría haberla recibido.");
+          uncertain.portalUncertain = true;
+          uncertain.portalCode = "TIMEOUT";
+          throw uncertain;
+        }
+        if (err && err.portalUncertain) throw err;
+        if (err instanceof TypeError || String(err?.message || "").toLowerCase().includes("failed to fetch")) {
+          const uncertain = new Error("No se pudo confirmar la respuesta de red, pero el servidor podría haber recibido la solicitud.");
+          uncertain.portalUncertain = true;
+          uncertain.portalCode = "NETWORK";
+          throw uncertain;
         }
         throw err;
       } finally {
@@ -1162,6 +1176,148 @@
 
     function portalSleep_(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
+
+
+    // ============================================================
+    // CONFIRMACIÓN ROBUSTA DE RECEPCIÓN + ANTIDUPLICADO CLIENTE
+    // ============================================================
+    const PORTAL_CONFIRM_OK_MESSAGE_ = "✅ INFORMACIÓN ENVIADA CORRECTAMENTE. Su solicitud fue recibida y entró en proceso. En unos minutos se procesará y quedará cargada en el sistema PMR. No es necesario volver a enviarla: por favor NO repita el envío.";
+    const PORTAL_LAST_SEND_STORAGE_KEY_ = "PMR_PORTAL_SAFE_SEND_V4_" + PORTAL_SOURCE;
+    const PORTAL_LAST_SEND_TTL_MS_ = 30 * 60 * 1000;
+
+    function portalCanonicalForSignature_(value) {
+      if (Array.isArray(value)) return value.map(portalCanonicalForSignature_);
+      if (value && typeof value === "object") {
+        const out = {};
+        Object.keys(value).sort().forEach(k => {
+          if (["requestKey", "clientRequestId", "idempotencyKey", "portalSentAt"].includes(k)) return;
+          out[k] = portalCanonicalForSignature_(value[k]);
+        });
+        return out;
+      }
+      return value === undefined ? null : value;
+    }
+
+    function portalHashText_(text) {
+      let h = 2166136261 >>> 0;
+      const s = String(text || "");
+      for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619) >>> 0;
+      }
+      return ("00000000" + h.toString(16)).slice(-8);
+    }
+
+    function portalPayloadSignature_(payload) {
+      try { return portalHashText_(JSON.stringify(portalCanonicalForSignature_(payload || {}))); }
+      catch (_) { return portalHashText_(String(Date.now())); }
+    }
+
+    function portalLoadLastSend_() {
+      try {
+        const raw = localStorage.getItem(PORTAL_LAST_SEND_STORAGE_KEY_);
+        const obj = raw ? JSON.parse(raw) : null;
+        return obj && typeof obj === "object" ? obj : null;
+      } catch (_) { return null; }
+    }
+
+    function portalSaveLastSend_(data) {
+      try { localStorage.setItem(PORTAL_LAST_SEND_STORAGE_KEY_, JSON.stringify(data || {})); }
+      catch (_) {}
+    }
+
+    function portalStatusIsAccepted_(st) {
+      const estado = String(st?.estado || st?.state || "").trim().toUpperCase();
+      return !!st && (st.accepted === true || ["PENDING", "PROCESSING", "DONE", "DONE_PURGED"].includes(estado));
+    }
+
+    async function portalRequestStatusByKey_(requestKey) {
+      const key = String(requestKey || "").trim();
+      if (!key) return null;
+      return apiPostJson_("portalAerolineaRequestStatus", {
+        requestKey: key,
+        portalAirline: portalAirlineName_(),
+        portalSource: PORTAL_SOURCE
+      }, { timeoutMs: 12000 });
+    }
+
+    async function portalConfirmRequestKey_(requestKey, attempts = 5, delayMs = 1200) {
+      const key = String(requestKey || "").trim();
+      if (!key) return null;
+      for (let i = 0; i < attempts; i++) {
+        if (i > 0) await portalSleep_(delayMs + (i * 350));
+        try {
+          const st = await portalRequestStatusByKey_(key);
+          if (portalStatusIsAccepted_(st)) return st;
+          const estado = String(st?.estado || "").trim().toUpperCase();
+          if (estado === "ERROR" || estado === "CANCELLED") return st;
+        } catch (_) {}
+      }
+      return null;
+    }
+
+    async function portalEnqueueGuardarTodoConfirmado_(payload) {
+      const original = Object.assign({}, payload || {});
+      const signature = portalPayloadSignature_(original);
+      const now = Date.now();
+      const last = portalLoadLastSend_();
+      let requestKey = String(original.requestKey || "").trim();
+
+      // Mismo contenido dentro de 30 min: primero se confirma el request anterior.
+      // Si ya fue aceptado, NO se envía de nuevo.
+      if (last && last.signature === signature && last.requestKey && (now - Number(last.at || 0)) <= PORTAL_LAST_SEND_TTL_MS_) {
+        requestKey = String(last.requestKey);
+        const prior = await portalConfirmRequestKey_(requestKey, 2, 700);
+        if (portalStatusIsAccepted_(prior)) {
+          return {
+            ok: true, accepted: true, requestKey,
+            idTarea: String(prior?.idTarea || ""),
+            _alreadyAccepted: true,
+            _verifiedStatus: prior
+          };
+        }
+      }
+
+      if (!requestKey) requestKey = newPortalRequestKey_("PORTAL");
+      original.requestKey = requestKey;
+      portalSaveLastSend_({ requestKey, signature, at: now, estado: "SENDING" });
+
+      try {
+        const resp = await portalEnqueueGuardarTodo_(original);
+        portalSaveLastSend_({ requestKey, signature, at: now, estado: "ACCEPTED", idTarea: String(resp?.idTarea || "") });
+        return Object.assign({}, resp || {}, { requestKey, accepted: true });
+      } catch (err) {
+        if (!err?.portalUncertain) {
+          portalSaveLastSend_({ requestKey, signature, at: now, estado: "ERROR", error: String(err?.message || err || "") });
+          throw err;
+        }
+
+        // No se vuelve a enviar. Se consulta la misma requestKey.
+        const st = await portalConfirmRequestKey_(requestKey, 5, 1200);
+        if (portalStatusIsAccepted_(st)) {
+          portalSaveLastSend_({ requestKey, signature, at: now, estado: "CONFIRMED", idTarea: String(st?.idTarea || "") });
+          return {
+            ok: true, accepted: true, requestKey,
+            idTarea: String(st?.idTarea || ""),
+            _acceptedByVerification: true,
+            _verifiedStatus: st
+          };
+        }
+
+        const estado = String(st?.estado || "").trim().toUpperCase();
+        if (estado === "ERROR" || estado === "CANCELLED") {
+          const definitive = new Error(st?.error || st?.message || "La solicitud llegó al sistema, pero terminó con error.");
+          definitive.portalUncertain = false;
+          throw definitive;
+        }
+
+        const uncertain = new Error("No fue posible confirmar automáticamente la recepción. Por seguridad, NO vuelva a enviar la misma información ahora. Espere unos minutos y use ‘Actualizar datos’; si el vuelo aparece, el envío sí fue procesado.");
+        uncertain.portalUncertain = true;
+        uncertain.requestKey = requestKey;
+        portalSaveLastSend_({ requestKey, signature, at: now, estado: "UNKNOWN" });
+        throw uncertain;
+      }
+    }
     async function portalEnqueueGuardarTodo_(payload) {
       return apiPostJson_("portalAerolineaEnqueueGuardarTodo", Object.assign({}, payload || {}, {
         portalAirline: portalAirlineName_(),
@@ -2209,32 +2365,29 @@
         setModalMsg(`Enviando actualización de ${b.numeroVuelo} y ${b.pasajeros.length} pasajero(s) en una sola solicitud JSON segura...`, "warn");
         updateProgressBar(25);
 
-        const resp = await portalEnqueueGuardarTodo_({
+        const resp = await portalEnqueueGuardarTodoConfirmado_({
           requestKey,
           idVuelo: vueloId,
           resetPax: "1",
           resetPmrIds: originalPmrIds,
           bloques: [Object.assign({}, b, { idVuelo: vueloId, resetPax: "1", resetPmrIds: originalPmrIds })]
         });
-
-        updateProgressBar(55);
-        setModalMsg("Información recibida. Su actualización entró en proceso. Espere unos minutos mientras se genera la información.", "warn");
-
-        const wait = await portalEsperarProceso_(resp.idTarea, 25000);
-        if (wait.done) {
-          updateProgressBar(100);
-          setModalMsg("Actualización finalizada correctamente. El lote anterior quedó histórico y el lote activo no se duplicó.", "ok");
-          await cargarDatos(true);
-          setTimeout(() => closeModal(), 1800);
-        } else {
-          updateProgressBar(75);
-          setModalMsg("Actualización enviada y todavía en proceso. Espere unos minutos y use ‘Actualizar datos’. No vuelva a enviarla.", "ok");
-          setTimeout(() => closeModal(), 2600);
-        }
+        updateProgressBar(100);
+        const notaDedupe = resp?._alreadyAccepted
+          ? " El sistema reconoció que esta misma información ya había sido recibida y evitó enviarla nuevamente."
+          : (resp?._acceptedByVerification ? " La recepción fue confirmada automáticamente por su código de solicitud." : "");
+        setModalMsg(PORTAL_CONFIRM_OK_MESSAGE_ + notaDedupe, "ok");
+        setTimeout(() => { try { cargarDatos(true); } catch (_) {} }, 3500);
+        setTimeout(() => closeModal(), 6500);
       } catch (err) {
         console.error(err);
-        setModalMsg("Error: " + (err?.message || err), "err");
-        updateProgressBar(0, false);
+        if (err?.portalUncertain) {
+          setModalMsg("⚠️ " + (err?.message || err), "warn");
+          updateProgressBar(70);
+        } else {
+          setModalMsg("Error: " + (err?.message || err), "err");
+          updateProgressBar(0, false);
+        }
       } finally {
         setSubmissionUiBusy_(false);
         if (btn) btn.disabled = false;
@@ -2261,29 +2414,26 @@
         setModalMsg(`Enviando ${bloques.length} vuelo(s) y ${totalPax} pasajero(s) en una sola solicitud JSON segura...`, "warn");
         updateProgressBar(25);
 
-        const resp = await portalEnqueueGuardarTodo_({
+        const resp = await portalEnqueueGuardarTodoConfirmado_({
           requestKey,
           bloques
         });
-
-        updateProgressBar(55);
-        setModalMsg("Información recibida. Su información entró en proceso. Espere unos minutos mientras se genera la información.", "warn");
-
-        const wait = await portalEsperarProceso_(resp.idTarea, 25000);
-        if (wait.done) {
-          updateProgressBar(100);
-          setModalMsg("Proceso finalizado correctamente. La información fue generada sin duplicar pasajeros activos.", "ok");
-          await cargarDatos(true);
-          setTimeout(() => closeModal(), 1800);
-        } else {
-          updateProgressBar(75);
-          setModalMsg("Información enviada correctamente y todavía en proceso. Espere unos minutos y use ‘Actualizar datos’ para verla reflejada. No vuelva a enviarla.", "ok");
-          setTimeout(() => closeModal(), 2600);
-        }
+        updateProgressBar(100);
+        const notaDedupe = resp?._alreadyAccepted
+          ? " El sistema reconoció que esta misma información ya había sido recibida y evitó enviarla nuevamente."
+          : (resp?._acceptedByVerification ? " La recepción fue confirmada automáticamente por su código de solicitud." : "");
+        setModalMsg(PORTAL_CONFIRM_OK_MESSAGE_ + notaDedupe, "ok");
+        setTimeout(() => { try { cargarDatos(true); } catch (_) {} }, 3500);
+        setTimeout(() => closeModal(), 6500);
       } catch (err) {
         console.error(err);
-        setModalMsg("Error: " + (err?.message || err), "err");
-        updateProgressBar(0, false);
+        if (err?.portalUncertain) {
+          setModalMsg("⚠️ " + (err?.message || err), "warn");
+          updateProgressBar(70);
+        } else {
+          setModalMsg("Error: " + (err?.message || err), "err");
+          updateProgressBar(0, false);
+        }
       } finally {
         setSubmissionUiBusy_(false);
         if (btn) btn.disabled = false;
