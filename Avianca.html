@@ -2,6 +2,7 @@
 <html lang="es">
 
 <head>
+  <!-- Avianca v5: lecturas GET con reintentos + confirmación por requestKey/datos + sin falsos errores -->
   <meta charset="UTF-8" />
   <title>Avianca PMR – Portal</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -1162,6 +1163,58 @@
     }
 
 
+    // Lecturas seguras (listAll / estados): GET + reintentos automáticos.
+    // A diferencia de una escritura, una lectura se puede repetir sin riesgo de duplicar datos.
+    async function apiGetJsonRead_(action, params = {}, options = {}) {
+      const timeoutMs = Number(options.timeoutMs || 30000);
+      const maxAttempts = Math.max(1, Number(options.maxAttempts || 3));
+      const access = String((typeof SESSION_ACCESS !== "undefined" && SESSION_ACCESS) || ACCESS_KEY || "").trim();
+      let lastErr = null;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const qs = new URLSearchParams();
+          qs.set("action", action);
+          Object.entries(params || {}).forEach(([k, v]) => {
+            if (v === undefined || v === null || v === "") return;
+            qs.set(k, (typeof v === "object") ? JSON.stringify(v) : String(v));
+          });
+          qs.set("portalSource", PORTAL_SOURCE);
+          if (access) {
+            qs.set("key", access);
+            qs.set("accessKey", access);
+            qs.set("clave", access);
+          }
+
+          const url = API_URL + (API_URL.includes("?") ? "&" : "?") + qs.toString();
+          const res = await fetch(url, {
+            method: "GET",
+            cache: "no-store",
+            redirect: "follow",
+            credentials: "omit",
+            signal: controller.signal
+          });
+          const raw = await res.text();
+          let json = null;
+          try { json = JSON.parse(raw); }
+          catch (_) { throw new Error("La API no devolvió JSON en la lectura."); }
+          if (!res.ok || !json || json.ok === false) {
+            throw new Error((json && json.error) ? json.error : `Error HTTP ${res.status}`);
+          }
+          return json;
+        } catch (err) {
+          lastErr = err;
+          if (attempt < maxAttempts) await portalSleep_(700 * attempt);
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+      throw lastErr || new Error("No fue posible actualizar los datos.");
+    }
+
+
     // ============================================================
     // PORTAL AEROLÍNEA -> MISMO MOTOR SEGURO DE CARGAMASIVA
     // Una sola tarea JSON contiene vuelo(s) + pasajero(s).
@@ -1182,6 +1235,7 @@
     // CONFIRMACIÓN ROBUSTA DE RECEPCIÓN + ANTIDUPLICADO CLIENTE
     // ============================================================
     const PORTAL_CONFIRM_OK_MESSAGE_ = "✅ INFORMACIÓN ENVIADA CORRECTAMENTE. Su solicitud fue recibida y entró en proceso. En unos minutos se procesará y quedará cargada en el sistema PMR. No es necesario volver a enviarla: por favor NO repita el envío.";
+    const PORTAL_CONFIRM_PENDING_MESSAGE_ = "✅ INFORMACIÓN ENVIADA AL SISTEMA. La solicitud fue enviada para procesamiento y quedó protegida con un código único. La red no entregó la confirmación final, por eso NO vuelva a enviar la misma información. En unos minutos presione ‘Actualizar datos’; si el vuelo y sus pasajeros aparecen, el proceso terminó correctamente.";
     const PORTAL_LAST_SEND_STORAGE_KEY_ = "PMR_PORTAL_SAFE_SEND_V4_" + PORTAL_SOURCE;
     const PORTAL_LAST_SEND_TTL_MS_ = 30 * 60 * 1000;
 
@@ -1234,11 +1288,12 @@
     async function portalRequestStatusByKey_(requestKey) {
       const key = String(requestKey || "").trim();
       if (!key) return null;
-      return apiPostJson_("portalAerolineaRequestStatus", {
+      // Es solo lectura: GET con reintentos es más robusto que reutilizar el POST de escritura.
+      return apiGetJsonRead_("portalAerolineaRequestStatus", {
         requestKey: key,
         portalAirline: portalAirlineName_(),
         portalSource: PORTAL_SOURCE
-      }, { timeoutMs: 12000 });
+      }, { timeoutMs: 12000, maxAttempts: 3 });
     }
 
     async function portalConfirmRequestKey_(requestKey, attempts = 5, delayMs = 1200) {
@@ -1254,6 +1309,48 @@
         } catch (_) {}
       }
       return null;
+    }
+
+
+    function portalNormCompare_(v) {
+      return String(v || "").toUpperCase().normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+    }
+
+    async function portalVerifyPayloadVisible_(payload) {
+      try {
+        const json = await apiGetJsonRead_("listAll", {}, { timeoutMs: 30000, maxAttempts: 3 });
+        const vuelos = Array.isArray(json?.vuelos) ? json.vuelos : [];
+        const pasajeros = (Array.isArray(json?.pasajeros) ? json.pasajeros : [])
+          .filter(p => portalNormCompare_(p?.estadoPmr || p?.estado || "") !== "BAJA");
+        const blocks = Array.isArray(payload?.bloques) ? payload.bloques : [];
+        if (!blocks.length) return null;
+
+        for (const b of blocks) {
+          const num = portalNormCompare_(b?.numeroVuelo || b?.vuelo || "");
+          const fecha = normalizarFechaExcel(b?.fecha || b?.fechaVuelo || "");
+          const v = vuelos.find(x =>
+            portalNormCompare_(x?.numeroVuelo || x?.vuelo || "") === num &&
+            normalizarFechaExcel(x?.fecha || x?.fechaVuelo || "") === fecha
+          );
+          if (!v) return null;
+
+          const expectedNames = (b?.pasajeros || []).map(p => portalNormCompare_(p?.nombre || "")).filter(Boolean);
+          if (expectedNames.length) {
+            const namesInSystem = new Set(pasajeros
+              .filter(p =>
+                portalNormCompare_(p?.vuelo || p?.numeroVuelo || "") === num &&
+                normalizarFechaExcel(p?.fechaVuelo || p?.fecha || "") === fecha
+              )
+              .map(p => portalNormCompare_(p?.nombre || ""))
+              .filter(Boolean));
+            if (!expectedNames.every(n => namesInSystem.has(n))) return null;
+          }
+        }
+        return { visible: true, accepted: true, estado: "VISIBLE_IN_SYSTEM" };
+      } catch (_) {
+        return null;
+      }
     }
 
     async function portalEnqueueGuardarTodoConfirmado_(payload) {
@@ -1311,11 +1408,29 @@
           throw definitive;
         }
 
-        const uncertain = new Error("No fue posible confirmar automáticamente la recepción. Por seguridad, NO vuelva a enviar la misma información ahora. Espere unos minutos y use ‘Actualizar datos’; si el vuelo aparece, el envío sí fue procesado.");
-        uncertain.portalUncertain = true;
-        uncertain.requestKey = requestKey;
-        portalSaveLastSend_({ requestKey, signature, at: now, estado: "UNKNOWN" });
-        throw uncertain;
+        // Segundo método de confirmación: comprobar que el vuelo + pasajeros ya son visibles.
+        // Esto cubre el caso frecuente en que el POST se procesa correctamente pero la red
+        // pierde la respuesta y también falla momentáneamente la consulta de requestKey.
+        const visible = await portalVerifyPayloadVisible_(original);
+        if (visible?.visible) {
+          portalSaveLastSend_({ requestKey, signature, at: now, estado: "CONFIRMED_BY_DATA" });
+          return {
+            ok: true, accepted: true, requestKey,
+            _acceptedByDataVerification: true,
+            _verifiedStatus: visible
+          };
+        }
+
+        // Último nivel: NO convertir una incertidumbre de red en un error rojo que induzca
+        // al usuario a reenviar. La requestKey queda guardada para que un nuevo intento con
+        // el mismo formulario se compruebe antes de volver a escribir.
+        portalSaveLastSend_({ requestKey, signature, at: now, estado: "SENT_UNCONFIRMED" });
+        return {
+          ok: true,
+          accepted: true,
+          requestKey,
+          _acceptedUnconfirmed: true
+        };
       }
     }
     async function portalEnqueueGuardarTodo_(payload) {
@@ -1326,7 +1441,7 @@
     }
 
     async function portalQueueStatus_(idTarea) {
-      return apiPostJson_("portalAerolineaQueueStatus", { ids: [String(idTarea || "")] }, { timeoutMs: 20000 });
+      return apiGetJsonRead_("portalAerolineaQueueStatus", { ids: [String(idTarea || "")] }, { timeoutMs: 20000, maxAttempts: 2 });
     }
 
     async function portalEsperarProceso_(idTarea, maxMs = 25000) {
@@ -1619,9 +1734,9 @@
       apiStatus.textContent = "Conectando con API...";
 
       try {
-        const json = await apiPostJson_("listAll", {
-          requestKey: newPortalRequestKey_("AVIANCA-LIST")
-        }, { timeoutMs: 120000 });
+        // listAll es solo lectura: GET + reintentos. No debe mostrar mensajes de
+        // "el servidor podría haber recibido la solicitud", porque aquí no se escribe nada.
+        const json = await apiGetJsonRead_("listAll", {}, { timeoutMs: 30000, maxAttempts: 3 });
 
         cacheVuelos = json.vuelos || [];
         cachePasajeros = (json.pasajeros || []).filter(p => String(p?.estadoPmr || p?.estado || "").trim().toLowerCase() !== "baja");
@@ -1634,8 +1749,8 @@
         iniciarAutoRefresh();
       } catch (err) {
         console.error(err);
-        apiStatus.textContent = "Error al conectar con la API";
-        if (!silencioso) alert("Error al cargar datos: " + (err.message || err));
+        apiStatus.textContent = "No fue posible actualizar la vista";
+        if (!silencioso) alert("No fue posible actualizar los datos en este momento. Revise su conexión y presione ‘Actualizar datos’ nuevamente. Esta acción solo consulta información y no duplica vuelos ni pasajeros.");
       }
     }
 
@@ -2375,10 +2490,16 @@
         updateProgressBar(100);
         const notaDedupe = resp?._alreadyAccepted
           ? " El sistema reconoció que esta misma información ya había sido recibida y evitó enviarla nuevamente."
-          : (resp?._acceptedByVerification ? " La recepción fue confirmada automáticamente por su código de solicitud." : "");
-        setModalMsg(PORTAL_CONFIRM_OK_MESSAGE_ + notaDedupe, "ok");
+          : (resp?._acceptedByVerification
+              ? " La recepción fue confirmada automáticamente por su código de solicitud."
+              : (resp?._acceptedByDataVerification ? " El vuelo y sus pasajeros ya fueron verificados en el sistema." : ""));
+        if (resp?._acceptedUnconfirmed) {
+          setModalMsg(PORTAL_CONFIRM_PENDING_MESSAGE_, "warn");
+        } else {
+          setModalMsg(PORTAL_CONFIRM_OK_MESSAGE_ + notaDedupe, "ok");
+        }
         setTimeout(() => { try { cargarDatos(true); } catch (_) {} }, 3500);
-        setTimeout(() => closeModal(), 6500);
+        setTimeout(() => closeModal(), resp?._acceptedUnconfirmed ? 9000 : 6500);
       } catch (err) {
         console.error(err);
         if (err?.portalUncertain) {
@@ -2421,10 +2542,16 @@
         updateProgressBar(100);
         const notaDedupe = resp?._alreadyAccepted
           ? " El sistema reconoció que esta misma información ya había sido recibida y evitó enviarla nuevamente."
-          : (resp?._acceptedByVerification ? " La recepción fue confirmada automáticamente por su código de solicitud." : "");
-        setModalMsg(PORTAL_CONFIRM_OK_MESSAGE_ + notaDedupe, "ok");
+          : (resp?._acceptedByVerification
+              ? " La recepción fue confirmada automáticamente por su código de solicitud."
+              : (resp?._acceptedByDataVerification ? " El vuelo y sus pasajeros ya fueron verificados en el sistema." : ""));
+        if (resp?._acceptedUnconfirmed) {
+          setModalMsg(PORTAL_CONFIRM_PENDING_MESSAGE_, "warn");
+        } else {
+          setModalMsg(PORTAL_CONFIRM_OK_MESSAGE_ + notaDedupe, "ok");
+        }
         setTimeout(() => { try { cargarDatos(true); } catch (_) {} }, 3500);
-        setTimeout(() => closeModal(), 6500);
+        setTimeout(() => closeModal(), resp?._acceptedUnconfirmed ? 9000 : 6500);
       } catch (err) {
         console.error(err);
         if (err?.portalUncertain) {
