@@ -1633,7 +1633,9 @@
       apiStatus.textContent = "Conectando con API...";
 
       try {
-        const json = await apiPostJson_("listAll", {
+        const json = await apiPostJson_("portalAerolineaListAll", {
+          portalAirline: portalAirlineName_(),
+          portalSource: PORTAL_SOURCE,
           requestKey: newPortalRequestKey_("KLM-LIST")
         }, { timeoutMs: 120000 });
 
