@@ -1619,8 +1619,9 @@
       apiStatus.textContent = "Conectando con API...";
 
       try {
-        const json = await apiPostJson_("listAll", {
-          requestKey: newPortalRequestKey_("AIRFRANCE-LIST")
+        const json = await apiPostJson_("portalAerolineaListAll", {
+          requestKey: newPortalRequestKey_("AIRFRANCE-LIST"),
+          portalAirline: portalAirlineName_()
         }, { timeoutMs: 120000 });
 
         cacheVuelos = json.vuelos || [];
