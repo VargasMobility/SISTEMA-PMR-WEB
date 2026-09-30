@@ -1319,7 +1319,7 @@
 
     async function portalVerifyPayloadVisible_(payload) {
       try {
-        const json = await apiGetJsonRead_("listAll", {}, { timeoutMs: 30000, maxAttempts: 3 });
+        const json = await apiGetJsonRead_("portalAerolineaListAll", { portalAirline: portalAirlineName_(), portalSource: PORTAL_SOURCE }, { timeoutMs: 30000, maxAttempts: 3 });
         const vuelos = Array.isArray(json?.vuelos) ? json.vuelos : [];
         const pasajeros = (Array.isArray(json?.pasajeros) ? json.pasajeros : [])
           .filter(p => portalNormCompare_(p?.estadoPmr || p?.estado || "") !== "BAJA");
@@ -1736,7 +1736,7 @@
       try {
         // listAll es solo lectura: GET + reintentos. No debe mostrar mensajes de
         // "el servidor podría haber recibido la solicitud", porque aquí no se escribe nada.
-        const json = await apiGetJsonRead_("listAll", {}, { timeoutMs: 30000, maxAttempts: 3 });
+        const json = await apiGetJsonRead_("portalAerolineaListAll", { portalAirline: portalAirlineName_(), portalSource: PORTAL_SOURCE }, { timeoutMs: 30000, maxAttempts: 3 });
 
         cacheVuelos = json.vuelos || [];
         cachePasajeros = (json.pasajeros || []).filter(p => String(p?.estadoPmr || p?.estado || "").trim().toLowerCase() !== "baja");
