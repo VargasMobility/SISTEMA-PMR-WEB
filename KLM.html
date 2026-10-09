@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+<!-- KLM v8.2: login real antes de API + lecturas GET con reintentos + confirmación robusta -->
 
 <head>
   <meta charset="UTF-8" />
@@ -913,7 +914,7 @@
     </div>
 
     <div class="status">
-      <div id="api-status">Conectando con API...</div>
+      <div id="api-status">Esperando clave de acceso</div>
       <div id="last-update">Última actualización: --</div>
     </div>
   </header>
@@ -1105,11 +1106,12 @@
     const ACCESS_KEY = "KLCM07101919";
 
     // ✅ Portal externo (GitHub) -> Apps Script:
-    // Todas las llamadas API se envían como POST con un body JSON.
-    // Se usa text/plain para mantener la petición "simple" en navegador y evitar
-    // un preflight CORS innecesario. El contenido del body sigue siendo JSON real.
+    // Escrituras: POST JSON (text/plain para evitar preflight CORS).
+    // Lecturas: GET con reintentos automáticos.
+    // Ninguna llamada se realiza antes de validar la clave del portal.
     const PORTAL_SOURCE = "KLM_GITHUB";
     let submissionInProgress = false;
+    let SESSION_ACCESS = "";
 
     function newPortalRequestKey_(prefix = "KLM") {
       const stamp = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
@@ -1123,6 +1125,11 @@
 
     async function apiPostJson_(action, payload = {}, options = {}) {
       const timeoutMs = Number(options.timeoutMs || 120000);
+      const access = String(SESSION_ACCESS || "").trim();
+      if (!access) {
+        throw new Error("El portal está bloqueado. Ingresa la clave de acceso antes de continuar.");
+      }
+
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -1130,17 +1137,15 @@
         action,
         portalSource: PORTAL_SOURCE,
         portalSentAt: new Date().toISOString(),
-        key: ACCESS_KEY,
-        accessKey: ACCESS_KEY,
-        clave: ACCESS_KEY
+        key: access,
+        accessKey: access,
+        clave: access
       });
 
       try {
         const res = await fetch(API_URL, {
           method: "POST",
-          headers: {
-            "Content-Type": "text/plain;charset=UTF-8"
-          },
+          headers: { "Content-Type": "text/plain;charset=UTF-8" },
           body: JSON.stringify(body),
           cache: "no-store",
           redirect: "follow",
@@ -1184,6 +1189,62 @@
       }
     }
 
+    // Lecturas seguras: GET + reintentos.
+    // Las lecturas se pueden repetir sin riesgo de duplicar vuelos o pasajeros.
+    async function apiGetJsonRead_(action, params = {}, options = {}) {
+      const timeoutMs = Number(options.timeoutMs || 30000);
+      const maxAttempts = Math.max(1, Number(options.maxAttempts || 3));
+      const access = String(SESSION_ACCESS || "").trim();
+      if (!access) {
+        throw new Error("El portal está bloqueado. Ingresa la clave de acceso antes de actualizar datos.");
+      }
+
+      let lastErr = null;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const qs = new URLSearchParams();
+          qs.set("action", action);
+          Object.entries(params || {}).forEach(([k, v]) => {
+            if (v === undefined || v === null || v === "") return;
+            qs.set(k, (typeof v === "object") ? JSON.stringify(v) : String(v));
+          });
+          qs.set("portalSource", PORTAL_SOURCE);
+          qs.set("key", access);
+          qs.set("accessKey", access);
+          qs.set("clave", access);
+
+          const url = API_URL + (API_URL.includes("?") ? "&" : "?") + qs.toString();
+          const res = await fetch(url, {
+            method: "GET",
+            cache: "no-store",
+            redirect: "follow",
+            credentials: "omit",
+            signal: controller.signal
+          });
+
+          const raw = await res.text();
+          let json = null;
+          try { json = JSON.parse(raw); }
+          catch (_) { throw new Error("La API no devolvió JSON en la lectura."); }
+
+          if (!res.ok || !json || json.ok === false) {
+            throw new Error((json && json.error) ? json.error : `Error HTTP ${res.status}`);
+          }
+          return json;
+        } catch (err) {
+          lastErr = err;
+          if (attempt < maxAttempts) await portalSleep_(700 * attempt);
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      throw lastErr || new Error("No fue posible actualizar los datos.");
+    }
+
 
     // ============================================================
     // PORTAL AEROLÍNEA -> MISMO MOTOR SEGURO DE CARGAMASIVA
@@ -1205,6 +1266,7 @@
     // CONFIRMACIÓN ROBUSTA DE RECEPCIÓN + ANTIDUPLICADO CLIENTE
     // ============================================================
     const PORTAL_CONFIRM_OK_MESSAGE_ = "✅ INFORMACIÓN ENVIADA CORRECTAMENTE. Su solicitud fue recibida y entró en proceso. En unos minutos se procesará y quedará cargada en el sistema PMR. No es necesario volver a enviarla: por favor NO repita el envío.";
+    const PORTAL_CONFIRM_PENDING_MESSAGE_ = "✅ INFORMACIÓN ENVIADA AL SISTEMA. La solicitud quedó protegida con un código único. La red no entregó la confirmación final, por eso NO vuelva a enviar la misma información. En unos minutos presione ‘Actualizar datos’; si el vuelo y sus pasajeros aparecen, el proceso terminó correctamente.";
     const PORTAL_LAST_SEND_STORAGE_KEY_ = "PMR_PORTAL_SAFE_SEND_V4_" + PORTAL_SOURCE;
     const PORTAL_LAST_SEND_TTL_MS_ = 30 * 60 * 1000;
 
@@ -1257,11 +1319,11 @@
     async function portalRequestStatusByKey_(requestKey) {
       const key = String(requestKey || "").trim();
       if (!key) return null;
-      return apiPostJson_("portalAerolineaRequestStatus", {
+      return apiGetJsonRead_("portalAerolineaRequestStatus", {
         requestKey: key,
         portalAirline: portalAirlineName_(),
         portalSource: PORTAL_SOURCE
-      }, { timeoutMs: 12000 });
+      }, { timeoutMs: 12000, maxAttempts: 3 });
     }
 
     async function portalConfirmRequestKey_(requestKey, attempts = 5, delayMs = 1200) {
@@ -1277,6 +1339,57 @@
         } catch (_) {}
       }
       return null;
+    }
+
+    function portalNormCompare_(v) {
+      return String(v || "").toUpperCase().normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim();
+    }
+
+    async function portalVerifyPayloadVisible_(payload) {
+      try {
+        const json = await apiGetJsonRead_("portalAerolineaListAll", {
+          portalAirline: portalAirlineName_(),
+          portalSource: PORTAL_SOURCE
+        }, { timeoutMs: 30000, maxAttempts: 3 });
+
+        const vuelos = Array.isArray(json?.vuelos) ? json.vuelos : [];
+        const pasajeros = (Array.isArray(json?.pasajeros) ? json.pasajeros : [])
+          .filter(p => portalNormCompare_(p?.estadoPmr || p?.estado || "") !== "BAJA");
+        const blocks = Array.isArray(payload?.bloques) ? payload.bloques : [];
+        if (!blocks.length) return null;
+
+        for (const b of blocks) {
+          const num = portalNormCompare_(b?.numeroVuelo || b?.vuelo || "");
+          const fecha = normalizarFechaExcel(b?.fecha || b?.fechaVuelo || "");
+          const v = vuelos.find(x =>
+            portalNormCompare_(x?.numeroVuelo || x?.vuelo || "") === num &&
+            normalizarFechaExcel(x?.fecha || x?.fechaVuelo || "") === fecha
+          );
+          if (!v) return null;
+
+          const expectedNames = (b?.pasajeros || [])
+            .map(p => portalNormCompare_(p?.nombre || ""))
+            .filter(Boolean);
+
+          if (expectedNames.length) {
+            const namesInSystem = new Set(
+              pasajeros
+                .filter(p =>
+                  portalNormCompare_(p?.vuelo || p?.numeroVuelo || "") === num &&
+                  normalizarFechaExcel(p?.fechaVuelo || p?.fecha || "") === fecha
+                )
+                .map(p => portalNormCompare_(p?.nombre || ""))
+                .filter(Boolean)
+            );
+            if (!expectedNames.every(n => namesInSystem.has(n))) return null;
+          }
+        }
+
+        return { visible: true, accepted: true, estado: "VISIBLE_IN_SYSTEM" };
+      } catch (_) {
+        return null;
+      }
     }
 
     async function portalEnqueueGuardarTodoConfirmado_(payload) {
@@ -1334,11 +1447,27 @@
           throw definitive;
         }
 
-        const uncertain = new Error("No fue posible confirmar automáticamente la recepción. Por seguridad, NO vuelva a enviar la misma información ahora. Espere unos minutos y use ‘Actualizar datos’; si el vuelo aparece, el envío sí fue procesado.");
-        uncertain.portalUncertain = true;
-        uncertain.requestKey = requestKey;
-        portalSaveLastSend_({ requestKey, signature, at: now, estado: "UNKNOWN" });
-        throw uncertain;
+        // Segundo método: comprobar que vuelo + pasajeros ya sean visibles.
+        const visible = await portalVerifyPayloadVisible_(original);
+        if (visible?.visible) {
+          portalSaveLastSend_({ requestKey, signature, at: now, estado: "CONFIRMED_BY_DATA" });
+          return {
+            ok: true,
+            accepted: true,
+            requestKey,
+            _acceptedByDataVerification: true,
+            _verifiedStatus: visible
+          };
+        }
+
+        // Último nivel: evitar un falso error rojo que invite a reenviar.
+        portalSaveLastSend_({ requestKey, signature, at: now, estado: "SENT_UNCONFIRMED" });
+        return {
+          ok: true,
+          accepted: true,
+          requestKey,
+          _acceptedUnconfirmed: true
+        };
       }
     }
     async function portalEnqueueGuardarTodo_(payload) {
@@ -1349,7 +1478,9 @@
     }
 
     async function portalQueueStatus_(idTarea) {
-      return apiPostJson_("portalAerolineaQueueStatus", { ids: [String(idTarea || "")] }, { timeoutMs: 20000 });
+      return apiGetJsonRead_("portalAerolineaQueueStatus", {
+        ids: [String(idTarea || "")]
+      }, { timeoutMs: 20000, maxAttempts: 2 });
     }
 
     async function portalEsperarProceso_(idTarea, maxMs = 25000) {
@@ -1435,6 +1566,9 @@
       const btnOpen = document.getElementById("btn-open-modal");
       if (btnOpen) btnOpen.disabled = true;
 
+      const apiStatus = document.getElementById("api-status");
+      if (apiStatus) apiStatus.textContent = "Esperando clave de acceso";
+
       setTimeout(() => key.focus(), 30);
     }
 
@@ -1465,10 +1599,25 @@
       const key = document.getElementById("lock-key");
       const msg = document.getElementById("lock-msg");
       const val = (key?.value || "").trim();
+
       if (val === ACCESS_KEY) {
+        SESSION_ACCESS = val;
+        if (msg) {
+          msg.textContent = "Acceso autorizado.";
+          msg.className = "msg ok";
+        }
         hideLock();
+        if (key) key.value = "";
+
+        const apiStatus = document.getElementById("api-status");
+        if (apiStatus) apiStatus.textContent = "Conectando con API...";
+
+        // Primera consulta SOLO después de validar la clave.
+        cargarDatos(false);
         return true;
       }
+
+      SESSION_ACCESS = "";
       if (msg) {
         msg.textContent = "Clave incorrecta.";
         msg.className = "msg err";
@@ -1630,17 +1779,23 @@
     async function cargarDatos(silencioso = false) {
       const apiStatus = document.getElementById("api-status");
       const lastUpdate = document.getElementById("last-update");
+
+      if (!String(SESSION_ACCESS || "").trim()) {
+        apiStatus.textContent = "Esperando clave de acceso";
+        return;
+      }
+
       apiStatus.textContent = "Conectando con API...";
 
       try {
-        const json = await apiPostJson_("portalAerolineaListAll", {
+        const json = await apiGetJsonRead_("portalAerolineaListAll", {
           portalAirline: portalAirlineName_(),
-          portalSource: PORTAL_SOURCE,
-          requestKey: newPortalRequestKey_("KLM-LIST")
-        }, { timeoutMs: 120000 });
+          portalSource: PORTAL_SOURCE
+        }, { timeoutMs: 30000, maxAttempts: 3 });
 
         cacheVuelos = json.vuelos || [];
-        cachePasajeros = (json.pasajeros || []).filter(p => String(p?.estadoPmr || p?.estado || "").trim().toLowerCase() !== "baja");
+        cachePasajeros = (json.pasajeros || [])
+          .filter(p => String(p?.estadoPmr || p?.estado || "").trim().toLowerCase() !== "baja");
 
         apiStatus.textContent = "Conectado a la API";
         const ahora = new Date();
@@ -1650,8 +1805,10 @@
         iniciarAutoRefresh();
       } catch (err) {
         console.error(err);
-        apiStatus.textContent = "Error al conectar con la API";
-        if (!silencioso) alert("Error al cargar datos: " + (err.message || err));
+        apiStatus.textContent = "No fue posible actualizar la vista";
+        if (!silencioso) {
+          alert("No fue posible actualizar los datos en este momento. Revise su conexión y presione ‘Actualizar datos’ nuevamente. Esta acción solo consulta información y no duplica vuelos ni pasajeros.");
+        }
       }
     }
 
@@ -2280,10 +2437,11 @@
      * FUNCIONES DE EDICIÓN
      ***************************************************************/
     function appendAccessKey_(params) {
-      if (typeof ACCESS_KEY !== 'undefined') {
-        params.append("key", ACCESS_KEY);
-        params.append("accessKey", ACCESS_KEY);
-        params.append("clave", ACCESS_KEY);
+      const k = String(SESSION_ACCESS || "").trim();
+      if (k) {
+        params.append("key", k);
+        params.append("accessKey", k);
+        params.append("clave", k);
       }
     }
 
@@ -2378,10 +2536,16 @@
         updateProgressBar(100);
         const notaDedupe = resp?._alreadyAccepted
           ? " El sistema reconoció que esta misma información ya había sido recibida y evitó enviarla nuevamente."
-          : (resp?._acceptedByVerification ? " La recepción fue confirmada automáticamente por su código de solicitud." : "");
-        setModalMsg(PORTAL_CONFIRM_OK_MESSAGE_ + notaDedupe, "ok");
+          : (resp?._acceptedByVerification
+              ? " La recepción fue confirmada automáticamente por su código de solicitud."
+              : (resp?._acceptedByDataVerification ? " El vuelo y sus pasajeros ya fueron verificados en el sistema." : ""));
+        if (resp?._acceptedUnconfirmed) {
+          setModalMsg(PORTAL_CONFIRM_PENDING_MESSAGE_, "warn");
+        } else {
+          setModalMsg(PORTAL_CONFIRM_OK_MESSAGE_ + notaDedupe, "ok");
+        }
         setTimeout(() => { try { cargarDatos(true); } catch (_) {} }, 3500);
-        setTimeout(() => closeModal(), 6500);
+        setTimeout(() => closeModal(), resp?._acceptedUnconfirmed ? 9000 : 6500);
       } catch (err) {
         console.error(err);
         if (err?.portalUncertain) {
@@ -2424,10 +2588,16 @@
         updateProgressBar(100);
         const notaDedupe = resp?._alreadyAccepted
           ? " El sistema reconoció que esta misma información ya había sido recibida y evitó enviarla nuevamente."
-          : (resp?._acceptedByVerification ? " La recepción fue confirmada automáticamente por su código de solicitud." : "");
-        setModalMsg(PORTAL_CONFIRM_OK_MESSAGE_ + notaDedupe, "ok");
+          : (resp?._acceptedByVerification
+              ? " La recepción fue confirmada automáticamente por su código de solicitud."
+              : (resp?._acceptedByDataVerification ? " El vuelo y sus pasajeros ya fueron verificados en el sistema." : ""));
+        if (resp?._acceptedUnconfirmed) {
+          setModalMsg(PORTAL_CONFIRM_PENDING_MESSAGE_, "warn");
+        } else {
+          setModalMsg(PORTAL_CONFIRM_OK_MESSAGE_ + notaDedupe, "ok");
+        }
         setTimeout(() => { try { cargarDatos(true); } catch (_) {} }, 3500);
-        setTimeout(() => closeModal(), 6500);
+        setTimeout(() => closeModal(), resp?._acceptedUnconfirmed ? 9000 : 6500);
       } catch (err) {
         console.error(err);
         if (err?.portalUncertain) {
@@ -2536,7 +2706,9 @@
       document.getElementById("btn-clear-modal").addEventListener("click", clearModal);
       document.getElementById("btn-submit-all").onclick = submitAll;
 
-      cargarDatos();
+      // No consultar la API mientras el portal siga bloqueado.
+      const apiStatus = document.getElementById("api-status");
+      if (apiStatus) apiStatus.textContent = "Esperando clave de acceso";
     });
   </script>
 </body>
