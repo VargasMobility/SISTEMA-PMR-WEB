@@ -1100,7 +1100,15 @@
       const timeoutMs = Number(options.timeoutMs || 120000);
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
-      const access = String((typeof SESSION_ACCESS !== "undefined" && SESSION_ACCESS) || ACCESS_KEY || "").trim();
+      // La API solo recibe una clave después de que el usuario desbloqueó el portal.
+      // No usar ACCESS_KEY como fallback aquí: evitamos consultas automáticas antes del login.
+      const access = String((typeof SESSION_ACCESS !== "undefined" && SESSION_ACCESS) || "").trim();
+
+      if (String(action || "").startsWith("portalAerolinea") && !access) {
+        const lockedErr = new Error("El portal está bloqueado. Ingresa la clave antes de consultar Web PMR.");
+        lockedErr.portalCode = "LOCKED";
+        throw lockedErr;
+      }
 
       const body = Object.assign({}, payload || {}, {
         action,
@@ -1150,7 +1158,7 @@
         }
         if (err && err.portalUncertain) throw err;
         if (err instanceof TypeError || String(err?.message || "").toLowerCase().includes("failed to fetch")) {
-          const uncertain = new Error("No se pudo confirmar la respuesta de red, pero el servidor podría haber recibido la solicitud.");
+          const uncertain = new Error("No se pudo conectar con la Web App de Web PMR. Revise que la implementación de Apps Script siga activa, conserve la misma URL /exec y permita el acceso requerido por los portales GitHub.");
           uncertain.portalUncertain = true;
           uncertain.portalCode = "NETWORK";
           throw uncertain;
@@ -1438,15 +1446,16 @@
 
       if (wasUnlocked && key && (!ACCESS_KEY || key === ACCESS_KEY)) {
         unlockUI(key);
-        return;
+        return true;
       }
 
       sessionStorage.removeItem(UNLOCK_STORAGE_FLAG);
       sessionStorage.removeItem(UNLOCK_STORAGE_KEY);
       lockUI();
+      return false;
     }
 
-    function tryUnlock() {
+    async function tryUnlock() {
       const input = document.getElementById("unlock-key");
       const msg = document.getElementById("unlock-msg");
       const key = (input?.value || "").trim();
@@ -1462,11 +1471,14 @@
         return;
       }
 
-      msg.textContent = "Acceso autorizado.";
+      msg.textContent = "Acceso autorizado. Conectando con Web PMR...";
       msg.className = "msg ok";
       unlockUI(key);
 
       if (input) input.value = "";
+
+      // Primera consulta recién DESPUÉS de desbloquear el portal.
+      await cargarDatos(false);
     }
 
     /***************************************************************
@@ -2480,8 +2492,16 @@
       }
 
       // --- INIT ---
-      initLock();
-      cargarDatos();
+      // No consultar la API mientras el portal esté bloqueado.
+      const restoredSession = initLock();
+      if (restoredSession) {
+        cargarDatos();
+      } else {
+        const apiStatus = document.getElementById("api-status");
+        const lastUpdate = document.getElementById("last-update");
+        if (apiStatus) apiStatus.textContent = "Esperando clave de acceso";
+        if (lastUpdate) lastUpdate.textContent = "Última actualización: --";
+      }
     });
   </script>
 </body>
