@@ -1101,7 +1101,10 @@
       const timeoutMs = Number(options.timeoutMs || 120000);
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
-      const access = String((typeof SESSION_ACCESS !== "undefined" && SESSION_ACCESS) || ACCESS_KEY || "").trim();
+      const access = String((typeof SESSION_ACCESS !== "undefined" && SESSION_ACCESS) || "").trim();
+      if (!access) {
+        throw new Error("Portal bloqueado. Ingresa la clave de acceso antes de usar la API.");
+      }
 
       const body = Object.assign({}, payload || {}, {
         action,
@@ -1168,7 +1171,10 @@
     async function apiGetJsonRead_(action, params = {}, options = {}) {
       const timeoutMs = Number(options.timeoutMs || 30000);
       const maxAttempts = Math.max(1, Number(options.maxAttempts || 3));
-      const access = String((typeof SESSION_ACCESS !== "undefined" && SESSION_ACCESS) || ACCESS_KEY || "").trim();
+      const access = String((typeof SESSION_ACCESS !== "undefined" && SESSION_ACCESS) || "").trim();
+      if (!access) {
+        throw new Error("Portal bloqueado. Ingresa la clave de acceso antes de usar la API.");
+      }
       let lastErr = null;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -1553,15 +1559,18 @@
 
       if (wasUnlocked && key && (!ACCESS_KEY || key === ACCESS_KEY)) {
         unlockUI(key);
-        return;
+        return true;
       }
 
       sessionStorage.removeItem(UNLOCK_STORAGE_FLAG);
       sessionStorage.removeItem(UNLOCK_STORAGE_KEY);
       lockUI();
+      const apiStatus = document.getElementById("api-status");
+      if (apiStatus) apiStatus.textContent = "Esperando clave de acceso";
+      return false;
     }
 
-    function tryUnlock() {
+    async function tryUnlock() {
       const input = document.getElementById("unlock-key");
       const msg = document.getElementById("unlock-msg");
       const key = (input?.value || "").trim();
@@ -1577,11 +1586,17 @@
         return;
       }
 
-      msg.textContent = "Acceso autorizado.";
+      msg.textContent = "Acceso autorizado. Conectando con Web PMR...";
       msg.className = "msg ok";
       unlockUI(key);
 
       if (input) input.value = "";
+
+      try {
+        await cargarDatos(false);
+      } catch (_) {
+        // cargarDatos administra su propio mensaje de error.
+      }
     }
 
     /***************************************************************
@@ -2675,8 +2690,11 @@
       }
 
       // --- INIT ---
-      initLock();
-      cargarDatos();
+      // No consultar la API mientras el portal esté bloqueado.
+      const sessionRestored = initLock();
+      if (sessionRestored) {
+        cargarDatos();
+      }
     });
   </script>
 </body>
